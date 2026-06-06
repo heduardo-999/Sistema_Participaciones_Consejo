@@ -6,22 +6,33 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('intervencions', function (Blueprint $table) {
+        Schema::create('intervenciones', function (Blueprint $table) {
             $table->id();
+
+            $table->foreignId('participante_id')
+                ->constrained('participantes')
+                ->cascadeOnDelete();
+
+            $table->boolean('solicita_intervencion')->default(false);
+
+            $table->time('hora_inicio')->nullable();
+            $table->time('hora_fin')->nullable();
+
+            $table->enum('status', [
+                'no intervino',
+                'aun no intervino',
+                'interviniendo',
+                'fin intervencion'
+            ])->default('aun no intervino');
+
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('intervencions');
+        Schema::dropIfExists('intervenciones');
     }
 };

@@ -6,22 +6,26 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        Schema::create('reunions', function (Blueprint $table) {
+        Schema::create('reuniones', function (Blueprint $table) {
             $table->id();
+            $table->string('sesion', 100);
+            $table->date('fecha');
+            $table->enum('status', [
+                'activa',
+                'terminada',
+                'cancelada',
+                'pospuesta'
+            ])->default('activa');
+            $table->time('hora_inicio')->nullable();
+            $table->time('hora_fin')->nullable();
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        Schema::dropIfExists('reunions');
+        Schema::dropIfExists('reuniones');
     }
 };

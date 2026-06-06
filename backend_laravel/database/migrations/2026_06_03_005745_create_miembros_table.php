@@ -6,20 +6,18 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('miembros', function (Blueprint $table) {
             $table->id();
+            $table->string('nombre', 100);
+            $table->date('fecha');
+            $table->boolean('baja')->default(false);
+            $table->string('rfid', 100)->nullable()->unique();
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('miembros');

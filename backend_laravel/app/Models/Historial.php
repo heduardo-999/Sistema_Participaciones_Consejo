@@ -7,6 +7,23 @@ use Illuminate\Database\Eloquent\Model;
 
 class Historial extends Model
 {
-    /** @use HasFactory<\Database\Factories\HistorialFactory> */
     use HasFactory;
+
+    protected $table = 'historial';
+
+    protected $fillable = [
+        'user_id',
+        'operacion',
+        'tabla',
+        'dato',
+    ];
+
+    protected $casts = [
+        'dato' => 'array',
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 }

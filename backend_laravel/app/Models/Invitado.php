@@ -7,6 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class Invitado extends Model
 {
-    /** @use HasFactory<\Database\Factories\InvitadoFactory> */
     use HasFactory;
+
+    protected $table = 'invitados';
+
+    protected $fillable = [
+        'nombre',
+        'fecha_participacion',
+    ];
+
+    public function participantes()
+    {
+        return $this->hasMany(Participante::class, 'invitado_id');
+    }
 }

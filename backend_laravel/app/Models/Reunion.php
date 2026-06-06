@@ -7,6 +7,20 @@ use Illuminate\Database\Eloquent\Model;
 
 class Reunion extends Model
 {
-    /** @use HasFactory<\Database\Factories\ReunionFactory> */
     use HasFactory;
+
+    protected $table = 'reuniones';
+
+    protected $fillable = [
+        'sesion',
+        'fecha',
+        'status',
+        'hora_inicio',
+        'hora_fin',
+    ];
+
+    public function participantes()
+    {
+        return $this->hasMany(Participante::class, 'reunion_id');
+    }
 }
