@@ -17,7 +17,8 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'CheckBaja'])->group(function () {
+
     Route::post('/logout', [AuthController::class, 'logout']);
 
     Route::apiResource('miembros', MiembroController::class);
@@ -26,4 +27,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('participantes', ParticipanteController::class);
     Route::apiResource('intervenciones', IntervencionController::class);
     Route::apiResource('historial', HistorialController::class);
+
 });

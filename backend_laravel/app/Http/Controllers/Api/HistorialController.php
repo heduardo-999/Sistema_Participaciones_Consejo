@@ -9,7 +9,7 @@ use Illuminate\Http\Request;
 
 class HistorialController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         if (!User::mySelf()->can('historial.view')) {
             return response()->json([
@@ -18,11 +18,24 @@ class HistorialController extends Controller
             ], 403);
         }
 
+        $query = Historial::with('user')
+            ->where('user_id', User::mySelf()->id);
+
+        if ($request->filled('fecha_inicio')) {
+            $query->whereDate('created_at', '>=', $request->fecha_inicio);
+        }
+
+        if ($request->filled('fecha_fin')) {
+            $query->whereDate('created_at', '<=', $request->fecha_fin);
+        }
+
+        $historial = $query
+            ->latest()
+            ->paginate(10);
+
         return response()->json([
             'success' => true,
-            'data' => Historial::with('user')
-                ->latest()
-                ->get()
+            'data' => $historial
         ]);
     }
 
@@ -35,7 +48,9 @@ class HistorialController extends Controller
             ], 403);
         }
 
-        $historial = Historial::with('user')->find($id);
+        $historial = Historial::with('user')
+            ->where('user_id', User::mySelf()->id)
+            ->find($id);
 
         if (!$historial) {
             return response()->json([

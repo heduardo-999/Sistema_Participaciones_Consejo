@@ -11,20 +11,40 @@ use Illuminate\Support\Facades\Validator;
 
 class IntervencionController extends Controller
 {
-    public function index()
-    {
-        if (!User::mySelf()->can('intervenciones.view')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No autorizado'
-            ], 403);
-        }
-
+public function index()
+{
+    if (!User::mySelf()->can('intervenciones.view')) {
         return response()->json([
-            'success' => true,
-            'data' => Intervencion::with('participante')->get()
-        ]);
+            'success' => false,
+            'message' => 'No autorizado'
+        ], 403);
     }
+
+    return response()->json([
+        'success' => true,
+        'data' => Intervencion::with([
+                'participante.miembro',
+                'participante.invitado',
+                'participante.reunion'
+            ])
+            ->where(function ($query) {
+                $query->where('status', 'interviniendo')
+                    ->orWhere(function ($subQuery) {
+                        $subQuery->where('status', 'aun no intervino')
+                            ->where('solicita_intervencion', true);
+                    });
+            })
+            ->orderByRaw("
+                CASE 
+                    WHEN status = 'interviniendo' THEN 1
+                    WHEN status = 'aun no intervino' THEN 2
+                    ELSE 3
+                END
+            ")
+            ->orderBy('created_at', 'asc')
+            ->get()
+    ]);
+}
 
     public function store(Request $request)
     {
