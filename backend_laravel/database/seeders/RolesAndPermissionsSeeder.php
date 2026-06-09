@@ -5,12 +5,13 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\PermissionRegistrar;
 
 class RolesAndPermissionsSeeder extends Seeder
 {
     public function run(): void
     {
-        app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
         $superAdmin = Role::firstOrCreate(['name' => 'super admin']);
         $admin = Role::firstOrCreate(['name' => 'admin']);
@@ -35,20 +36,71 @@ class RolesAndPermissionsSeeder extends Seeder
 
         foreach ($modulos as $modulo) {
             foreach ($acciones as $accion) {
-                $permiso = Permission::firstOrCreate([
+                Permission::firstOrCreate([
                     'name' => "{$modulo}.{$accion}",
                 ]);
-
-                $permiso->syncRoles([$superAdmin]);
-
-                if ($accion !== 'delete') {
-                    $permiso->assignRole($admin);
-                }
-
-                if ($accion === 'view') {
-                    $permiso->assignRole($moderador);
-                }
             }
         }
+
+        $superAdmin->syncPermissions(Permission::all());
+
+        $admin->syncPermissions([
+            'users.view',
+            'users.create',
+            'users.edit',
+            'users.delete',
+
+            'miembros.view',
+            'miembros.create',
+            'miembros.edit',
+            'miembros.delete',
+
+            'invitados.view',
+            'invitados.create',
+            'invitados.edit',
+            'invitados.delete',
+
+            'reuniones.view',
+            'reuniones.create',
+            'reuniones.edit',
+            'reuniones.delete',
+
+            'participantes.view',
+            'participantes.create',
+            'participantes.edit',
+            'participantes.delete',
+
+            'intervenciones.view',
+            'intervenciones.create',
+            'intervenciones.edit',
+            'intervenciones.delete',
+
+            'historial.view',
+        ]);
+
+        $moderador->syncPermissions([
+            'miembros.view',
+            'miembros.create',
+            'miembros.edit',
+            'miembros.delete',
+
+            'invitados.view',
+            'invitados.create',
+            'invitados.edit',
+            'invitados.delete',
+
+            'reuniones.view',
+            'reuniones.create',
+            'reuniones.edit',
+            'reuniones.delete',
+
+            'intervenciones.view',
+            'intervenciones.create',
+            'intervenciones.edit',
+            'intervenciones.delete',
+
+            'participantes.view',
+            'historial.view',
+        ]);
     }
 }

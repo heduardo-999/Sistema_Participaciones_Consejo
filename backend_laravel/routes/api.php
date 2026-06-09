@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\ReunionController;
 use App\Http\Controllers\Api\ParticipanteController;
 use App\Http\Controllers\Api\IntervencionController;
 use App\Http\Controllers\Api\HistorialController;
+use App\Http\Controllers\Api\UserController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -27,5 +28,6 @@ Route::middleware(['auth:sanctum', 'CheckBaja'])->group(function () {
     Route::apiResource('participantes', ParticipanteController::class);
     Route::apiResource('intervenciones', IntervencionController::class);
     Route::apiResource('historial', HistorialController::class);
+    Route::apiResource('users', UserController::class);
 
 });
