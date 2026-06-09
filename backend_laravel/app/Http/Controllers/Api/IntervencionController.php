@@ -23,24 +23,14 @@ public function index()
     return response()->json([
         'success' => true,
         'data' => Intervencion::with([
-                'participante.miembro',
-                'participante.invitado',
-                'participante.reunion'
+                'participante:id,miembro_id,invitado_id,reunion_id,fecha,status',
+                'participante.miembro:id,nombre,rfid,baja',
+                'participante.invitado:id,nombre,fecha_participacion',
+                'participante.reunion:id,sesion,fecha,status,hora_inicio,hora_fin',
             ])
-            ->where(function ($query) {
-                $query->where('status', 'interviniendo')
-                    ->orWhere(function ($subQuery) {
-                        $subQuery->where('status', 'aun no intervino')
-                            ->where('solicita_intervencion', true);
-                    });
-            })
-            ->orderByRaw("
-                CASE 
-                    WHEN status = 'interviniendo' THEN 1
-                    WHEN status = 'aun no intervino' THEN 2
-                    ELSE 3
-                END
-            ")
+            ->where('solicita_intervencion', true)
+            ->whereIn('status', ['aun no intervino', 'interviniendo'])
+            ->orderByRaw("FIELD(status, 'interviniendo', 'aun no intervino')")
             ->orderBy('created_at', 'asc')
             ->get()
     ]);

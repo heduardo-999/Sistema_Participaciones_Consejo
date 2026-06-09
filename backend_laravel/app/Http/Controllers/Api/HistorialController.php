@@ -18,8 +18,11 @@ class HistorialController extends Controller
             ], 403);
         }
 
-        $query = Historial::with('user')
-            ->where('user_id', User::mySelf()->id);
+        $query = Historial::with('user');
+
+        if ($request->filled('user_id')) {
+            $query->where('user_id', $request->user_id);
+        }
 
         if ($request->filled('fecha_inicio')) {
             $query->whereDate('created_at', '>=', $request->fecha_inicio);
@@ -29,17 +32,13 @@ class HistorialController extends Controller
             $query->whereDate('created_at', '<=', $request->fecha_fin);
         }
 
-        $historial = $query
-            ->latest()
-            ->paginate(10);
-
         return response()->json([
             'success' => true,
-            'data' => $historial
+            'data' => $query->latest()->paginate(10)
         ]);
     }
 
-    public function show(string $id)
+    public function show(Request $request, string $user_id)
     {
         if (!User::mySelf()->can('historial.view')) {
             return response()->json([
@@ -48,20 +47,20 @@ class HistorialController extends Controller
             ], 403);
         }
 
-        $historial = Historial::with('user')
-            ->where('user_id', User::mySelf()->id)
-            ->find($id);
+        $query = Historial::with('user')
+            ->where('user_id', $user_id);
 
-        if (!$historial) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Historial no encontrado'
-            ], 404);
+        if ($request->filled('fecha_inicio')) {
+            $query->whereDate('created_at', '>=', $request->fecha_inicio);
+        }
+
+        if ($request->filled('fecha_fin')) {
+            $query->whereDate('created_at', '<=', $request->fecha_fin);
         }
 
         return response()->json([
             'success' => true,
-            'data' => $historial
+            'data' => $query->latest()->paginate(10)
         ]);
     }
 
