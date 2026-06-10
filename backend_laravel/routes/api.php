@@ -11,6 +11,9 @@ use App\Http\Controllers\Api\ParticipanteController;
 use App\Http\Controllers\Api\IntervencionController;
 use App\Http\Controllers\Api\HistorialController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\LugarController;
+use App\Http\Controllers\Api\LugarAsignadoController;
+use App\Http\Controllers\Api\MenuController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -29,5 +32,23 @@ Route::middleware(['auth:sanctum', 'CheckBaja'])->group(function () {
     Route::apiResource('intervenciones', IntervencionController::class);
     Route::apiResource('historial', HistorialController::class);
     Route::apiResource('users', UserController::class);
+    Route::apiResource('lugares', LugarController::class);
+    Route::apiResource('lugares-asignados', LugarAsignadoController::class);
+    Route::get('/me/menu', [MenuController::class, 'myMenu']);
+
+Route::put(
+    '/lugares-asignados/{id}/ausente',
+    [LugarAsignadoController::class, 'marcarAusente']
+);
+
+Route::put(
+    '/lugares-asignados/{id}/liberar',
+    [LugarAsignadoController::class, 'liberar']
+);
+
+Route::put(
+    '/lugares-asignados/{id}/reiniciar-temporizador',
+    [LugarAsignadoController::class, 'reiniciarTemporizador']
+);
 
 });

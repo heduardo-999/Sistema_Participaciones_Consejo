@@ -29,6 +29,7 @@ return new class extends Migration
 
             $table->enum('status', [
                 'presente',
+                'ausente',
                 'retirado'
             ])->default('presente');
 

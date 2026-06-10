@@ -38,4 +38,9 @@ class Participante extends Model
     {
         return $this->hasMany(Intervencion::class, 'participante_id');
     }
+
+    public function lugarAsignado()
+    {
+        return $this->hasOne(LugarAsignado::class);
+    }
 }

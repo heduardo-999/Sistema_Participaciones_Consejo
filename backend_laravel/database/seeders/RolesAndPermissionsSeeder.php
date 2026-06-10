@@ -25,6 +25,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'participantes',
             'intervenciones',
             'historial',
+            'lugares',
+            'lugares_asignados',
         ];
 
         $acciones = [
@@ -76,6 +78,16 @@ class RolesAndPermissionsSeeder extends Seeder
             'intervenciones.delete',
 
             'historial.view',
+
+            'lugares.view',
+            'lugares.create',
+            'lugares.edit',
+            'lugares.delete',
+
+            'lugares_asignados.view',
+            'lugares_asignados.create',
+            'lugares_asignados.edit',
+            'lugares_asignados.delete',
         ]);
 
         $moderador->syncPermissions([
@@ -101,6 +113,12 @@ class RolesAndPermissionsSeeder extends Seeder
 
             'participantes.view',
             'historial.view',
+
+            'lugares.view',
+
+            'lugares_asignados.view',
+            'lugares_asignados.create',
+            'lugares_asignados.edit',
         ]);
     }
 }
