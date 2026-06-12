@@ -14,6 +14,8 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\LugarController;
 use App\Http\Controllers\Api\LugarAsignadoController;
 use App\Http\Controllers\Api\MenuController;
+use App\Http\Controllers\Api\QrAccessController;
+use App\Http\Controllers\Api\DashboardController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -25,6 +27,20 @@ Route::middleware(['auth:sanctum', 'CheckBaja'])->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
 
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::get('/me/menu', [MenuController::class, 'myMenu']);
+
+    Route::get('/lugares/resumen', [LugarController::class, 'resumen']);
+    Route::get('/lugares/mapa', [LugarController::class, 'mapa']);
+
+    Route::put('/lugares-asignados/{id}/ausente', [LugarAsignadoController::class, 'marcarAusente']);
+    Route::put('/lugares-asignados/{id}/liberar', [LugarAsignadoController::class, 'liberar']);
+    Route::put('/lugares-asignados/{id}/reiniciar-temporizador', [LugarAsignadoController::class, 'reiniciarTemporizador']);
+
+    Route::post('/qr/generar', [QrAccessController::class, 'generar']);
+    Route::post('/qr/validar', [QrAccessController::class, 'validar']);
+    Route::post('/qr/interaccion', [QrAccessController::class, 'interaccion']);
+
     Route::apiResource('miembros', MiembroController::class);
     Route::apiResource('invitados', InvitadoController::class);
     Route::apiResource('reuniones', ReunionController::class);
@@ -34,21 +50,4 @@ Route::middleware(['auth:sanctum', 'CheckBaja'])->group(function () {
     Route::apiResource('users', UserController::class);
     Route::apiResource('lugares', LugarController::class);
     Route::apiResource('lugares-asignados', LugarAsignadoController::class);
-    Route::get('/me/menu', [MenuController::class, 'myMenu']);
-
-Route::put(
-    '/lugares-asignados/{id}/ausente',
-    [LugarAsignadoController::class, 'marcarAusente']
-);
-
-Route::put(
-    '/lugares-asignados/{id}/liberar',
-    [LugarAsignadoController::class, 'liberar']
-);
-
-Route::put(
-    '/lugares-asignados/{id}/reiniciar-temporizador',
-    [LugarAsignadoController::class, 'reiniciarTemporizador']
-);
-
 });
