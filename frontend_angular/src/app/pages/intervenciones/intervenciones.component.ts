@@ -1,0 +1,5 @@
+import { Component, OnInit, signal } from '@angular/core';
+import { ApiService } from '../../core/services/api.service';
+import { StatusBadgeComponent } from '../../shared/components/ui/status-badge.component';
+@Component({selector:'app-intervenciones',standalone:true,imports:[StatusBadgeComponent],templateUrl:'./intervenciones.component.html'})
+export class IntervencionesComponent implements OnInit{ items=signal<any[]>([]); constructor(private api:ApiService){} async ngOnInit(){await this.load();} async load(){const r:any=await this.api.get('/intervenciones').catch(()=>[]); this.items.set((r.data||r||[]).filter((x:any)=>['aun no intervino','interviniendo'].includes(x.status)).sort((a:any,b:any)=>a.status.localeCompare(b.status)));} async iniciar(i:any){await this.api.put(`/intervenciones/${i.id}`,{status:'interviniendo',hora_inicio:new Date().toTimeString().slice(0,8)}); await this.load();} async finalizar(i:any){await this.api.put(`/intervenciones/${i.id}`,{status:'finalizada',hora_fin:new Date().toTimeString().slice(0,8),solicita_intervencion:false}); await this.load();}}

@@ -19,15 +19,28 @@ use App\Http\Controllers\Api\DashboardController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
-
 Route::middleware(['auth:sanctum', 'CheckBaja'])->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout']);
 
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
+
+    Route::get('/me', function (Request $request) {
+        $user = $request->user();
+
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'roles' => $user->getRoleNames(),
+            'menus' => app(MenuController::class)->myMenu($request)->getData(),
+        ]);
+    });
+
     Route::get('/dashboard', [DashboardController::class, 'index']);
+
     Route::get('/me/menu', [MenuController::class, 'myMenu']);
 
     Route::get('/lugares/resumen', [LugarController::class, 'resumen']);

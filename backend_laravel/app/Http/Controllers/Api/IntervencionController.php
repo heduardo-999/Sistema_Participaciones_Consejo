@@ -102,61 +102,59 @@ public function index()
         ]);
     }
 
-    public function update(Request $request, string $id)
-    {
-        if (!User::mySelf()->can('intervenciones.edit')) {
-            return response()->json([
-                'success' => false,
-                'message' => 'No autorizado'
-            ], 403);
-        }
-
-        $intervencion = Intervencion::find($id);
-
-        if (!$intervencion) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Intervención no encontrada'
-            ], 404);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'participante_id' => 'required|exists:participantes,id',
-            'solicita_intervencion' => 'required|boolean',
-            'hora_inicio' => 'nullable|date_format:H:i',
-            'hora_fin' => 'nullable|date_format:H:i',
-            'status' => 'required|in:no intervino,aun no intervino,interviniendo,fin intervencion',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $antes = $intervencion->toArray();
-
-        $intervencion->update(
-            $validator->validated()
-        );
-
-        Historial::create([
-            'user_id' => User::mySelf()->id,
-            'operacion' => 'Actualizar intervención',
-            'tabla' => 'intervenciones',
-            'dato' => [
-                'antes' => $antes,
-                'despues' => $intervencion->toArray(),
-            ],
-        ]);
-
+public function update(Request $request, string $id)
+{
+    if (!User::mySelf()->can('intervenciones.edit')) {
         return response()->json([
-            'success' => true,
-            'message' => 'Intervención actualizada correctamente',
-            'data' => $intervencion
-        ]);
+            'success' => false,
+            'message' => 'No autorizado'
+        ], 403);
     }
+
+    $intervencion = Intervencion::find($id);
+
+    if (!$intervencion) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Intervención no encontrada'
+        ], 404);
+    }
+
+    $validator = Validator::make($request->all(), [
+        'participante_id' => 'sometimes|exists:participantes,id',
+        'solicita_intervencion' => 'sometimes|boolean',
+        'hora_inicio' => 'nullable|date_format:H:i:s',
+        'hora_fin' => 'nullable|date_format:H:i:s',
+        'status' => 'sometimes|in:no intervino,aun no intervino,interviniendo,fin intervencion',
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'success' => false,
+            'errors' => $validator->errors()
+        ], 422);
+    }
+
+    $antes = $intervencion->toArray();
+
+    $intervencion->update($validator->validated());
+
+    Historial::create([
+        'user_id' => User::mySelf()->id,
+        'operacion' => 'Actualizar intervención',
+        'tabla' => 'intervenciones',
+        'dato' => [
+            'antes' => $antes,
+            'despues' => $intervencion->toArray(),
+        ],
+    ]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Intervención actualizada correctamente',
+        'data' => $intervencion
+    ]);
+}
 
     public function destroy(string $id)
     {

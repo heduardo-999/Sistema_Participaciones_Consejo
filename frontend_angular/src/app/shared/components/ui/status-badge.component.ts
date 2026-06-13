@@ -1,0 +1,3 @@
+import { Component, Input } from '@angular/core';
+@Component({ selector:'app-status-badge', standalone:true, template:`<span class="badge" [class]="klass">{{ value }}</span>` })
+export class StatusBadgeComponent { @Input() value=''; get klass(){ const v=this.value?.toLowerCase(); if(['presente','funcional','disponible','activo','conectado'].includes(v)) return 'bg-green-100 text-green-700'; if(['mantenimiento','pendiente','ausente'].includes(v)) return 'bg-yellow-100 text-yellow-800'; if(['dañada','error','baja','retirado'].includes(v)) return 'bg-red-100 text-red-700'; if(['ocupado','interviniendo'].includes(v)) return 'bg-blue-100 text-blue-700'; return 'bg-slate-100 text-slate-700'; }}
