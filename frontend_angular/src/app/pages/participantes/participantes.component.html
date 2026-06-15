@@ -1,1 +1,470 @@
-<section class="space-y-5"><div class="flex flex-col justify-between gap-3 md:flex-row md:items-center"><div><h2 class="text-2xl font-black">Participantes</h2><p class="text-sm text-slate-500">Gestión institucional del módulo.</p></div><button class="btn-primary" (click)="open()">Crear</button></div><div class="card"><div class="flex gap-3"><input class="input" placeholder="Buscar..." [(ngModel)]="q" (keyup.enter)="load()"><button class="btn-secondary" (click)="load()">Buscar</button></div></div><div class="table-wrap"><table class="w-full"><thead><tr><th class="th">Miembro o invitado</th><th class="th">RFID</th><th class="th">Reunión</th><th class="th">Estado</th><th class="th">Acciones</th></tr></thead><tbody>@for(item of items(); track item.id){<tr><td class="td font-semibold">{{item.miembro?.nombre || item.invitado?.nombre || item.nombre}}</td><td class="td">{{item.miembro?.rfid || item.rfid}}</td><td class="td">{{item.reunion?.titulo || item.reunion}}</td><td class="td"><app-status-badge [value]="item.status || item.estado" /></td><td class="td"><button class="btn-secondary mr-2" (click)="open(item)">Editar</button><button class="btn-danger" (click)="remove(item.id)">Eliminar</button></td></tr>} @empty {<tr><td class="td text-center text-slate-500" colspan="8">Sin registros</td></tr>}</tbody></table></div>@if(modal){<div class="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4"><form class="card w-full max-w-xl" (ngSubmit)="save()"><h3 class="text-xl font-black">{{editing?'Editar':'Crear'}} Participantes</h3><div class="mt-4 grid gap-4 md:grid-cols-2"><ng-content></ng-content><label><span class="label">Nombre/Título</span><input class="input" [(ngModel)]="form.nombre" name="nombre"></label><label><span class="label">Correo/Fecha</span><input class="input" [(ngModel)]="form.email" name="email"></label><label><span class="label">Estado</span><input class="input" [(ngModel)]="form.estado" name="estado"></label></div><div class="mt-6 flex justify-end gap-2"><button type="button" class="btn-secondary" (click)="modal=false">Cancelar</button><button class="btn-primary">Guardar</button></div></form></div>}</section>
+<section class="space-y-6">
+  <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div>
+      <p class="text-sm font-black uppercase tracking-widest text-rose-600 dark:text-rose-400">
+        Control de asistencia
+      </p>
+
+      <h2 class="text-3xl font-black text-slate-900 dark:text-white">
+        Participantes
+      </h2>
+
+      <p class="text-sm text-slate-500 dark:text-slate-400">
+        Solo se muestran participantes de reuniones activas.
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white shadow hover:bg-rose-700 transition"
+      (click)="open()"
+    >
+      + Nuevo participante
+    </button>
+  </div>
+
+  @if (error()) {
+    <div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+      {{ error() }}
+    </div>
+  }
+
+  <div class="grid gap-4 md:grid-cols-4">
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <p class="text-sm font-bold text-slate-500 dark:text-slate-400">Total activos</p>
+      <p class="mt-2 text-4xl font-black text-slate-900 dark:text-white">{{ total() }}</p>
+    </div>
+
+    <div class="rounded-2xl border border-green-200 bg-green-50 p-5 shadow-sm dark:border-green-900/40 dark:bg-green-950/20">
+      <p class="text-sm font-bold text-green-700 dark:text-green-300">Presentes</p>
+      <p class="mt-2 text-4xl font-black text-green-700 dark:text-green-300">{{ presentes() }}</p>
+    </div>
+
+    <div class="rounded-2xl border border-yellow-200 bg-yellow-50 p-5 shadow-sm dark:border-yellow-900/40 dark:bg-yellow-950/20">
+      <p class="text-sm font-bold text-yellow-700 dark:text-yellow-300">Ausentes</p>
+      <p class="mt-2 text-4xl font-black text-yellow-700 dark:text-yellow-300">{{ ausentes() }}</p>
+    </div>
+
+    <div class="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm dark:border-red-900/40 dark:bg-red-950/20">
+      <p class="text-sm font-bold text-red-700 dark:text-red-300">Retirados</p>
+      <p class="mt-2 text-4xl font-black text-red-700 dark:text-red-300">{{ retirados() }}</p>
+    </div>
+  </div>
+
+  <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div class="grid gap-3 lg:grid-cols-[1fr_220px_260px_auto_auto]">
+      <input
+        class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+        placeholder="Buscar por nombre, RFID, reunión o estado..."
+        [(ngModel)]="q"
+      />
+
+      <select
+        class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+        [(ngModel)]="filtroStatus"
+      >
+        @for (estado of estados; track estado.value) {
+          <option [value]="estado.value">{{ estado.label }}</option>
+        }
+      </select>
+
+      <select
+        class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+        [(ngModel)]="filtroReunion"
+      >
+        <option value="">Todas las reuniones activas</option>
+        @for (reunion of reuniones(); track reunion.id) {
+          <option [value]="reunion.id">{{ reunion.sesion }}</option>
+        }
+      </select>
+
+      <button
+        type="button"
+        class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600"
+        (click)="load()"
+        [disabled]="loading()"
+      >
+        {{ loading() ? 'Buscando...' : 'Buscar' }}
+      </button>
+
+      <button
+        type="button"
+        class="rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+        (click)="limpiarFiltros()"
+      >
+        Limpiar
+      </button>
+    </div>
+  </div>
+
+  <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[1180px]">
+        <thead class="bg-slate-50 dark:bg-slate-950">
+          <tr>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Participante</th>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Tipo</th>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">RFID</th>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Reunión</th>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Fecha</th>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Estado</th>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">QR</th>
+            <th class="px-5 py-4 text-right text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Acciones</th>
+          </tr>
+        </thead>
+
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          @for (item of items(); track item.id) {
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-950/60">
+              <td class="px-5 py-4">
+                <p class="font-black text-slate-900 dark:text-white">
+                  {{ nombreParticipante(item) }}
+                </p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                  ID participante: {{ item.id }}
+                </p>
+              </td>
+
+              <td class="px-5 py-4 text-sm font-bold text-slate-700 dark:text-slate-300">
+                {{ tipoParticipante(item) }}
+              </td>
+
+              <td class="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
+                {{ rfidParticipante(item) }}
+              </td>
+
+              <td class="px-5 py-4 text-sm font-bold text-slate-700 dark:text-slate-300">
+                {{ nombreReunion(item) }}
+              </td>
+
+              <td class="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
+                {{ formatDate(item.fecha) }}
+              </td>
+
+              <td class="px-5 py-4">
+                <span class="rounded-full px-3 py-1 text-xs font-black" [class]="badgeClass(item.status)">
+                  {{ statusLabel(item.status) }}
+                </span>
+              </td>
+
+              <td class="px-5 py-4">
+                <button
+                  type="button"
+                  class="rounded-xl bg-blue-100 px-4 py-2 text-xs font-black text-blue-700 hover:bg-blue-200 disabled:opacity-50 dark:bg-blue-950/40 dark:text-blue-300 dark:hover:bg-blue-950"
+                  (click)="generarQr(item)"
+                  [disabled]="item.status === 'retirado' || saving()"
+                >
+                  Generar QR
+                </button>
+              </td>
+
+              <td class="px-5 py-4">
+                <div class="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    class="rounded-xl bg-slate-100 px-4 py-2 text-xs font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                    (click)="open(item)"
+                  >
+                    Editar
+                  </button>
+
+                  <button
+                    type="button"
+                    class="rounded-xl bg-yellow-100 px-4 py-2 text-xs font-black text-yellow-700 hover:bg-yellow-200 disabled:opacity-50 dark:bg-yellow-950/40 dark:text-yellow-300 dark:hover:bg-yellow-950"
+                    (click)="marcarRetirado(item)"
+                    [disabled]="item.status === 'retirado'"
+                  >
+                    Retirar
+                  </button>
+
+                  <button
+                    type="button"
+                    class="rounded-xl bg-red-100 px-4 py-2 text-xs font-black text-red-700 hover:bg-red-200 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950"
+                    (click)="remove(item.id)"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="8" class="px-5 py-12 text-center text-slate-500 dark:text-slate-400">
+                No hay participantes en reuniones activas que coincidan con los filtros.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  @if (modal) {
+    <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-4">
+      <form
+        class="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
+        (ngSubmit)="save()"
+      >
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h3 class="text-2xl font-black text-slate-900 dark:text-white">
+              {{ editing ? 'Editar participante' : 'Crear participante' }}
+            </h3>
+
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+              Asigna un miembro o invitado a una reunión activa.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            class="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+            (click)="close()"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="mt-6 grid gap-4 md:grid-cols-2">
+          <label class="md:col-span-2">
+            <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
+              Tipo de participante
+            </span>
+
+            <div class="mt-2 grid gap-3 md:grid-cols-2">
+              <button
+                type="button"
+                class="rounded-xl border px-4 py-3 text-sm font-black transition"
+                [class.border-rose-500]="form.tipo === 'miembro'"
+                [class.bg-rose-50]="form.tipo === 'miembro'"
+                [class.text-rose-700]="form.tipo === 'miembro'"
+                [class.dark:bg-rose-950]="form.tipo === 'miembro'"
+                [class.dark:text-rose-300]="form.tipo === 'miembro'"
+                [class.border-slate-200]="form.tipo !== 'miembro'"
+                [class.dark:border-slate-700]="form.tipo !== 'miembro'"
+                (click)="cambiarTipo('miembro')"
+              >
+                Miembro
+              </button>
+
+              <button
+                type="button"
+                class="rounded-xl border px-4 py-3 text-sm font-black transition"
+                [class.border-rose-500]="form.tipo === 'invitado'"
+                [class.bg-rose-50]="form.tipo === 'invitado'"
+                [class.text-rose-700]="form.tipo === 'invitado'"
+                [class.dark:bg-rose-950]="form.tipo === 'invitado'"
+                [class.dark:text-rose-300]="form.tipo === 'invitado'"
+                [class.border-slate-200]="form.tipo !== 'invitado'"
+                [class.dark:border-slate-700]="form.tipo !== 'invitado'"
+                (click)="cambiarTipo('invitado')"
+              >
+                Invitado
+              </button>
+            </div>
+          </label>
+
+          @if (form.tipo === 'miembro') {
+            <label class="md:col-span-2">
+              <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
+                Miembro
+              </span>
+
+              <select
+                class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                [(ngModel)]="form.miembro_id"
+                name="miembro_id"
+              >
+                <option value="">Selecciona un miembro</option>
+                @for (miembro of miembros(); track miembro.id) {
+                  <option [value]="miembro.id">
+                    {{ miembro.nombre }} - {{ miembro.rfid }}
+                  </option>
+                }
+              </select>
+            </label>
+          }
+
+          @if (form.tipo === 'invitado') {
+            <label class="md:col-span-2">
+              <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
+                Invitado
+              </span>
+
+              <select
+                class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                [(ngModel)]="form.invitado_id"
+                name="invitado_id"
+              >
+                <option value="">Selecciona un invitado</option>
+                @for (invitado of invitados(); track invitado.id) {
+                  <option [value]="invitado.id">
+                    {{ invitado.nombre }}
+                  </option>
+                }
+              </select>
+            </label>
+          }
+
+          <label class="md:col-span-2">
+            <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
+              Reunión activa
+            </span>
+
+            <select
+              class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              [(ngModel)]="form.reunion_id"
+              name="reunion_id"
+              required
+            >
+              <option value="">Selecciona una reunión activa</option>
+              @for (reunion of reuniones(); track reunion.id) {
+                <option [value]="reunion.id">
+                  {{ reunion.sesion }} - {{ formatDate(reunion.fecha) }}
+                </option>
+              }
+            </select>
+          </label>
+
+          <div class="md:col-span-2 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
+            Fecha asignada automáticamente:
+            {{ form.reunion_id ? formatDate(obtenerFechaReunion(form.reunion_id)) : 'Selecciona una reunión' }}
+          </div>
+
+          <label class="md:col-span-2">
+            <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
+              Estado
+            </span>
+
+            <select
+              class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              [(ngModel)]="form.status"
+              name="status"
+              required
+            >
+              <option value="presente">Presente</option>
+              <option value="retirado">Retirado</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="mt-8 flex justify-end gap-3">
+          <button
+            type="button"
+            class="rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
+            (click)="close()"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="submit"
+            class="rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-700 disabled:opacity-50"
+            [disabled]="saving()"
+          >
+            {{ saving() ? 'Guardando...' : 'Guardar participante' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+
+  @if (qrModal) {
+    <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-4">
+      <div class="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="text-sm font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">
+              Acceso temporal
+            </p>
+
+            <h3 class="text-2xl font-black text-slate-900 dark:text-white">
+              QR generado correctamente
+            </h3>
+
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+              Esta URL solo funciona para este participante y mientras la reunión siga activa.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            class="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+            (click)="cerrarQr()"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="mt-6 space-y-4">
+          @if (qrImage) {
+            <div class="flex justify-center">
+              <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700">
+                <img
+                  [src]="qrImage"
+                  alt="QR temporal"
+                  class="h-72 w-72 object-contain"
+                />
+              </div>
+            </div>
+          }
+
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+            <p class="text-xs font-bold text-slate-500 dark:text-slate-400">Participante</p>
+            <p class="mt-1 text-xl font-black text-slate-900 dark:text-white">
+              {{ qrData?.participante?.nombre }}
+            </p>
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+              {{ qrData?.participante?.tipo }} · {{ qrData?.participante?.status }}
+            </p>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+            <p class="text-xs font-bold text-slate-500 dark:text-slate-400">Expira</p>
+            <p class="mt-1 font-black text-slate-900 dark:text-white">
+              {{ formatDateTime(qrData?.expires_at) }}
+            </p>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+            <p class="text-xs font-bold text-slate-500 dark:text-slate-400">
+              URL de acceso temporal
+            </p>
+
+            <p class="mt-2 break-all text-xs font-mono text-blue-600 dark:text-blue-300">
+              {{ qrData?.url }}
+            </p>
+          </div>
+
+        </div>
+
+        <div class="mt-8 flex flex-wrap justify-end gap-3">
+
+          <button
+            type="button"
+            class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white hover:bg-blue-700"
+            (click)="copiarUrl()"
+          >
+            Copiar URL
+          </button>
+
+          <a
+            [href]="qrData?.url"
+            target="_blank"
+            class="rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-700"
+          >
+            Abrir ESP32 Virtual
+          </a>
+
+          <button
+            type="button"
+            class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700"
+            (click)="cerrarQr()"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</section>

@@ -54,6 +54,7 @@ Route::middleware(['auth:sanctum', 'CheckBaja'])->group(function () {
     Route::post('/qr/validar', [QrAccessController::class, 'validar']);
     Route::post('/qr/interaccion', [QrAccessController::class, 'interaccion']);
 
+    Route::put('miembros/{id}/reactivar', [MiembroController::class, 'reactivar']);
     Route::apiResource('miembros', MiembroController::class);
     Route::apiResource('invitados', InvitadoController::class);
     Route::apiResource('reuniones', ReunionController::class);

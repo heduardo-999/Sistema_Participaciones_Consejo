@@ -279,7 +279,7 @@ class LugarAsignadoController extends Controller
             'tabla' => 'participantes',
             'dato' => [
                 'antes' => $antes,
-                'despues' => $participante->toArray(),
+                'despues' => $participante->fresh()->toArray(),
                 'lugar_asignado_id' => $asignacion->id,
             ],
         ]);
@@ -338,7 +338,10 @@ class LugarAsignadoController extends Controller
             ], 403);
         }
 
-        $asignacion = LugarAsignado::with('participante')->find($id);
+        $asignacion = LugarAsignado::with([
+            'participante',
+            'lugar'
+        ])->find($id);
 
         if (!$asignacion) {
             return response()->json([
@@ -348,12 +351,22 @@ class LugarAsignadoController extends Controller
         }
 
         $participante = $asignacion->participante;
+
+        if (!$participante) {
+            return response()->json([
+                'success' => false,
+                'message' => 'La asignación no tiene participante vinculado'
+            ], 422);
+        }
+
         $antesParticipante = $participante->toArray();
         $antesAsignacion = $asignacion->toArray();
 
         $participante->update([
-            'status' => 'retirado'
+            'status' => 'ausente'
         ]);
+
+        $participanteDespues = $participante->fresh()->toArray();
 
         $asignacion->delete();
 
@@ -364,13 +377,18 @@ class LugarAsignadoController extends Controller
             'dato' => [
                 'asignacion' => $antesAsignacion,
                 'participante_antes' => $antesParticipante,
-                'participante_despues' => $participante->toArray(),
+                'participante_despues' => $participanteDespues,
+                'nota' => 'El participante queda ausente al retirar/liberar RFID del lugar.',
             ],
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Lugar liberado correctamente'
+            'message' => 'Lugar liberado correctamente. El participante quedó como ausente.',
+            'data' => [
+                'participante' => $participanteDespues,
+                'asignacion_eliminada' => $antesAsignacion,
+            ],
         ]);
     }
 

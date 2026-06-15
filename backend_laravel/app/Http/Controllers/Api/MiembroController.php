@@ -3,47 +3,49 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Miembro;
 use App\Models\Historial;
+use App\Models\Miembro;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class MiembroController extends Controller
 {
     public function index()
     {
         if (!User::mySelf()->can('miembros.view')) {
-            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+            return response()->json([
+                'success' => false,
+                'message' => 'No autorizado'
+            ], 403);
         }
 
         return response()->json([
             'success' => true,
-            'data' => Miembro::where('baja', 0)->get()
+            'data' => Miembro::orderBy('baja')->orderBy('nombre')->get()
         ]);
     }
 
     public function store(Request $request)
     {
         if (!User::mySelf()->can('miembros.create')) {
-            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+            return response()->json([
+                'success' => false,
+                'message' => 'No autorizado'
+            ], 403);
         }
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'nombre' => 'required|string|max:100',
             'fecha' => 'required|date',
-            'rfid' => 'nullable|string|max:100|unique:miembros,rfid',
+            'rfid' => 'required|string|max:100|unique:miembros,rfid',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
-        }
-
         $miembro = Miembro::create([
-            'nombre' => $request->nombre,
-            'fecha' => $request->fecha,
+            'nombre' => $validated['nombre'],
+            'fecha' => $validated['fecha'],
+            'rfid' => $validated['rfid'],
             'baja' => 0,
-            'rfid' => $request->rfid,
         ]);
 
         Historial::create([
@@ -63,46 +65,62 @@ class MiembroController extends Controller
     public function show(string $id)
     {
         if (!User::mySelf()->can('miembros.view')) {
-            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+            return response()->json([
+                'success' => false,
+                'message' => 'No autorizado'
+            ], 403);
         }
 
         $miembro = Miembro::find($id);
 
-        if (!$miembro || $miembro->baja == 1) {
-            return response()->json(['success' => false, 'message' => 'Miembro no encontrado'], 404);
+        if (!$miembro) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Miembro no encontrado'
+            ], 404);
         }
 
-        return response()->json(['success' => true, 'data' => $miembro]);
+        return response()->json([
+            'success' => true,
+            'data' => $miembro
+        ]);
     }
 
     public function update(Request $request, string $id)
     {
         if (!User::mySelf()->can('miembros.edit')) {
-            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+            return response()->json([
+                'success' => false,
+                'message' => 'No autorizado'
+            ], 403);
         }
 
         $miembro = Miembro::find($id);
 
-        if (!$miembro || $miembro->baja == 1) {
-            return response()->json(['success' => false, 'message' => 'Miembro no encontrado'], 404);
+        if (!$miembro) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Miembro no encontrado'
+            ], 404);
         }
 
-        $validator = Validator::make($request->all(), [
+        $validated = $request->validate([
             'nombre' => 'required|string|max:100',
             'fecha' => 'required|date',
-            'rfid' => 'nullable|string|max:100|unique:miembros,rfid,' . $miembro->id,
+            'rfid' => [
+                'required',
+                'string',
+                'max:100',
+                Rule::unique('miembros', 'rfid')->ignore($miembro->id),
+            ],
         ]);
-
-        if ($validator->fails()) {
-            return response()->json(['success' => false, 'errors' => $validator->errors()], 422);
-        }
 
         $antes = $miembro->toArray();
 
         $miembro->update([
-            'nombre' => $request->nombre,
-            'fecha' => $request->fecha,
-            'rfid' => $request->rfid,
+            'nombre' => $validated['nombre'],
+            'fecha' => $validated['fecha'],
+            'rfid' => $validated['rfid'],
         ]);
 
         Historial::create([
@@ -111,32 +129,83 @@ class MiembroController extends Controller
             'tabla' => 'miembros',
             'dato' => [
                 'antes' => $antes,
-                'despues' => $miembro->toArray(),
+                'despues' => $miembro->fresh()->toArray(),
             ],
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Miembro actualizado correctamente',
-            'data' => $miembro
+            'data' => $miembro->fresh()
+        ]);
+    }
+
+    public function reactivar(string $id)
+    {
+        $user = User::mySelf();
+
+        if (!$user->hasAnyRole(['super admin', 'admin'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo admin o super admin pueden reactivar miembros'
+            ], 403);
+        }
+
+        $miembro = Miembro::find($id);
+
+        if (!$miembro) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Miembro no encontrado'
+            ], 404);
+        }
+
+        $antes = $miembro->toArray();
+
+        $miembro->update([
+            'baja' => 0
+        ]);
+
+        Historial::create([
+            'user_id' => $user->id,
+            'operacion' => 'Reactivar miembro',
+            'tabla' => 'miembros',
+            'dato' => [
+                'antes' => $antes,
+                'despues' => $miembro->fresh()->toArray(),
+            ],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Miembro reactivado correctamente',
+            'data' => $miembro->fresh()
         ]);
     }
 
     public function destroy(string $id)
     {
         if (!User::mySelf()->can('miembros.delete')) {
-            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+            return response()->json([
+                'success' => false,
+                'message' => 'No autorizado'
+            ], 403);
         }
 
         $miembro = Miembro::find($id);
 
-        if (!$miembro || $miembro->baja == 1) {
-            return response()->json(['success' => false, 'message' => 'Miembro no encontrado'], 404);
+        if (!$miembro) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Miembro no encontrado'
+            ], 404);
         }
 
         $antes = $miembro->toArray();
 
-        $miembro->update(['baja' => 1]);
+        $miembro->update([
+            'baja' => 1
+        ]);
 
         Historial::create([
             'user_id' => User::mySelf()->id,
@@ -144,13 +213,14 @@ class MiembroController extends Controller
             'tabla' => 'miembros',
             'dato' => [
                 'antes' => $antes,
-                'despues' => $miembro->toArray(),
+                'despues' => $miembro->fresh()->toArray(),
             ],
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Miembro dado de baja correctamente'
+            'message' => 'Miembro dado de baja correctamente',
+            'data' => $miembro->fresh()
         ]);
     }
 }

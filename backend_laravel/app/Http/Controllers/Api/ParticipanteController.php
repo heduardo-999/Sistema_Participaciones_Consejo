@@ -44,7 +44,7 @@ class ParticipanteController extends Controller
             'invitado_id' => 'nullable|exists:invitados,id',
             'reunion_id' => 'required|exists:reuniones,id',
             'fecha' => 'required|date',
-            'status' => 'required|in:presente,retirado',
+            'status' => 'required|in:presente,ausente,retirado',
         ]);
 
         if ($validator->fails()) {

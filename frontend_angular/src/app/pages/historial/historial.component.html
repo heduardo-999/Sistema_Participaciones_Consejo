@@ -1,1 +1,269 @@
-<section class="space-y-5"><div class="flex flex-col justify-between gap-3 md:flex-row md:items-center"><div><h2 class="text-2xl font-black">Historial</h2><p class="text-sm text-slate-500">Gestión institucional del módulo.</p></div><button class="btn-primary" (click)="open()">Crear</button></div><div class="card"><div class="flex gap-3"><input class="input" placeholder="Buscar..." [(ngModel)]="q" (keyup.enter)="load()"><button class="btn-secondary" (click)="load()">Buscar</button></div></div><div class="table-wrap"><table class="w-full"><thead><tr><th class="th">Usuario</th><th class="th">Operación</th><th class="th">Tabla</th><th class="th">Fecha</th><th class="th">Hora</th><th class="th">Acciones</th></tr></thead><tbody>@for(item of items(); track item.id){<tr><td class="td font-semibold">{{item.usuario || item.user?.name}}</td><td class="td">{{item.operacion}}</td><td class="td">{{item.tabla}}</td><td class="td">{{item.fecha}}</td><td class="td">{{item.hora}}</td><td class="td"><button class="btn-secondary mr-2" (click)="open(item)">Editar</button><button class="btn-danger" (click)="remove(item.id)">Eliminar</button></td></tr>} @empty {<tr><td class="td text-center text-slate-500" colspan="8">Sin registros</td></tr>}</tbody></table></div>@if(modal){<div class="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4"><form class="card w-full max-w-xl" (ngSubmit)="save()"><h3 class="text-xl font-black">{{editing?'Editar':'Crear'}} Historial</h3><div class="mt-4 grid gap-4 md:grid-cols-2"><ng-content></ng-content><label><span class="label">Nombre/Título</span><input class="input" [(ngModel)]="form.nombre" name="nombre"></label><label><span class="label">Correo/Fecha</span><input class="input" [(ngModel)]="form.email" name="email"></label><label><span class="label">Estado</span><input class="input" [(ngModel)]="form.estado" name="estado"></label></div><div class="mt-6 flex justify-end gap-2"><button type="button" class="btn-secondary" (click)="modal=false">Cancelar</button><button class="btn-primary">Guardar</button></div></form></div>}</section>
+<section class="space-y-6">
+  <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div>
+      <p class="text-sm font-black uppercase tracking-widest text-rose-600 dark:text-rose-400">
+        Auditoría del sistema
+      </p>
+
+      <h2 class="text-3xl font-black text-slate-900 dark:text-white">
+        Historial
+      </h2>
+
+      <p class="text-sm text-slate-500 dark:text-slate-400">
+        Consulta las acciones registradas automáticamente.
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600"
+      (click)="load()"
+      [disabled]="loading()"
+    >
+      {{ loading() ? 'Actualizando...' : 'Actualizar' }}
+    </button>
+  </div>
+
+  @if (error()) {
+    <div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+      {{ error() }}
+    </div>
+  }
+
+  <div class="grid gap-4 md:grid-cols-4">
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <p class="text-sm font-bold text-slate-500 dark:text-slate-400">Total</p>
+      <p class="mt-2 text-4xl font-black text-slate-900 dark:text-white">{{ total() }}</p>
+    </div>
+
+    <div class="rounded-2xl border border-green-200 bg-green-50 p-5 shadow-sm dark:border-green-900/40 dark:bg-green-950/20">
+      <p class="text-sm font-bold text-green-700 dark:text-green-300">Inicios</p>
+      <p class="mt-2 text-4xl font-black text-green-700 dark:text-green-300">{{ inicios() }}</p>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <p class="text-sm font-bold text-slate-500 dark:text-slate-400">Cierres</p>
+      <p class="mt-2 text-4xl font-black text-slate-700 dark:text-slate-200">{{ cierres() }}</p>
+    </div>
+
+    <div class="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm dark:border-blue-900/40 dark:bg-blue-950/20">
+      <p class="text-sm font-bold text-blue-700 dark:text-blue-300">Sistema</p>
+      <p class="mt-2 text-4xl font-black text-blue-700 dark:text-blue-300">{{ sistema() }}</p>
+    </div>
+  </div>
+
+  <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div class="grid gap-3 lg:grid-cols-[1fr_220px_260px_auto_auto]">
+      <input
+        class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+        placeholder="Buscar por usuario, correo, operación o tabla..."
+        [(ngModel)]="q"
+      />
+
+      <select
+        class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+        [(ngModel)]="filtroTabla"
+      >
+        <option value="">Todas las tablas</option>
+        @for (tabla of tablas; track tabla) {
+          <option [value]="tabla">{{ tabla }}</option>
+        }
+      </select>
+
+      <input
+        class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+        placeholder="Filtrar operación..."
+        [(ngModel)]="filtroOperacion"
+      />
+
+      <button
+        type="button"
+        class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600"
+        (click)="load(1)"
+        [disabled]="loading()"
+      >
+        {{ loading() ? 'Buscando...' : 'Buscar' }}
+      </button>
+
+      <button
+        type="button"
+        class="rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+        (click)="limpiarFiltros()"
+      >
+        Limpiar
+      </button>
+    </div>
+  </div>
+
+  <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[1100px]">
+        <thead class="bg-slate-50 dark:bg-slate-950">
+          <tr>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Usuario</th>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Correo</th>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Operación</th>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Tabla</th>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Fecha</th>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Hora</th>
+            <th class="px-5 py-4 text-right text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Detalle</th>
+          </tr>
+        </thead>
+
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          @for (item of items(); track item.id) {
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-950/60">
+              <td class="px-5 py-4">
+                <p class="font-black text-slate-900 dark:text-white">{{ usuario(item) }}</p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">ID historial: {{ item.id }}</p>
+              </td>
+
+              <td class="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
+                {{ email(item) }}
+              </td>
+
+              <td class="px-5 py-4">
+                <span class="rounded-full px-3 py-1 text-xs font-black" [class]="operacionClass(item.operacion)">
+                  {{ item.operacion }}
+                </span>
+              </td>
+
+              <td class="px-5 py-4 text-sm font-bold text-slate-700 dark:text-slate-300">
+                {{ item.tabla }}
+              </td>
+
+              <td class="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
+                {{ formatDate(item.created_at) }}
+              </td>
+
+              <td class="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
+                {{ formatTime(item.created_at) }}
+              </td>
+
+              <td class="px-5 py-4">
+                <div class="flex justify-end">
+                  <button
+                    type="button"
+                    class="rounded-xl bg-slate-100 px-4 py-2 text-xs font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                    (click)="abrirDetalle(item)"
+                  >
+                    Ver detalle
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="7" class="px-5 py-12 text-center text-slate-500 dark:text-slate-400">
+                No hay registros que coincidan con los filtros.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="flex flex-col gap-3 border-t border-slate-200 p-4 dark:border-slate-800 md:flex-row md:items-center md:justify-between">
+      <p class="text-sm font-bold text-slate-500 dark:text-slate-400">
+        Página {{ page }} de {{ lastPage() }} · Total {{ total() }} registros
+      </p>
+
+      <div class="flex flex-wrap gap-2">
+        <button
+          type="button"
+          class="rounded-xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-200 disabled:opacity-40 dark:bg-slate-800 dark:text-slate-200"
+          (click)="cambiarPagina(page - 1)"
+          [disabled]="page <= 1 || loading()"
+        >
+          Anterior
+        </button>
+
+        @for (p of pages(); track p) {
+          <button
+            type="button"
+            class="rounded-xl px-4 py-2 text-sm font-black"
+            [class.bg-rose-600]="p === page"
+            [class.text-white]="p === page"
+            [class.bg-slate-100]="p !== page"
+            [class.text-slate-700]="p !== page"
+            [class.dark\:bg-slate-800]="p !== page"
+            [class.dark\:text-slate-200]="p !== page"
+            (click)="cambiarPagina(p)"
+            [disabled]="loading()"
+          >
+            {{ p }}
+          </button>
+        }
+
+        <button
+          type="button"
+          class="rounded-xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-200 disabled:opacity-40 dark:bg-slate-800 dark:text-slate-200"
+          (click)="cambiarPagina(page + 1)"
+          [disabled]="page >= lastPage() || loading()"
+        >
+          Siguiente
+        </button>
+      </div>
+    </div>
+  </div>
+
+  @if (selected()) {
+    <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-4">
+      <div class="w-full max-w-3xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p class="text-sm font-black uppercase tracking-widest text-rose-600 dark:text-rose-400">
+              Detalle del registro
+            </p>
+
+            <h3 class="text-2xl font-black text-slate-900 dark:text-white">
+              {{ selected()?.operacion }}
+            </h3>
+
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+              {{ selected()?.tabla }} · {{ formatDate(selected()?.created_at) }} {{ formatTime(selected()?.created_at) }}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            class="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+            (click)="cerrarDetalle()"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="mt-6 grid gap-4 md:grid-cols-2">
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+            <p class="text-xs font-bold text-slate-500 dark:text-slate-400">Usuario</p>
+            <p class="mt-1 font-black text-slate-900 dark:text-white">{{ usuario(selected()) }}</p>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+            <p class="text-xs font-bold text-slate-500 dark:text-slate-400">Correo</p>
+            <p class="mt-1 font-black text-slate-900 dark:text-white">{{ email(selected()) }}</p>
+          </div>
+
+          <div class="md:col-span-2 rounded-2xl border border-slate-200 bg-slate-950 p-4 text-sm text-slate-100">
+            <p class="mb-3 text-xs font-black uppercase tracking-widest text-slate-400">
+              Dato registrado
+            </p>
+
+            <pre class="max-h-[420px] overflow-auto whitespace-pre-wrap break-words">{{ datoTexto(selected()) }}</pre>
+          </div>
+        </div>
+
+        <div class="mt-8 flex justify-end">
+          <button
+            type="button"
+            class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700"
+            (click)="cerrarDetalle()"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+</section>
