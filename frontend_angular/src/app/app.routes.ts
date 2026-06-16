@@ -14,7 +14,6 @@ import { LugaresComponent } from './pages/lugares/lugares.component';
 import { HistorialComponent } from './pages/historial/historial.component';
 import { UsuariosComponent } from './pages/usuarios/usuarios.component';
 
-import { QrAccesoComponent } from './pages/qr-acceso/qr-acceso.component';
 import { QrEsp32Component } from './pages/qr-esp32/qr-esp32.component';
 
 export const routes: Routes = [
@@ -23,10 +22,6 @@ export const routes: Routes = [
     component: LoginComponent,
   },
 
-  {
-    path: 'qr/acceso/:token',
-    component: QrAccesoComponent,
-  },
   {
     path: 'qr/esp32/:token',
     component: QrEsp32Component,

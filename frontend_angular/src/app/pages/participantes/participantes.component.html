@@ -72,7 +72,7 @@
         class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
         [(ngModel)]="filtroReunion"
       >
-        <option value="">Todas las reuniones activas</option>
+        <option value="">Todas las reuniones</option>
         @for (reunion of reuniones(); track reunion.id) {
           <option [value]="reunion.id">{{ reunion.sesion }}</option>
         }

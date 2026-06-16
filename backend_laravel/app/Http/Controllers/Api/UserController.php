@@ -8,7 +8,6 @@ use App\Models\Historial;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
@@ -27,6 +26,8 @@ class UserController extends Controller
             $users = User::with('roles')->get();
         } elseif ($authUser->hasRole('admin')) {
             $users = User::role('moderador')->with('roles')->get();
+        } elseif ($authUser->hasRole('moderador')) {
+            $users = User::with('roles')->get();
         } else {
             return response()->json([
                 'success' => false,
@@ -64,6 +65,13 @@ class UserController extends Controller
                 'success' => false,
                 'errors' => $validator->errors()
             ], 422);
+        }
+
+        if ($request->role === 'super admin' && !$authUser->hasRole('super admin')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo un super admin puede crear otro super admin'
+            ], 403);
         }
 
         if ($authUser->hasRole('admin') && $request->role !== 'moderador') {
@@ -184,6 +192,13 @@ class UserController extends Controller
             ], 422);
         }
 
+        if ($request->filled('role') && $request->role === 'super admin' && !$authUser->hasRole('super admin')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo un super admin puede asignar el rol super admin'
+            ], 403);
+        }
+
         if ($authUser->hasRole('admin') && $request->filled('role') && $request->role !== 'moderador') {
             return response()->json([
                 'success' => false,
@@ -191,7 +206,7 @@ class UserController extends Controller
             ], 403);
         }
 
-        $antes = $user->toArray();
+        $antes = $user->load('roles')->toArray();
 
         $user->name = $request->name;
         $user->email = $request->email;
@@ -247,7 +262,7 @@ class UserController extends Controller
             ], 404);
         }
 
-        if ($authUser->id === $user->id && !$authUser->hasRole('super admin')) {
+        if ((int) $authUser->id === (int) $user->id) {
             return response()->json([
                 'success' => false,
                 'message' => 'No puedes darte de baja a ti mismo'
@@ -261,7 +276,7 @@ class UserController extends Controller
             ], 403);
         }
 
-        $antes = $user->toArray();
+        $antes = $user->load('roles')->toArray();
 
         $user->update([
             'baja' => 1
@@ -279,7 +294,8 @@ class UserController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Usuario dado de baja correctamente'
+            'message' => 'Usuario dado de baja correctamente',
+            'data' => $user->load('roles')
         ]);
     }
 }

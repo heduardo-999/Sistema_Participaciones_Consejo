@@ -1,1 +1,293 @@
-<section class="space-y-5"><div class="flex flex-col justify-between gap-3 md:flex-row md:items-center"><div><h2 class="text-2xl font-black">Usuarios</h2><p class="text-sm text-slate-500">Gestión institucional del módulo.</p></div><button class="btn-primary" (click)="open()">Crear</button></div><div class="card"><div class="flex gap-3"><input class="input" placeholder="Buscar..." [(ngModel)]="q" (keyup.enter)="load()"><button class="btn-secondary" (click)="load()">Buscar</button></div></div><div class="table-wrap"><table class="w-full"><thead><tr><th class="th">Nombre</th><th class="th">Correo</th><th class="th">Rol</th><th class="th">Estado</th><th class="th">Acciones</th></tr></thead><tbody>@for(item of items(); track item.id){<tr><td class="td font-semibold">{{item.name || item.nombre}}</td><td class="td">{{item.email}}</td><td class="td">{{item.roles?.join(', ') || item.rol}}</td><td class="td"><app-status-badge [value]="item.baja ? 'baja' : 'activo'" /></td><td class="td"><button class="btn-secondary mr-2" (click)="open(item)">Editar</button><button class="btn-danger" (click)="remove(item.id)">Eliminar</button></td></tr>} @empty {<tr><td class="td text-center text-slate-500" colspan="8">Sin registros</td></tr>}</tbody></table></div>@if(modal){<div class="fixed inset-0 z-50 grid place-items-center bg-slate-900/40 p-4"><form class="card w-full max-w-xl" (ngSubmit)="save()"><h3 class="text-xl font-black">{{editing?'Editar':'Crear'}} Usuarios</h3><div class="mt-4 grid gap-4 md:grid-cols-2"><ng-content></ng-content><label><span class="label">Nombre/Título</span><input class="input" [(ngModel)]="form.nombre" name="nombre"></label><label><span class="label">Correo/Fecha</span><input class="input" [(ngModel)]="form.email" name="email"></label><label><span class="label">Estado</span><input class="input" [(ngModel)]="form.estado" name="estado"></label></div><div class="mt-6 flex justify-end gap-2"><button type="button" class="btn-secondary" (click)="modal=false">Cancelar</button><button class="btn-primary">Guardar</button></div></form></div>}</section>
+<section class="space-y-6">
+  <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div>
+      <p class="text-sm font-black uppercase tracking-widest text-rose-600 dark:text-rose-400">
+        Administración del sistema
+      </p>
+
+      <h2 class="text-3xl font-black text-slate-900 dark:text-white">
+        Usuarios
+      </h2>
+
+      <p class="text-sm text-slate-500 dark:text-slate-400">
+        Gestiona cuentas, roles y estado de acceso.
+      </p>
+    </div>
+
+    <button
+      type="button"
+      class="rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white shadow hover:bg-rose-700"
+      (click)="open()"
+    >
+      + Nuevo usuario
+    </button>
+  </div>
+
+  @if (error()) {
+    <div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+      {{ error() }}
+    </div>
+  }
+
+  <div class="grid gap-4 md:grid-cols-3">
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <p class="text-sm font-bold text-slate-500 dark:text-slate-400">Total</p>
+      <p class="mt-2 text-4xl font-black text-slate-900 dark:text-white">{{ total() }}</p>
+    </div>
+
+    <div class="rounded-2xl border border-green-200 bg-green-50 p-5 shadow-sm dark:border-green-900/40 dark:bg-green-950/20">
+      <p class="text-sm font-bold text-green-700 dark:text-green-300">Activos</p>
+      <p class="mt-2 text-4xl font-black text-green-700 dark:text-green-300">{{ activos() }}</p>
+    </div>
+
+    <div class="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm dark:border-red-900/40 dark:bg-red-950/20">
+      <p class="text-sm font-bold text-red-700 dark:text-red-300">Bajas</p>
+      <p class="mt-2 text-4xl font-black text-red-700 dark:text-red-300">{{ bajas() }}</p>
+    </div>
+  </div>
+
+  <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div class="grid gap-3 lg:grid-cols-[1fr_220px_220px_auto_auto]">
+      <input
+        class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+        placeholder="Buscar por nombre, correo, rol o estado..."
+        [ngModel]="qInput()"
+        (ngModelChange)="qInput.set($event)"
+        (keyup.enter)="buscar()"
+      />
+
+      <select
+        class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+        [ngModel]="filtroRol()"
+        (ngModelChange)="filtroRol.set($event)"
+      >
+        <option value="">Todos los roles</option>
+        @for (rol of roles; track rol.value) {
+          <option [value]="rol.value">{{ rol.label }}</option>
+        }
+      </select>
+
+      <select
+        class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+        [ngModel]="filtroEstado()"
+        (ngModelChange)="filtroEstado.set($event)"
+      >
+        <option value="">Todos los estados</option>
+        <option value="activo">Activo</option>
+        <option value="baja">Baja</option>
+      </select>
+
+      <button
+        type="button"
+        class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600"
+        (click)="buscar()"
+      >
+        Buscar
+      </button>
+
+      <button
+        type="button"
+        class="rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+        (click)="limpiarFiltros()"
+      >
+        Limpiar
+      </button>
+    </div>
+  </div>
+
+  <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[950px]">
+        <thead class="bg-slate-50 dark:bg-slate-950">
+          <tr>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Usuario</th>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Correo</th>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Rol</th>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Estado</th>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Creado</th>
+            <th class="px-5 py-4 text-right text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Acciones</th>
+          </tr>
+        </thead>
+
+        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+          @for (item of items(); track item.id) {
+            <tr class="hover:bg-slate-50 dark:hover:bg-slate-950/60">
+              <td class="px-5 py-4">
+                <p class="font-black text-slate-900 dark:text-white">
+                  {{ nombreUsuario(item) }}
+                </p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                  ID: {{ item.id }}
+                </p>
+              </td>
+
+              <td class="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
+                {{ item.email }}
+              </td>
+
+              <td class="px-5 py-4 text-sm font-bold text-slate-700 dark:text-slate-300">
+                {{ rolesUsuario(item) }}
+              </td>
+
+              <td class="px-5 py-4">
+                <span class="rounded-full px-3 py-1 text-xs font-black" [class]="estadoClass(item)">
+                  {{ estadoUsuario(item) === 'activo' ? 'Activo' : 'Baja' }}
+                </span>
+              </td>
+
+              <td class="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
+                {{ formatDate(item.created_at) }}
+              </td>
+
+              <td class="px-5 py-4">
+                <div class="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    class="rounded-xl bg-slate-100 px-4 py-2 text-xs font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                    (click)="open(item)"
+                  >
+                    Editar
+                  </button>
+
+                  @if (estadoUsuario(item) === 'activo') {
+                    <button
+                      type="button"
+                      class="rounded-xl bg-red-100 px-4 py-2 text-xs font-black text-red-700 hover:bg-red-200 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950"
+                      (click)="darBaja(item)"
+                    >
+                      Baja
+                    </button>
+                  } @else {
+                    <button
+                      type="button"
+                      class="rounded-xl bg-green-100 px-4 py-2 text-xs font-black text-green-700 hover:bg-green-200 dark:bg-green-950/40 dark:text-green-300 dark:hover:bg-green-950"
+                      (click)="reactivar(item)"
+                    >
+                      Reactivar
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="6" class="px-5 py-12 text-center text-slate-500 dark:text-slate-400">
+                No hay usuarios que coincidan con los filtros.
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  @if (modal) {
+    <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-4">
+      <form
+        class="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
+        (ngSubmit)="save()"
+      >
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h3 class="text-2xl font-black text-slate-900 dark:text-white">
+              {{ editing ? 'Editar usuario' : 'Crear usuario' }}
+            </h3>
+
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+              Configura la cuenta y el rol de acceso.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            class="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+            (click)="close()"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div class="mt-6 grid gap-4 md:grid-cols-2">
+          <label class="md:col-span-2">
+            <span class="text-sm font-bold text-slate-700 dark:text-slate-300">Nombre</span>
+            <input
+              class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              [(ngModel)]="form.name"
+              name="name"
+              required
+            />
+          </label>
+
+          <label class="md:col-span-2">
+            <span class="text-sm font-bold text-slate-700 dark:text-slate-300">Correo</span>
+            <input
+              type="email"
+              class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              [(ngModel)]="form.email"
+              name="email"
+              required
+            />
+          </label>
+
+          <label>
+            <span class="text-sm font-bold text-slate-700 dark:text-slate-300">Rol</span>
+            <select
+              class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              [(ngModel)]="form.role"
+              name="role"
+              required
+            >
+              @for (rol of roles; track rol.value) {
+                <option [value]="rol.value">{{ rol.label }}</option>
+              }
+            </select>
+          </label>
+
+          <label>
+            <span class="text-sm font-bold text-slate-700 dark:text-slate-300">Estado</span>
+            <select
+              class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              [(ngModel)]="form.baja"
+              name="baja"
+            >
+              <option [ngValue]="0">Activo</option>
+              <option [ngValue]="1">Baja</option>
+            </select>
+          </label>
+
+          <label class="md:col-span-2">
+            <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
+              Contraseña {{ editing ? '(dejar vacío para no cambiar)' : '' }}
+            </span>
+
+            <input
+              type="password"
+              class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              [(ngModel)]="form.password"
+              name="password"
+              [required]="!editing"
+            />
+          </label>
+        </div>
+
+        <div class="mt-8 flex justify-end gap-3">
+          <button
+            type="button"
+            class="rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
+            (click)="close()"
+          >
+            Cancelar
+          </button>
+
+          <button
+            type="submit"
+            class="rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-700 disabled:opacity-50"
+            [disabled]="saving()"
+          >
+            {{ saving() ? 'Guardando...' : 'Guardar usuario' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  }
+</section>

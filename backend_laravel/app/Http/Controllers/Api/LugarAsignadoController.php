@@ -86,13 +86,16 @@ class LugarAsignadoController extends Controller
             ], 422);
         }
 
-        $participante = Participante::findOrFail($validated['participante_id']);
+        $participante = Participante::with([
+            'miembro',
+            'invitado',
+            'reunion'
+        ])->findOrFail($validated['participante_id']);
 
-        if ($participante->status === 'retirado') {
-            return response()->json([
-                'success' => false,
-                'message' => 'No se puede asignar lugar a un participante retirado'
-            ], 422);
+        $validacionParticipante = $this->validarParticipanteAsignable($participante);
+
+        if ($validacionParticipante !== true) {
+            return $validacionParticipante;
         }
 
         $asignacion = LugarAsignado::create([
@@ -112,6 +115,12 @@ class LugarAsignadoController extends Controller
             'tabla' => 'lugares_asignados',
             'dato' => [
                 'asignacion' => $asignacion->toArray(),
+                'participante_id' => $participante->id,
+                'participante' => $this->nombreParticipante($participante),
+                'reunion_id' => $participante->reunion?->id,
+                'reunion' => $participante->reunion?->sesion,
+                'lugar_id' => $lugar->id,
+                'esp_id' => $lugar->esp_id,
                 'warning' => $warning,
             ],
         ]);
@@ -219,12 +228,35 @@ class LugarAsignadoController extends Controller
             ], 422);
         }
 
-        $antes = $asignacion->toArray();
+        $participante = Participante::with([
+            'miembro',
+            'invitado',
+            'reunion'
+        ])->findOrFail($validated['participante_id']);
+
+        $validacionParticipante = $this->validarParticipanteAsignable($participante);
+
+        if ($validacionParticipante !== true) {
+            return $validacionParticipante;
+        }
+
+        $antes = $asignacion->load([
+            'lugar',
+            'participante.miembro',
+            'participante.invitado',
+            'participante.reunion'
+        ])->toArray();
 
         $asignacion->update([
             'lugar_id' => $validated['lugar_id'],
             'participante_id' => $validated['participante_id'],
         ]);
+
+        if ($participante->status !== 'presente') {
+            $participante->update([
+                'status' => 'presente'
+            ]);
+        }
 
         Historial::create([
             'user_id' => User::mySelf()->id,
@@ -232,7 +264,18 @@ class LugarAsignadoController extends Controller
             'tabla' => 'lugares_asignados',
             'dato' => [
                 'antes' => $antes,
-                'despues' => $asignacion->toArray(),
+                'despues' => $asignacion->load([
+                    'lugar',
+                    'participante.miembro',
+                    'participante.invitado',
+                    'participante.reunion'
+                ])->toArray(),
+                'participante_id' => $participante->id,
+                'participante' => $this->nombreParticipante($participante),
+                'reunion_id' => $participante->reunion?->id,
+                'reunion' => $participante->reunion?->sesion,
+                'lugar_id' => $lugar->id,
+                'esp_id' => $lugar->esp_id,
             ],
         ]);
 
@@ -339,7 +382,9 @@ class LugarAsignadoController extends Controller
         }
 
         $asignacion = LugarAsignado::with([
-            'participante',
+            'participante.miembro',
+            'participante.invitado',
+            'participante.reunion',
             'lugar'
         ])->find($id);
 
@@ -376,6 +421,10 @@ class LugarAsignadoController extends Controller
             'tabla' => 'lugares_asignados',
             'dato' => [
                 'asignacion' => $antesAsignacion,
+                'participante_id' => $participante->id,
+                'participante' => $this->nombreParticipante($participante),
+                'reunion_id' => $participante->reunion?->id,
+                'reunion' => $participante->reunion?->sesion,
                 'participante_antes' => $antesParticipante,
                 'participante_despues' => $participanteDespues,
                 'nota' => 'El participante queda ausente al retirar/liberar RFID del lugar.',
@@ -401,7 +450,12 @@ class LugarAsignadoController extends Controller
             ], 403);
         }
 
-        $asignacion = LugarAsignado::find($id);
+        $asignacion = LugarAsignado::with([
+            'participante.miembro',
+            'participante.invitado',
+            'participante.reunion',
+            'lugar'
+        ])->find($id);
 
         if (!$asignacion) {
             return response()->json([
@@ -411,6 +465,7 @@ class LugarAsignadoController extends Controller
         }
 
         $antes = $asignacion->toArray();
+        $participante = $asignacion->participante;
 
         $asignacion->delete();
 
@@ -418,12 +473,51 @@ class LugarAsignadoController extends Controller
             'user_id' => User::mySelf()->id,
             'operacion' => 'Eliminar lugar asignado',
             'tabla' => 'lugares_asignados',
-            'dato' => $antes,
+            'dato' => [
+                'asignacion' => $antes,
+                'participante_id' => $participante?->id,
+                'participante' => $participante ? $this->nombreParticipante($participante) : null,
+                'reunion_id' => $participante?->reunion?->id,
+                'reunion' => $participante?->reunion?->sesion,
+            ],
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Asignación eliminada correctamente'
         ]);
+    }
+
+    private function validarParticipanteAsignable(Participante $participante)
+    {
+        if ($participante->status === 'retirado') {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se puede asignar lugar a un participante retirado'
+            ], 422);
+        }
+
+        if (!$participante->reunion) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El participante no tiene una reunión asignada'
+            ], 422);
+        }
+
+        if ($participante->reunion->status !== 'activa') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo se pueden asignar lugares a participantes de una reunión activa'
+            ], 422);
+        }
+
+        return true;
+    }
+
+    private function nombreParticipante(Participante $participante): string
+    {
+        return $participante->miembro?->nombre
+            ?? $participante->invitado?->nombre
+            ?? 'Participante sin nombre';
     }
 }

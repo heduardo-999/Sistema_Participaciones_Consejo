@@ -72,18 +72,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
       ['aun no intervino', 'interviniendo'].includes(item.status)
     );
 
-    const actual = visibles.find((item: any) => item.status === 'interviniendo') ?? null;
+    const actual =
+      visibles.find((item: any) => item.status === 'interviniendo') ?? null;
 
     const pendientes = visibles
       .filter((item: any) => item.status === 'aun no intervino')
-      .sort((a: any, b: any) =>
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      .sort(
+        (a: any, b: any) =>
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
       );
 
     this.intervencionActual.set(actual);
     this.cola.set(pendientes);
 
-    const reunion = actual?.participante?.reunion ?? pendientes[0]?.participante?.reunion;
+    const reunion =
+      actual?.participante?.reunion ?? pendientes[0]?.participante?.reunion;
+
     if (reunion) this.reunion.set(reunion);
 
     if (actual && !this.corriendo()) {
@@ -175,7 +179,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
       console.error('Error cancelando preparación:', error);
     }
 
-    this.agregarHistorialLocal('Intervención cancelada', this.nombreParticipante(participante));
+    this.agregarHistorialLocal(
+      'Intervención cancelada',
+      this.nombreParticipante(participante)
+    );
 
     this.preparando.set(false);
     this.participantePreparando.set(null);
@@ -219,22 +226,32 @@ export class DashboardComponent implements OnInit, OnDestroy {
       const lista = Array.isArray(historialItems) ? historialItems : [];
 
       const soloIntervenciones = lista
-        .filter((item: any) =>
-          item.tabla === 'intervenciones' &&
-          item.operacion?.toLowerCase().includes('intervención')
-        )
+        .filter((item: any) => this.esHistorialIntervencionVisible(item))
         .map((item: any) => ({
           ...item,
           participante_nombre: this.extraerNombreHistorial(item),
         }));
 
-      this.historial.set([
-        ...this.historialLocalItems,
-        ...soloIntervenciones,
-      ].slice(0, 8));
+      this.historial.set(
+        [...this.historialLocalItems, ...soloIntervenciones].slice(0, 8)
+      );
     } catch {
       this.historial.set(this.historialLocalItems.slice(0, 8));
     }
+  }
+
+  private esHistorialIntervencionVisible(item: any): boolean {
+    const tabla = String(item?.tabla || '').toLowerCase();
+    const operacion = String(item?.operacion || '').toLowerCase();
+
+    const esIntervencion = tabla === 'intervenciones';
+    const mencionaIntervencion = operacion.includes('intervención');
+
+    const esActualizar =
+      operacion === 'actualizar intervención' ||
+      operacion === 'actualizar intervencion';
+
+    return esIntervencion && mencionaIntervencion && !esActualizar;
   }
 
   private agregarHistorialLocal(operacion: string, nombre: string): void {
@@ -250,6 +267,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private extraerNombreHistorial(item: any): string {
+    if (typeof item?.dato?.participante === 'string') {
+      return item.dato.participante;
+    }
+
     return (
       item?.participante_nombre ||
       item?.dato?.participante_nombre ||

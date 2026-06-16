@@ -186,6 +186,15 @@ export class LugaresComponent implements OnInit {
       return;
     }
 
+  const participante = this.participantes().find(
+    p => Number(p.id) === Number(this.participante_id)
+  );
+
+  if (!participante || participante?.reunion?.status !== 'activa') {
+    this.error.set('Solo se puede asignar lugar a participantes de una reunión activa.');
+    return;
+  }
+
     this.saving.set(true);
     this.error.set('');
 
@@ -281,7 +290,13 @@ async liberar(): Promise<void> {
       .map(a => Number(a.participante_id));
 
     return this.participantes().filter(p => {
-      return p.status !== 'retirado' && !asignadosIds.includes(Number(p.id));
+      const reunionActiva = p?.reunion?.status === 'activa';
+
+      return (
+        reunionActiva &&
+        p.status !== 'retirado' &&
+        !asignadosIds.includes(Number(p.id))
+      );
     });
   }
 

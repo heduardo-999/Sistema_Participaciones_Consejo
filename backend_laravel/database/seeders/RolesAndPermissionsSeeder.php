@@ -111,7 +111,6 @@ class RolesAndPermissionsSeeder extends Seeder
             'intervenciones.edit',
             'intervenciones.delete',
 
-            'participantes.view',
             'historial.view',
 
             'lugares.view',
@@ -119,6 +118,13 @@ class RolesAndPermissionsSeeder extends Seeder
             'lugares_asignados.view',
             'lugares_asignados.create',
             'lugares_asignados.edit',
+
+            'participantes.view',
+            'participantes.create',
+            'participantes.edit',
+            'participantes.delete',
+
+            'users.view',
         ]);
     }
 }
