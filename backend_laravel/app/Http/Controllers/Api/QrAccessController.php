@@ -8,7 +8,6 @@ use App\Models\Intervencion;
 use App\Models\Participante;
 use App\Models\TokenQr;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -26,6 +25,10 @@ class QrAccessController extends Controller
         $validated = $request->validate([
             'participante_id' => 'required|exists:participantes,id',
         ]);
+
+        TokenQr::where('expires_at', '<=', now())
+            ->where('status', 'activo')
+            ->update(['status' => 'expirado']);
 
         $participante = Participante::with([
             'miembro',
@@ -54,24 +57,30 @@ class QrAccessController extends Controller
             ], 422);
         }
 
+        $tokenQr = TokenQr::where('participante_id', $participante->id)
+            ->where('status', 'activo')
+            ->where('expires_at', '>', now())
+            ->latest()
+            ->first();
+
+        if ($tokenQr) {
+            return response()->json([
+                'success' => true,
+                'message' => 'QR vigente encontrado',
+                'data' => $this->respuestaQr($tokenQr, $participante),
+            ]);
+        }
+
         TokenQr::where('participante_id', $participante->id)
             ->where('status', 'activo')
-            ->update([
-                'status' => 'expirado'
-            ]);
-
-        $token = Str::random(80);
-        $expiresAt = $this->calcularExpiracion($participante);
+            ->update(['status' => 'expirado']);
 
         $tokenQr = TokenQr::create([
             'participante_id' => $participante->id,
-            'token' => $token,
-            'expires_at' => $expiresAt,
+            'token' => Str::random(80),
+            'expires_at' => now()->addHours(12),
             'status' => 'activo',
         ]);
-
-        $url = config('app.frontend_url', 'http://localhost:4200')
-            . '/qr/esp32/' . $token;
 
         Historial::create([
             'user_id' => User::mySelf()->id,
@@ -83,15 +92,15 @@ class QrAccessController extends Controller
                 'participante' => $this->nombreParticipante($participante),
                 'reunion_id' => $participante->reunion->id,
                 'reunion' => $participante->reunion->sesion,
-                'expires_at' => $expiresAt->toDateTimeString(),
-                'url' => $url,
+                'expires_at' => $tokenQr->expires_at,
+                'url' => $this->urlQr($tokenQr->token),
             ],
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'QR generado correctamente',
-            'data' => $this->respuestaQr($tokenQr->fresh(), $participante, $url),
+            'data' => $this->respuestaQr($tokenQr, $participante),
         ], 201);
     }
 
@@ -213,7 +222,7 @@ class QrAccessController extends Controller
         ]);
 
         Historial::create([
-            'user_id' => User::mySelf()?->id,
+            'user_id' => $this->usuarioHistorialQr(),
             'operacion' => 'Solicitud de intervención por QR',
             'tabla' => 'intervenciones',
             'dato' => [
@@ -221,6 +230,7 @@ class QrAccessController extends Controller
                 'participante_id' => $participante->id,
                 'participante' => $this->nombreParticipante($participante),
                 'reunion_id' => $participante->reunion->id,
+                'reunion' => $participante->reunion->sesion,
                 'intervencion_id' => $intervencion->id,
             ],
         ]);
@@ -241,7 +251,7 @@ class QrAccessController extends Controller
         $intervencion->delete();
 
         Historial::create([
-            'user_id' => User::mySelf()?->id,
+            'user_id' => $this->usuarioHistorialQr(),
             'operacion' => 'Cancelar intervención por QR',
             'tabla' => 'intervenciones',
             'dato' => [
@@ -249,6 +259,7 @@ class QrAccessController extends Controller
                 'participante_id' => $participante->id,
                 'participante' => $this->nombreParticipante($participante),
                 'reunion_id' => $participante->reunion->id,
+                'reunion' => $participante->reunion->sesion,
                 'intervencion_cancelada' => $antes,
             ],
         ]);
@@ -269,10 +280,11 @@ class QrAccessController extends Controller
         $intervencion->update([
             'solicita_intervencion' => false,
             'hora_fin' => now()->format('H:i:s'),
+            'status' => 'fin intervencion',
         ]);
 
         Historial::create([
-            'user_id' => User::mySelf()?->id,
+            'user_id' => $this->usuarioHistorialQr(),
             'operacion' => 'Finalizar intervención por QR',
             'tabla' => 'intervenciones',
             'dato' => [
@@ -280,6 +292,7 @@ class QrAccessController extends Controller
                 'participante_id' => $participante->id,
                 'participante' => $this->nombreParticipante($participante),
                 'reunion_id' => $participante->reunion->id,
+                'reunion' => $participante->reunion->sesion,
                 'intervencion_antes' => $antes,
                 'intervencion_despues' => $intervencion->fresh()->toArray(),
             ],
@@ -307,7 +320,7 @@ class QrAccessController extends Controller
 
     private function validarTokenQr(TokenQr $tokenQr)
     {
-        if (Carbon::parse($tokenQr->expires_at)->isPast()) {
+        if ($tokenQr->expires_at <= now()) {
             $tokenQr->update([
                 'status' => 'expirado'
             ]);
@@ -370,61 +383,68 @@ class QrAccessController extends Controller
             ->latest()
             ->first();
 
-        $estadoIntervencion = 'no_participa';
+        $estadoLed = 'no_participa';
 
-        if ($intervencion && $intervencion->status === 'aun no intervino') {
-            $estadoIntervencion = 'solicita_participacion';
+        if ($intervencion?->status === 'aun no intervino') {
+            $estadoLed = 'solicita_participacion';
         }
 
-        if ($intervencion && $intervencion->status === 'interviniendo') {
-            $estadoIntervencion = 'participa';
+        if ($intervencion?->status === 'interviniendo') {
+            $estadoLed = 'participa';
         }
 
         return [
             'token_qr_id' => $tokenQr->id,
             'token' => $tokenQr->token,
-            'url' => $url,
+            'url' => $url ?? $this->urlQr($tokenQr->token),
             'expires_at' => $tokenQr->expires_at,
             'participante' => [
                 'id' => $participante->id,
                 'nombre' => $this->nombreParticipante($participante),
-                'tipo' => $participante->miembro ? 'miembro' : 'invitado',
+                'tipo' => $participante->miembro_id ? 'miembro' : 'invitado',
                 'status' => $participante->status,
                 'rfid' => $participante->miembro?->rfid,
             ],
             'reunion' => [
-                'id' => $participante->reunion->id,
-                'sesion' => $participante->reunion->sesion,
-                'fecha' => $participante->reunion->fecha,
-                'status' => $participante->reunion->status,
-                'hora_inicio' => $participante->reunion->hora_inicio,
-                'hora_fin' => $participante->reunion->hora_fin,
+                'id' => $participante->reunion?->id,
+                'sesion' => $participante->reunion?->sesion,
+                'fecha' => $participante->reunion?->fecha,
+                'status' => $participante->reunion?->status,
+                'hora_inicio' => $participante->reunion?->hora_inicio,
+                'hora_fin' => $participante->reunion?->hora_fin,
             ],
             'intervencion' => [
                 'id' => $intervencion?->id,
                 'status' => $intervencion?->status,
-                'solicita_intervencion' => $intervencion?->solicita_intervencion ?? false,
+                'solicita_intervencion' => (bool) $intervencion?->solicita_intervencion,
                 'hora_inicio' => $intervencion?->hora_inicio,
                 'hora_fin' => $intervencion?->hora_fin,
-                'estado_led' => $estadoIntervencion,
+                'estado_led' => $estadoLed,
             ],
         ];
     }
 
-    private function calcularExpiracion(Participante $participante): Carbon
+    private function urlQr(string $token): string
     {
-        $fecha = $participante->reunion->fecha;
-        $horaFin = $participante->reunion->hora_fin;
+        return config('app.frontend_url', env('FRONTEND_URL', 'http://localhost:4200'))
+            . '/qr/esp32/' . $token;
+    }
 
-        if ($fecha && $horaFin) {
-            return Carbon::parse($fecha . ' ' . $horaFin);
+    private function usuarioHistorialQr(): int
+    {
+        $authUser = User::mySelf();
+
+        if ($authUser) {
+            return $authUser->id;
         }
 
-        if ($fecha) {
-            return Carbon::parse($fecha . ' 23:59:59');
+        $superAdmin = User::role('super admin')->first();
+
+        if ($superAdmin) {
+            return $superAdmin->id;
         }
 
-        return now()->addHours(2);
+        return User::query()->value('id');
     }
 
     private function nombreParticipante(Participante $participante): string

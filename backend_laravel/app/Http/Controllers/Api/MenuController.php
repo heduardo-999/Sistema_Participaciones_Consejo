@@ -4,34 +4,24 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Menu;
-use App\Models\User;
+use Illuminate\Http\Request;
 
 class MenuController extends Controller
 {
-    public function myMenu()
+    public function myMenu(Request $request)
     {
-        $user = User::mySelf();
+        $user = $request->user();
 
-        $menus = collect();
+        $roleIds = $user->roles()->pluck('roles.id')->toArray();
 
-        if ($user->hasRole('super admin')) {
-
-            $menus = Menu::where('baja', 0)->get();
-
-        } elseif ($user->hasRole('admin')) {
-
-            $menus = Menu::where('baja', 0)
-                ->whereNotIn('nombre', [])
-                ->get();
-
-        } elseif ($user->hasRole('moderador')) {
-
-            $menus = Menu::where('baja', 0)
-                ->whereNotIn('nombre', [
-                    'Usuarios'
-                ])
-                ->get();
-        }
+        $menus = Menu::query()
+            ->join('role_menus', 'menus.id', '=', 'role_menus.menu_id')
+            ->whereIn('role_menus.role_id', $roleIds)
+            ->where('menus.baja', 0)
+            ->select('menus.*')
+            ->distinct()
+            ->orderBy('menus.id')
+            ->get();
 
         return response()->json([
             'success' => true,

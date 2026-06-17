@@ -26,27 +26,38 @@ export class LayoutComponent {
   user = computed(() => this.auth.user());
 
   menu = computed(() => {
-    const menus = this.auth.user()?.menus ?? [];
+    const user = this.auth.user();
 
-    if (menus.length > 0) {
-      return menus.map((item: any) => ({
+    const rawMenus: any = user?.menus ?? [];
+    const roles: string[] = user?.roles ?? [];
+
+    const isSuperAdmin = roles.includes('super admin');
+
+    const menus: any[] = Array.isArray(rawMenus)
+      ? rawMenus
+      : rawMenus?.data ?? [];
+
+    const rutasSoloSuperAdmin = [
+      '/menus-roles',
+      '/roles-permisos',
+    ];
+
+    const rutasOcultas = [
+      '/lugares-asignados',
+    ];
+
+    return menus
+      .filter((item: any) => Number(item.baja || 0) === 0)
+      .filter((item: any) => !rutasOcultas.includes(item.url))
+      .filter((item: any) => {
+        if (isSuperAdmin) return true;
+        return !rutasSoloSuperAdmin.includes(item.url);
+      })
+      .map((item: any) => ({
         label: item.nombre ?? item.name,
         route: item.url ?? item.route,
         icon: item.icono ?? '•',
       }));
-    }
-
-    return [
-      { label: 'Dashboard', route: '/dashboard', icon: '⌂' },
-      { label: 'Miembros', route: '/miembros', icon: 'M' },
-      { label: 'Invitados', route: '/invitados', icon: 'I' },
-      { label: 'Reuniones', route: '/reuniones', icon: 'R' },
-      { label: 'Participantes', route: '/participantes', icon: 'P' },
-      { label: 'Intervenciones', route: '/intervenciones', icon: 'V' },
-      { label: 'Lugares', route: '/lugares', icon: 'L' },
-      { label: 'Historial', route: '/historial', icon: 'H' },
-      { label: 'Usuarios', route: '/usuarios', icon: 'U' },
-    ];
   });
 
   constructor(
@@ -58,6 +69,8 @@ export class LayoutComponent {
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe(() => this.updateTitle());
+
+    this.updateTitle();
   }
 
   toggleSidebar(): void {
@@ -91,6 +104,8 @@ export class LayoutComponent {
       lugares: 'Mapa de lugares',
       historial: 'Historial',
       usuarios: 'Usuarios',
+      'menus-roles': 'Menús por Rol',
+      'roles-permisos': 'Roles y Permisos',
       esp32: 'ESP32 Virtual',
       qr: 'Acceso QR',
     };

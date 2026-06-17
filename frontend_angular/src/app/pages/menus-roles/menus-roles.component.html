@@ -1,0 +1,136 @@
+<section class="space-y-6">
+  <div>
+    <p class="text-sm font-black uppercase tracking-widest text-rose-600 dark:text-rose-400">
+      Administración del sistema
+    </p>
+
+    <h2 class="text-3xl font-black text-slate-900 dark:text-white">
+      Menús por Rol
+    </h2>
+
+    <p class="text-sm text-slate-500 dark:text-slate-400">
+      Asigna qué opciones del menú puede ver cada rol.
+    </p>
+  </div>
+
+  @if (error()) {
+    <div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+      {{ error() }}
+    </div>
+  }
+
+  @if (success()) {
+    <div class="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm font-bold text-green-700 dark:border-green-900/40 dark:bg-green-950/30 dark:text-green-300">
+      {{ success() }}
+    </div>
+  }
+
+  @if (esSuperAdminSeleccionado()) {
+    <div class="rounded-2xl border border-yellow-200 bg-yellow-50 p-4 text-sm font-bold text-yellow-700 dark:border-yellow-900/40 dark:bg-yellow-950/30 dark:text-yellow-300">
+      El rol super admin está protegido. Sus menús no se pueden modificar desde esta interfaz.
+    </div>
+  }
+
+  <div class="grid gap-4 md:grid-cols-4">
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <p class="text-sm font-bold text-slate-500 dark:text-slate-400">Roles</p>
+      <p class="mt-2 text-4xl font-black text-slate-900 dark:text-white">{{ totalRoles() }}</p>
+    </div>
+
+    <div class="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm dark:border-blue-900/40 dark:bg-blue-950/20">
+      <p class="text-sm font-bold text-blue-700 dark:text-blue-300">Menús</p>
+      <p class="mt-2 text-4xl font-black text-blue-700 dark:text-blue-300">{{ totalMenus() }}</p>
+    </div>
+
+    <div class="rounded-2xl border border-green-200 bg-green-50 p-5 shadow-sm dark:border-green-900/40 dark:bg-green-950/20">
+      <p class="text-sm font-bold text-green-700 dark:text-green-300">Activos</p>
+      <p class="mt-2 text-4xl font-black text-green-700 dark:text-green-300">{{ menusActivos() }}</p>
+    </div>
+
+    <div class="rounded-2xl border border-rose-200 bg-rose-50 p-5 shadow-sm dark:border-rose-900/40 dark:bg-rose-950/20">
+      <p class="text-sm font-bold text-rose-700 dark:text-rose-300">Asignados</p>
+      <p class="mt-2 text-4xl font-black text-rose-700 dark:text-rose-300">{{ asignados() }}</p>
+    </div>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-[320px_1fr]">
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <h3 class="text-xl font-black text-slate-900 dark:text-white">
+        Roles
+      </h3>
+
+      <div class="mt-4 space-y-2">
+        @for (role of roles(); track role.id) {
+          <button
+            type="button"
+            class="w-full rounded-xl px-4 py-3 text-left text-sm font-black transition"
+            [class.bg-rose-600]="selectedRole()?.id === role.id"
+            [class.text-white]="selectedRole()?.id === role.id"
+            [class.bg-slate-100]="selectedRole()?.id !== role.id"
+            [class.text-slate-700]="selectedRole()?.id !== role.id"
+            [class.dark\:bg-slate-800]="selectedRole()?.id !== role.id"
+            [class.dark\:text-slate-200]="selectedRole()?.id !== role.id"
+            (click)="seleccionarRol(role)"
+          >
+            {{ role.name }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <h3 class="text-xl font-black text-slate-900 dark:text-white">
+            Menús asignados
+          </h3>
+
+          <p class="text-sm text-slate-500 dark:text-slate-400">
+            Rol seleccionado: {{ selectedRole()?.name || 'Ninguno' }}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-700 disabled:opacity-50"
+          (click)="guardar()"
+          [disabled]="saving() || !selectedRole() || esSuperAdminSeleccionado()"
+        >
+          {{ saving() ? 'Guardando...' : 'Guardar cambios' }}
+        </button>
+      </div>
+
+      <div class="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        @for (menu of menusVisibles(); track menu.id) {
+          <label
+            class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950"
+            [class.cursor-pointer]="!esSuperAdminSeleccionado()"
+            [class.cursor-not-allowed]="esSuperAdminSeleccionado()"
+            [class.opacity-70]="esSuperAdminSeleccionado()"
+          >
+            <input
+              type="checkbox"
+              class="h-5 w-5 accent-rose-600"
+              [checked]="isChecked(menu.id)"
+              [disabled]="esSuperAdminSeleccionado()"
+              (change)="toggleMenu(menu.id)"
+            />
+
+            <div>
+              <p class="font-black text-slate-900 dark:text-white">
+                {{ menu.nombre }}
+              </p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">
+                {{ menu.url }} · {{ menu.icono }}
+              </p>
+            </div>
+          </label>
+        } @empty {
+          <div class="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400 md:col-span-2 xl:col-span-3">
+            No hay menús disponibles para este rol.
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</section>

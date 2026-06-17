@@ -13,6 +13,8 @@ import { IntervencionesComponent } from './pages/intervenciones/intervenciones.c
 import { LugaresComponent } from './pages/lugares/lugares.component';
 import { HistorialComponent } from './pages/historial/historial.component';
 import { UsuariosComponent } from './pages/usuarios/usuarios.component';
+import { MenusRolesComponent } from './pages/menus-roles/menus-roles.component';
+import { RolesPermisosComponent } from './pages/roles-permisos/roles-permisos.component';
 
 import { QrEsp32Component } from './pages/qr-esp32/qr-esp32.component';
 
@@ -82,6 +84,16 @@ export const routes: Routes = [
         component: UsuariosComponent,
         title: 'Usuarios',
       },
+      {
+        path: 'menus-roles',
+        component: MenusRolesComponent,
+        title: 'Menús por Rol',
+      },
+      {
+        path: 'roles-permisos',
+        component: RolesPermisosComponent,
+        title: 'Roles y Permisos',
+      },
     ],
   },
 
@@ -89,4 +101,4 @@ export const routes: Routes = [
     path: '**',
     redirectTo: 'dashboard',
   },
-];
+];  

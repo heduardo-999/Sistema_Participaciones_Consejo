@@ -1,0 +1,168 @@
+<section class="space-y-6">
+  <div>
+    <p class="text-sm font-black uppercase tracking-widest text-rose-600 dark:text-rose-400">
+      Seguridad del sistema
+    </p>
+
+    <h2 class="text-3xl font-black text-slate-900 dark:text-white">
+      Roles y Permisos
+    </h2>
+
+    <p class="text-sm text-slate-500 dark:text-slate-400">
+      Crea roles, permisos y asigna accesos al sistema.
+    </p>
+  </div>
+
+  @if (error()) {
+    <div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm font-bold text-red-700 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-300">
+      {{ error() }}
+    </div>
+  }
+
+  @if (success()) {
+    <div class="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm font-bold text-green-700 dark:border-green-900/40 dark:bg-green-950/30 dark:text-green-300">
+      {{ success() }}
+    </div>
+  }
+
+  <div class="grid gap-4 md:grid-cols-3">
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <p class="text-sm font-bold text-slate-500 dark:text-slate-400">Roles</p>
+      <p class="mt-2 text-4xl font-black text-slate-900 dark:text-white">{{ totalRoles() }}</p>
+    </div>
+
+    <div class="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm dark:border-blue-900/40 dark:bg-blue-950/20">
+      <p class="text-sm font-bold text-blue-700 dark:text-blue-300">Permisos</p>
+      <p class="mt-2 text-4xl font-black text-blue-700 dark:text-blue-300">{{ totalPermisos() }}</p>
+    </div>
+
+    <div class="rounded-2xl border border-rose-200 bg-rose-50 p-5 shadow-sm dark:border-rose-900/40 dark:bg-rose-950/20">
+      <p class="text-sm font-bold text-rose-700 dark:text-rose-300">Asignados</p>
+      <p class="mt-2 text-4xl font-black text-rose-700 dark:text-rose-300">{{ asignados() }}</p>
+    </div>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-2">
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <h3 class="text-xl font-black text-slate-900 dark:text-white">Crear rol</h3>
+
+      <div class="mt-4 flex gap-3">
+        <input
+          class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+          placeholder="Ej. coordinador"
+          [(ngModel)]="nuevoRol"
+        />
+
+        <button
+          type="button"
+          class="rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-700"
+          (click)="crearRol()"
+          [disabled]="saving()"
+        >
+          Crear
+        </button>
+      </div>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <h3 class="text-xl font-black text-slate-900 dark:text-white">Crear permiso</h3>
+
+      <div class="mt-4 flex gap-3">
+        <input
+          class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+          placeholder="Ej. reportes.export"
+          [(ngModel)]="nuevoPermiso"
+        />
+
+        <button
+          type="button"
+          class="rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-700"
+          (click)="crearPermiso()"
+          [disabled]="saving()"
+        >
+          Crear
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid gap-6 lg:grid-cols-[320px_1fr]">
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <h3 class="text-xl font-black text-slate-900 dark:text-white">
+        Roles
+      </h3>
+
+      <div class="mt-4 space-y-2">
+        @for (role of roles(); track role.id) {
+          <button
+            type="button"
+            class="w-full rounded-xl px-4 py-3 text-left text-sm font-black transition"
+            [class.bg-rose-600]="selectedRole()?.id === role.id"
+            [class.text-white]="selectedRole()?.id === role.id"
+            [class.bg-slate-100]="selectedRole()?.id !== role.id"
+            [class.text-slate-700]="selectedRole()?.id !== role.id"
+            [class.dark\:bg-slate-800]="selectedRole()?.id !== role.id"
+            [class.dark\:text-slate-200]="selectedRole()?.id !== role.id"
+            (click)="seleccionarRol(role)"
+          >
+            {{ role.name }}
+          </button>
+        }
+      </div>
+    </div>
+
+    <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h3 class="text-xl font-black text-slate-900 dark:text-white">
+            Permisos asignados
+          </h3>
+
+          <p class="text-sm text-slate-500 dark:text-slate-400">
+            Rol seleccionado: {{ selectedRole()?.name || 'Ninguno' }}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-700 disabled:opacity-50"
+          (click)="guardarPermisos()"
+          [disabled]="saving() || !selectedRole()"
+        >
+          {{ saving() ? 'Guardando...' : 'Guardar permisos' }}
+        </button>
+      </div>
+
+      <input
+        class="mt-5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+        placeholder="Buscar permiso..."
+        [ngModel]="qPermiso()"
+        (ngModelChange)="qPermiso.set($event)"
+      />
+
+      <div class="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        @for (permission of permisosFiltrados(); track permission.id) {
+          <label
+            class="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950"
+          >
+            <input
+              type="checkbox"
+              class="h-5 w-5 accent-rose-600"
+              [checked]="isChecked(permission.id)"
+              (change)="togglePermission(permission.id)"
+            />
+
+            <div>
+              <p class="font-black text-slate-900 dark:text-white">
+                {{ permission.name }}
+              </p>
+              <p class="text-xs text-slate-500 dark:text-slate-400">
+                ID: {{ permission.id }}
+              </p>
+            </div>
+          </label>
+        }
+      </div>
+    </div>
+  </div>
+</section>
