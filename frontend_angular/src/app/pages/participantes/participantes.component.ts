@@ -14,7 +14,6 @@ export class ParticipantesComponent implements OnInit {
   allItems = signal<any[]>([]);
   miembros = signal<any[]>([]);
   invitados = signal<any[]>([]);
-  reuniones = signal<any[]>([]);
 
   loading = signal(false);
   saving = signal(false);
@@ -22,7 +21,6 @@ export class ParticipantesComponent implements OnInit {
 
   q = '';
   filtroStatus = '';
-  filtroReunion = '';
 
   modal = false;
   editing: any = null;
@@ -43,7 +41,6 @@ export class ParticipantesComponent implements OnInit {
   items = computed(() => {
     const search = this.q.trim().toLowerCase();
     const status = this.filtroStatus;
-    const reunion = this.filtroReunion;
 
     return this.allItems().filter(item => {
       const nombre = this.nombreParticipante(item).toLowerCase();
@@ -61,9 +58,8 @@ export class ParticipantesComponent implements OnInit {
         estado.includes(search);
 
       const matchesStatus = !status || item.status === status;
-      const matchesReunion = !reunion || String(item.reunion_id) === String(reunion);
 
-      return matchesSearch && matchesStatus && matchesReunion;
+      return matchesSearch && matchesStatus;
     });
   });
 
@@ -81,10 +77,9 @@ export class ParticipantesComponent implements OnInit {
 
   async loadCatalogos(): Promise<void> {
     try {
-      const [miembrosRes, invitadosRes, reunionesRes]: any[] = await Promise.all([
+      const [miembrosRes, invitadosRes]: any[] = await Promise.all([
         this.api.get('/miembros'),
         this.api.get('/invitados'),
-        this.api.get('/reuniones'),
       ]);
 
       this.miembros.set(
@@ -92,13 +87,9 @@ export class ParticipantesComponent implements OnInit {
       );
 
       this.invitados.set(this.normalizarRespuesta(invitadosRes));
-
-      this.reuniones.set(
-        this.normalizarRespuesta(reunionesRes).filter((r: any) => r.status === 'activa')
-      );
     } catch (error) {
       console.error('Error cargando catálogos:', error);
-      this.error.set('No se pudieron cargar miembros, invitados o reuniones.');
+      this.error.set('No se pudieron cargar miembros o invitados.');
     }
   }
 
@@ -108,11 +99,7 @@ export class ParticipantesComponent implements OnInit {
 
     try {
       const res: any = await this.api.get('/participantes');
-      const participantes = this.normalizarRespuesta(res);
-
-      this.allItems.set(
-        participantes.filter((p: any) => p?.reunion?.status === 'activa')
-      );
+      this.allItems.set(this.normalizarRespuesta(res));
     } catch (error) {
       console.error('Error cargando participantes:', error);
       this.error.set('No se pudieron cargar los participantes.');
@@ -131,8 +118,6 @@ export class ParticipantesComponent implements OnInit {
         tipo: item.miembro_id ? 'miembro' : 'invitado',
         miembro_id: item.miembro_id || '',
         invitado_id: item.invitado_id || '',
-        reunion_id: item.reunion_id || '',
-        status: item.status === 'ausente' ? 'presente' : item.status || 'presente',
       };
     } else {
       this.form = this.emptyForm();
@@ -155,17 +140,7 @@ export class ParticipantesComponent implements OnInit {
     if (tipo === 'invitado') this.form.miembro_id = '';
   }
 
-  obtenerFechaReunion(reunionId: any): string {
-    const reunion = this.reuniones().find(r => String(r.id) === String(reunionId));
-    return reunion?.fecha || new Date().toISOString().slice(0, 10);
-  }
-
   async save(): Promise<void> {
-    if (!this.form.reunion_id || !this.form.status) {
-      this.error.set('Completa reunión y estado.');
-      return;
-    }
-
     if (this.form.tipo === 'miembro' && !this.form.miembro_id) {
       this.error.set('Selecciona un miembro.');
       return;
@@ -179,17 +154,17 @@ export class ParticipantesComponent implements OnInit {
     this.saving.set(true);
     this.error.set('');
 
-    const payload = {
+    const payload: any = {
       miembro_id: this.form.tipo === 'miembro' ? Number(this.form.miembro_id) : null,
       invitado_id: this.form.tipo === 'invitado' ? Number(this.form.invitado_id) : null,
-      reunion_id: Number(this.form.reunion_id),
-      fecha: this.obtenerFechaReunion(this.form.reunion_id),
-      status: this.form.status,
     };
 
     try {
       if (this.editing) {
-        await this.api.put(`/participantes/${this.editing.id}`, payload);
+        await this.api.put(`/participantes/${this.editing.id}`, {
+          ...payload,
+          status: this.editing.status || 'presente',
+        });
       } else {
         await this.api.post('/participantes', payload);
       }
@@ -228,8 +203,6 @@ export class ParticipantesComponent implements OnInit {
       await this.api.put(`/participantes/${item.id}`, {
         miembro_id: item.miembro_id,
         invitado_id: item.invitado_id,
-        reunion_id: item.reunion_id,
-        fecha: item.fecha || this.obtenerFechaReunion(item.reunion_id),
         status: 'retirado',
       });
 
@@ -273,17 +246,35 @@ export class ParticipantesComponent implements OnInit {
     }
   }
 
-  async copiarUrl(): Promise<void> {
-    if (!this.qrData?.url) return;
-    await navigator.clipboard.writeText(this.qrData.url);
-    alert('URL copiada.');
-  }
+async copiarUrl(): Promise<void> {
+  const url = this.qrData?.url;
 
-  async copiarToken(): Promise<void> {
-    if (!this.qrData?.token) return;
-    await navigator.clipboard.writeText(this.qrData.token);
-    alert('Token copiado.');
+  if (!url) return;
+
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(url);
+    } else {
+      const textarea = document.createElement('textarea');
+      textarea.value = url;
+      textarea.style.position = 'fixed';
+      textarea.style.left = '-9999px';
+      textarea.style.top = '-9999px';
+
+      document.body.appendChild(textarea);
+      textarea.focus();
+      textarea.select();
+
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+    }
+
+    alert('URL copiada.');
+  } catch (error) {
+    console.error(error);
+    alert('No se pudo copiar la URL. Cópiala manualmente.');
   }
+}
 
   abrirEsp32Virtual(): void {
     if (!this.qrData?.url) return;
@@ -299,7 +290,6 @@ export class ParticipantesComponent implements OnInit {
   limpiarFiltros(): void {
     this.q = '';
     this.filtroStatus = '';
-    this.filtroReunion = '';
   }
 
   nombreParticipante(item: any): string {
@@ -317,7 +307,7 @@ export class ParticipantesComponent implements OnInit {
   }
 
   nombreReunion(item: any): string {
-    return item?.reunion?.sesion || item?.reunion?.titulo || item?.reunion || 'Sin reunión';
+    return item?.reunion?.sesion || item?.reunion?.titulo || 'Reunión activa';
   }
 
   badgeClass(status: string): string {
@@ -367,8 +357,6 @@ export class ParticipantesComponent implements OnInit {
       tipo: 'miembro',
       miembro_id: '',
       invitado_id: '',
-      reunion_id: '',
-      status: 'presente',
     };
   }
 

@@ -11,6 +11,12 @@ class DatabaseSeeder extends Seeder
         $this->call([
             RolesAndPermissionsSeeder::class,
             AdminUserSeeder::class,
+
+            // Menús del sistema y asignación por rol
+            MenuSeeder::class,
+            RoleMenuSeeder::class,
+
+            // Datos de prueba
             MiembroSeeder::class,
             InvitadoSeeder::class,
             ReunionSeeder::class,

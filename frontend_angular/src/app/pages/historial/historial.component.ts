@@ -21,7 +21,7 @@ export class HistorialComponent implements OnInit {
   q = signal('');
   filtroTabla = signal('');
 
-  page = 1;
+  page = signal(1);
   pageSize = 10;
 
   tablas = [
@@ -37,8 +37,8 @@ export class HistorialComponent implements OnInit {
   ];
 
   filteredItems = computed(() => {
-  const search = this.normalizarTexto(this.q());
-  const tabla = this.filtroTabla();
+    const search = this.normalizarTexto(this.q());
+    const tabla = this.filtroTabla();
 
     return this.allItems().filter(item => {
       const textoBusqueda = this.normalizarTexto([
@@ -61,7 +61,7 @@ export class HistorialComponent implements OnInit {
   });
 
   items = computed(() => {
-    const start = (this.page - 1) * this.pageSize;
+    const start = (this.page() - 1) * this.pageSize;
     return this.filteredItems().slice(start, start + this.pageSize);
   });
 
@@ -86,7 +86,7 @@ export class HistorialComponent implements OnInit {
         this.cargarParticipantes(),
       ]);
 
-      this.page = 1;
+      this.page.set(1);
     } catch (error) {
       console.error('Error cargando historial:', error);
       this.error.set('No se pudo cargar el historial.');
@@ -106,9 +106,11 @@ export class HistorialComponent implements OnInit {
 
     const lastPage = Number(firstPaginator?.last_page || 1);
 
-    for (let page = 2; page <= lastPage; page++) {
-      const res: any = await this.api.get(`/historial?page=${page}`);
+
+    for (let pagina = 2; pagina <= lastPage; pagina++) {
+      const res: any = await this.api.get(`/historial?page=${pagina}`);
       const paginator = this.extraerPaginador(res);
+
       acumulado.push(...this.extraerDataPaginada(paginator));
     }
 
@@ -123,23 +125,24 @@ export class HistorialComponent implements OnInit {
     try {
       const res: any = await this.api.get('/participantes');
       const data = res?.data?.data ?? res?.data ?? res ?? [];
+
       this.participantes.set(Array.isArray(data) ? data : []);
     } catch {
       this.participantes.set([]);
     }
   }
 
-buscar(): void {
-  this.q.set(this.qInput().trim());
-  this.page = 1;
-}
+  buscar(): void {
+    this.q.set(this.qInput().trim());
+    this.page.set(1);
+  }
 
-limpiarFiltros(): void {
-  this.qInput.set('');
-  this.q.set('');
-  this.filtroTabla.set('');
-  this.page = 1;
-}
+  limpiarFiltros(): void {
+    this.qInput.set('');
+    this.q.set('');
+    this.filtroTabla.set('');
+    this.page.set(1);
+  }
 
   abrirDetalle(item: any): void {
     this.selected.set(item);
@@ -149,9 +152,10 @@ limpiarFiltros(): void {
     this.selected.set(null);
   }
 
-  cambiarPagina(page: number): void {
-    if (!page || page < 1 || page > this.lastPage()) return;
-    this.page = page;
+  cambiarPagina(pagina: number): void {
+    if (!pagina || pagina < 1 || pagina > this.lastPage()) return;
+
+    this.page.set(pagina);
   }
 
   lastPage(): number {
@@ -160,12 +164,16 @@ limpiarFiltros(): void {
 
   pages(): number[] {
     const last = this.lastPage();
-    const current = this.page;
+    const current = this.page();
+
     const start = Math.max(1, current - 2);
     const end = Math.min(last, current + 2);
 
     const pages: number[] = [];
-    for (let i = start; i <= end; i++) pages.push(i);
+
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
 
     return pages;
   }
@@ -238,9 +246,50 @@ limpiarFiltros(): void {
       'Cancelar intervención por QR': 'Cancelación de intervención',
       'Finalizar intervención por QR': 'Finalización de intervención',
       'Generar QR temporal': 'Generación de QR temporal',
+      'Iniciar reunión': 'Inicio de reunión',
+      'Terminar reunión': 'Fin de reunión',
     };
 
     return texto[op] || op || 'Sin operación';
+  }
+
+  operacionClass(operacion: string): string {
+    const op = String(operacion || '').toLowerCase();
+
+    if (op.includes('inicio') || op.includes('crear') || op.includes('generar') || op.includes('solicitud')) {
+      return 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-300';
+    }
+
+    if (op.includes('cierre') || op.includes('terminar') || op.includes('finalizar') || op.includes('liberar')) {
+      return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+    }
+
+    if (op.includes('baja') || op.includes('eliminar') || op.includes('cancelar')) {
+      return 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300';
+    }
+
+    if (op.includes('actualizar') || op.includes('editar') || op.includes('reactivar')) {
+      return 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300';
+    }
+
+    return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+  }
+
+  datoTexto(item: any): string {
+    const dato = item?.dato;
+
+    if (!dato) return 'Sin dato registrado';
+
+    try {
+      if (typeof dato === 'string') {
+        const parsed = JSON.parse(dato);
+        return JSON.stringify(parsed, null, 2);
+      }
+
+      return JSON.stringify(dato, null, 2);
+    } catch {
+      return String(dato);
+    }
   }
 
   formatDate(fecha: string): string {
@@ -257,10 +306,10 @@ limpiarFiltros(): void {
   }
 
   formatTime(fecha: string): string {
-    if (!fecha) return 'Sin hora';
+    if (!fecha) return '--:--';
 
     const date = new Date(fecha);
-    if (isNaN(date.getTime())) return fecha;
+    if (isNaN(date.getTime())) return '--:--';
 
     return date.toLocaleTimeString('es-MX', {
       hour: '2-digit',
@@ -268,54 +317,20 @@ limpiarFiltros(): void {
     });
   }
 
-  operacionClass(operacion: string): string {
-    const op = String(operacion || '').toLowerCase();
-
-    if (op.includes('inicio')) {
-      return 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-300';
-    }
-
-    if (op.includes('cierre')) {
-      return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
-    }
-
-    if (op.includes('eliminar') || op.includes('baja') || op.includes('retirar')) {
-      return 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300';
-    }
-
-    if (op.includes('actualizar') || op.includes('editar') || op.includes('cancelar')) {
-      return 'bg-yellow-100 text-yellow-700 dark:bg-yellow-950/40 dark:text-yellow-300';
-    }
-
-    if (op.includes('crear') || op.includes('asignar') || op.includes('reactivar') || op.includes('qr')) {
-      return 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300';
-    }
-
-    return 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300';
-  }
-
-  datoTexto(item: any): string {
-    try {
-      return JSON.stringify(item?.dato ?? {}, null, 2);
-    } catch {
-      return 'Sin datos';
-    }
-  }
-
-  private normalizarTexto(value: string): string {
-    return String(value || '')
+  private normalizarTexto(texto: string): string {
+    return String(texto || '')
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '');
   }
 
-  private extraerPaginador(res: any): any {
-    const body = res?.data ?? res ?? {};
-    return body?.data?.current_page ? body.data : body?.current_page ? body : body?.data ?? {};
-  }
+private extraerPaginador(res: any): any {
+  return res?.data ?? {};
+}
 
-  private extraerDataPaginada(paginator: any): any[] {
-    const data = paginator?.data ?? [];
-    return Array.isArray(data) ? data : [];
-  }
+private extraerDataPaginada(paginator: any): any[] {
+  return Array.isArray(paginator?.data)
+    ? paginator.data
+    : [];
+}
 }

@@ -134,6 +134,9 @@ Route::get('/me', function (Request $request) {
 
     Route::apiResource('miembros', MiembroController::class);
     Route::apiResource('invitados', InvitadoController::class);
+    Route::get('/reuniones-activa', [ReunionController::class, 'activa']);
+    Route::post('/reuniones/{id}/iniciar', [ReunionController::class, 'iniciar']);
+    Route::post('/reuniones/{id}/terminar', [ReunionController::class, 'terminar']);
     Route::apiResource('reuniones', ReunionController::class);
     Route::apiResource('participantes', ParticipanteController::class);
     Route::apiResource('intervenciones', IntervencionController::class);

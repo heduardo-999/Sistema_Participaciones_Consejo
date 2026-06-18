@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Participante;
 use App\Models\Historial;
 use App\Models\User;
+use App\Models\Reunion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -26,7 +27,11 @@ class ParticipanteController extends Controller
                 'miembro',
                 'invitado',
                 'reunion'
-            ])->get()
+            ])
+            ->whereHas('reunion', function ($query) {
+                $query->where('status', 'activa');
+            })
+            ->get()
         ]);
     }
 
@@ -39,12 +44,20 @@ class ParticipanteController extends Controller
             ], 403);
         }
 
+        $reunionActiva = Reunion::where('status', 'activa')
+            ->latest('id')
+            ->first();
+
+        if (!$reunionActiva) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No existe una reunión activa para agregar participantes.'
+            ], 422);
+        }
+
         $validator = Validator::make($request->all(), [
             'miembro_id' => 'nullable|exists:miembros,id',
             'invitado_id' => 'nullable|exists:invitados,id',
-            'reunion_id' => 'required|exists:reuniones,id',
-            'fecha' => 'required|date',
-            'status' => 'required|in:presente,ausente,retirado',
         ]);
 
         if ($validator->fails()) {
@@ -56,15 +69,23 @@ class ParticipanteController extends Controller
 
         $datos = $validator->validated();
 
-        if (
-            empty($datos['miembro_id']) &&
-            empty($datos['invitado_id'])
-        ) {
+        if (empty($datos['miembro_id']) && empty($datos['invitado_id'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Debe indicar un miembro o invitado'
             ], 422);
         }
+
+        if (!empty($datos['miembro_id']) && !empty($datos['invitado_id'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo puedes indicar un miembro o un invitado, no ambos'
+            ], 422);
+        }
+
+        $datos['reunion_id'] = $reunionActiva->id;
+        $datos['fecha'] = now()->toDateString();
+        $datos['status'] = 'presente';
 
         $participante = Participante::create($datos);
 
@@ -72,13 +93,13 @@ class ParticipanteController extends Controller
             'user_id' => User::mySelf()->id,
             'operacion' => 'Crear participante',
             'tabla' => 'participantes',
-            'dato' => $participante->toArray(),
+            'dato' => $participante->load(['miembro', 'invitado', 'reunion'])->toArray(),
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Participante creado correctamente',
-            'data' => $participante
+            'data' => $participante->load(['miembro', 'invitado', 'reunion'])
         ], 201);
     }
 
@@ -120,7 +141,7 @@ class ParticipanteController extends Controller
             ], 403);
         }
 
-        $participante = Participante::find($id);
+        $participante = Participante::with('reunion')->find($id);
 
         if (!$participante) {
             return response()->json([
@@ -129,12 +150,17 @@ class ParticipanteController extends Controller
             ], 404);
         }
 
+        if (!$participante->reunion || $participante->reunion->status !== 'activa') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo se pueden editar participantes de reuniones activas'
+            ], 422);
+        }
+
         $validator = Validator::make($request->all(), [
             'miembro_id' => 'nullable|exists:miembros,id',
             'invitado_id' => 'nullable|exists:invitados,id',
-            'reunion_id' => 'required|exists:reuniones,id',
-            'fecha' => 'required|date',
-            'status' => 'required|in:presente,retirado',
+            'status' => 'required|in:presente,ausente,retirado',
         ]);
 
         if ($validator->fails()) {
@@ -146,13 +172,17 @@ class ParticipanteController extends Controller
 
         $datos = $validator->validated();
 
-        if (
-            empty($datos['miembro_id']) &&
-            empty($datos['invitado_id'])
-        ) {
+        if (empty($datos['miembro_id']) && empty($datos['invitado_id'])) {
             return response()->json([
                 'success' => false,
                 'message' => 'Debe indicar un miembro o invitado'
+            ], 422);
+        }
+
+        if (!empty($datos['miembro_id']) && !empty($datos['invitado_id'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo puedes indicar un miembro o un invitado, no ambos'
             ], 422);
         }
 
@@ -166,14 +196,14 @@ class ParticipanteController extends Controller
             'tabla' => 'participantes',
             'dato' => [
                 'antes' => $antes,
-                'despues' => $participante->toArray(),
+                'despues' => $participante->fresh()->load(['miembro', 'invitado', 'reunion'])->toArray(),
             ],
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Participante actualizado correctamente',
-            'data' => $participante
+            'data' => $participante->fresh()->load(['miembro', 'invitado', 'reunion'])
         ]);
     }
 
@@ -186,7 +216,7 @@ class ParticipanteController extends Controller
             ], 403);
         }
 
-        $participante = Participante::find($id);
+        $participante = Participante::with(['miembro', 'invitado', 'reunion'])->find($id);
 
         if (!$participante) {
             return response()->json([

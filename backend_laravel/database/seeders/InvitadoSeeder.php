@@ -9,14 +9,22 @@ class InvitadoSeeder extends Seeder
 {
     public function run(): void
     {
-        Invitado::create([
-            'nombre' => 'Carlos Ramirez',
-            'fecha_participacion' => now()->toDateString(),
-        ]);
+        $invitados = [
+            [
+                'nombre' => 'Carlos Ramirez',
+                'fecha_participacion' => now()->toDateString(),
+            ],
+            [
+                'nombre' => 'Ana Torres',
+                'fecha_participacion' => now()->toDateString(),
+            ],
+        ];
 
-        Invitado::create([
-            'nombre' => 'Ana Torres',
-            'fecha_participacion' => now()->toDateString(),
-        ]);
+        foreach ($invitados as $invitado) {
+            Invitado::updateOrCreate(
+                ['nombre' => $invitado['nombre']],
+                $invitado
+            );
+        }
     }
 }

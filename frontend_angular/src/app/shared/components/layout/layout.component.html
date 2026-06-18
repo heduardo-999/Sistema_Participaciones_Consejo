@@ -1,5 +1,6 @@
-  <div class="min-h-screen bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
+<div class="min-h-screen bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
   <aside
+    *ngIf="!modoPresentacion()"
     class="fixed inset-y-0 left-0 z-40 bg-white dark:bg-slate-950 text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800 transition-all duration-300"
     [class.w-72]="sidebarOpen()"
     [class.w-20]="!sidebarOpen()"
@@ -35,10 +36,14 @@
 
   <main
     class="transition-all duration-300"
-    [class.ml-72]="sidebarOpen()"
-    [class.ml-20]="!sidebarOpen()"
+    [class.ml-72]="sidebarOpen() && !modoPresentacion()"
+    [class.ml-20]="!sidebarOpen() && !modoPresentacion()"
+    [class.ml-0]="modoPresentacion()"
   >
-    <header class="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 sticky top-0 z-30">
+    <header
+      *ngIf="!modoPresentacion()"
+      class="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 sticky top-0 z-30"
+    >
       <div class="flex items-center gap-4">
         <button
           type="button"
@@ -86,7 +91,10 @@
       </div>
     </header>
 
-    <section class="p-6">
+    <section
+      [class.p-6]="!modoPresentacion()"
+      [class.p-0]="modoPresentacion()"
+    >
       <router-outlet></router-outlet>
     </section>
   </main>

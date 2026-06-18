@@ -7,11 +7,11 @@ use App\Models\Historial;
 use App\Models\Miembro;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Validator;
 
 class MiembroController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         if (!User::mySelf()->can('miembros.view')) {
             return response()->json([
@@ -20,9 +20,15 @@ class MiembroController extends Controller
             ], 403);
         }
 
+        $query = Miembro::query();
+
+        if ($request->filled('baja')) {
+            $query->where('baja', $request->baja);
+        }
+
         return response()->json([
             'success' => true,
-            'data' => Miembro::orderBy('baja')->orderBy('nombre')->get()
+            'data' => $query->orderBy('id')->get()
         ]);
     }
 
@@ -35,16 +41,23 @@ class MiembroController extends Controller
             ], 403);
         }
 
-        $validated = $request->validate([
-            'nombre' => 'required|string|max:100',
+        $validator = Validator::make($request->all(), [
+            'nombre' => 'required|string|max:255',
             'fecha' => 'required|date',
-            'rfid' => 'required|string|max:100|unique:miembros,rfid',
+            'rfid' => 'required|string|max:255|unique:miembros,rfid',
         ]);
 
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
+
         $miembro = Miembro::create([
-            'nombre' => $validated['nombre'],
-            'fecha' => $validated['fecha'],
-            'rfid' => $validated['rfid'],
+            'nombre' => $request->nombre,
+            'fecha' => $request->fecha,
+            'rfid' => $request->rfid,
             'baja' => 0,
         ]);
 
@@ -104,23 +117,25 @@ class MiembroController extends Controller
             ], 404);
         }
 
-        $validated = $request->validate([
-            'nombre' => 'required|string|max:100',
+        $validator = Validator::make($request->all(), [
+            'nombre' => 'required|string|max:255',
             'fecha' => 'required|date',
-            'rfid' => [
-                'required',
-                'string',
-                'max:100',
-                Rule::unique('miembros', 'rfid')->ignore($miembro->id),
-            ],
+            'rfid' => 'required|string|max:255|unique:miembros,rfid,' . $miembro->id,
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
         $antes = $miembro->toArray();
 
         $miembro->update([
-            'nombre' => $validated['nombre'],
-            'fecha' => $validated['fecha'],
-            'rfid' => $validated['rfid'],
+            'nombre' => $request->nombre,
+            'fecha' => $request->fecha,
+            'rfid' => $request->rfid,
         ]);
 
         Historial::create([
@@ -136,49 +151,6 @@ class MiembroController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Miembro actualizado correctamente',
-            'data' => $miembro->fresh()
-        ]);
-    }
-
-    public function reactivar(string $id)
-    {
-        $user = User::mySelf();
-
-        if (!$user->hasAnyRole(['super admin', 'admin'])) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Solo admin o super admin pueden reactivar miembros'
-            ], 403);
-        }
-
-        $miembro = Miembro::find($id);
-
-        if (!$miembro) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Miembro no encontrado'
-            ], 404);
-        }
-
-        $antes = $miembro->toArray();
-
-        $miembro->update([
-            'baja' => 0
-        ]);
-
-        Historial::create([
-            'user_id' => $user->id,
-            'operacion' => 'Reactivar miembro',
-            'tabla' => 'miembros',
-            'dato' => [
-                'antes' => $antes,
-                'despues' => $miembro->fresh()->toArray(),
-            ],
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Miembro reactivado correctamente',
             'data' => $miembro->fresh()
         ]);
     }
@@ -209,7 +181,7 @@ class MiembroController extends Controller
 
         Historial::create([
             'user_id' => User::mySelf()->id,
-            'operacion' => 'Dar de baja miembro',
+            'operacion' => 'Dar baja miembro',
             'tabla' => 'miembros',
             'dato' => [
                 'antes' => $antes,
@@ -219,7 +191,47 @@ class MiembroController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Miembro dado de baja correctamente',
+            'message' => 'Miembro dado de baja correctamente'
+        ]);
+    }
+
+    public function reactivar(string $id)
+    {
+        if (!User::mySelf()->can('miembros.edit')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autorizado'
+            ], 403);
+        }
+
+        $miembro = Miembro::find($id);
+
+        if (!$miembro) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Miembro no encontrado'
+            ], 404);
+        }
+
+        $antes = $miembro->toArray();
+
+        $miembro->update([
+            'baja' => 0
+        ]);
+
+        Historial::create([
+            'user_id' => User::mySelf()->id,
+            'operacion' => 'Reactivar miembro',
+            'tabla' => 'miembros',
+            'dato' => [
+                'antes' => $antes,
+                'despues' => $miembro->fresh()->toArray(),
+            ],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Miembro reactivado correctamente',
             'data' => $miembro->fresh()
         ]);
     }

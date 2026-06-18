@@ -1,4 +1,4 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, OnDestroy, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   Router,
@@ -16,14 +16,19 @@ import { AuthService } from '../../../core/services/auth.service';
   imports: [CommonModule, RouterOutlet, RouterLink, RouterLinkActive],
   templateUrl: './layout.component.html',
 })
-export class LayoutComponent {
+export class LayoutComponent implements OnDestroy {
   sidebarOpen = signal(true);
   theme = signal(localStorage.getItem('theme') || 'light');
+  modoPresentacion = signal(document.body.classList.contains('modo-presentacion'));
 
   pageTitle = signal('Dashboard');
   breadcrumb = signal('INICIO / DASHBOARD');
 
   user = computed(() => this.auth.user());
+
+  private modoPresentacionHandler = () => {
+    this.modoPresentacion.set(document.body.classList.contains('modo-presentacion'));
+  };
 
   menu = computed(() => {
     const user = this.auth.user();
@@ -66,11 +71,17 @@ export class LayoutComponent {
   ) {
     document.documentElement.classList.toggle('dark', this.theme() === 'dark');
 
+    window.addEventListener('modo-presentacion-change', this.modoPresentacionHandler);
+
     this.router.events
       .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe(() => this.updateTitle());
 
     this.updateTitle();
+  }
+
+  ngOnDestroy(): void {
+    window.removeEventListener('modo-presentacion-change', this.modoPresentacionHandler);
   }
 
   toggleSidebar(): void {

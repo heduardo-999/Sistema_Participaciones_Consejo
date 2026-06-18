@@ -10,7 +10,7 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        $superAdmin = User::firstOrCreate(
+        $superAdmin = User::updateOrCreate(
             ['email' => 'admin@sistema.com'],
             [
                 'name' => 'Administrador',
@@ -21,7 +21,7 @@ class AdminUserSeeder extends Seeder
 
         $superAdmin->syncRoles(['super admin']);
 
-        $admin = User::firstOrCreate(
+        $admin = User::updateOrCreate(
             ['email' => 'admin2@sistema.com'],
             [
                 'name' => 'Admin General',
@@ -32,7 +32,7 @@ class AdminUserSeeder extends Seeder
 
         $admin->syncRoles(['admin']);
 
-        $moderador = User::firstOrCreate(
+        $moderador = User::updateOrCreate(
             ['email' => 'moderador@sistema.com'],
             [
                 'name' => 'Moderador General',

@@ -25,16 +25,39 @@ export class DashboardComponent implements OnInit, OnDestroy {
   participantePreparando = signal<any>(null);
   corriendo = signal(false);
 
+  horaActual = signal('');
+  fechaActual = signal('');
+  segundosReunion = signal(0);
+  reunionCorriendo = signal(false);
+  modoPresentacion = signal(false);
+
   private intervalId: any = null;
   private refreshId: any = null;
   private preparacionId: any = null;
+  private relojId: any = null;
+  private reunionId: any = null;
   private iniciandoAutomatico = false;
   private historialLocalItems: any[] = [];
+
+  private fullscreenHandler = () => {
+    if (!document.fullscreenElement && this.modoPresentacion()) {
+      this.modoPresentacion.set(false);
+      document.body.classList.remove('modo-presentacion');
+      window.dispatchEvent(new Event('modo-presentacion-change'));
+    }
+  };
 
   tiempo = computed(() => {
     const min = Math.floor(this.segundos() / 60).toString().padStart(2, '0');
     const sec = (this.segundos() % 60).toString().padStart(2, '0');
     return `${min}:${sec}`;
+  });
+
+  tiempoReunion = computed(() => {
+    const horas = Math.floor(this.segundosReunion() / 3600).toString().padStart(2, '0');
+    const minutos = Math.floor((this.segundosReunion() % 3600) / 60).toString().padStart(2, '0');
+    const segundos = (this.segundosReunion() % 60).toString().padStart(2, '0');
+    return `${horas}:${minutos}:${segundos}`;
   });
 
   estadoTiempo = computed(() => {
@@ -49,61 +72,141 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.loadData();
+    this.actualizarReloj();
+
+    this.relojId = setInterval(() => this.actualizarReloj(), 1000);
     this.refreshId = setInterval(() => this.loadData(false), 3000);
+
+    document.addEventListener('fullscreenchange', this.fullscreenHandler);
   }
 
   ngOnDestroy(): void {
     clearInterval(this.intervalId);
     clearInterval(this.refreshId);
     clearInterval(this.preparacionId);
+    clearInterval(this.relojId);
+    clearInterval(this.reunionId);
+
+    document.removeEventListener('fullscreenchange', this.fullscreenHandler);
+    document.body.classList.remove('modo-presentacion');
+    window.dispatchEvent(new Event('modo-presentacion-change'));
   }
 
   async loadData(showLoading = true): Promise<void> {
+    await this.cargarReunionActiva();
     await this.cargarIntervenciones();
     await this.cargarHistorial();
   }
 
-  private async cargarIntervenciones(): Promise<void> {
-    const res: any = await this.api.get('/intervenciones');
-    const data = res?.data ?? res ?? [];
-    const lista = Array.isArray(data) ? data : data.data ?? [];
+  private async cargarReunionActiva(): Promise<void> {
+    try {
+      const res: any = await this.api.get('/reuniones-activa');
+      const reunion = res?.data ?? res;
 
-    const visibles = lista.filter((item: any) =>
-      ['aun no intervino', 'interviniendo'].includes(item.status)
+      if (reunion?.id) {
+        this.reunion.set(reunion);
+        this.sincronizarCronometroReunion(reunion);
+      }
+    } catch (error) {
+      console.error('Error cargando reunión activa:', error);
+    }
+  }
+
+  private sincronizarCronometroReunion(reunion: any): void {
+    const status = reunion?.status || reunion?.estado;
+
+    if (status === 'activa' && reunion?.hora_inicio) {
+      this.reconstruirCronometroReunion(reunion.hora_inicio);
+      return;
+    }
+
+    if (status === 'terminada' && reunion?.hora_inicio && reunion?.hora_fin) {
+      this.reconstruirDuracionReunionTerminada(reunion.hora_inicio, reunion.hora_fin);
+      this.detenerCronometroReunion();
+      return;
+    }
+
+    this.detenerCronometroReunion();
+  }
+
+  private reconstruirCronometroReunion(horaInicio: string): void {
+    const inicio = this.fechaConHora(horaInicio);
+    const segundosTranscurridos = Math.floor((Date.now() - inicio.getTime()) / 1000);
+
+    this.segundosReunion.set(Math.max(segundosTranscurridos, 0));
+    this.iniciarCronometroReunion();
+  }
+
+  private reconstruirDuracionReunionTerminada(horaInicio: string, horaFin: string): void {
+    const inicio = this.fechaConHora(horaInicio);
+    const fin = this.fechaConHora(horaFin);
+    const segundosTranscurridos = Math.floor((fin.getTime() - inicio.getTime()) / 1000);
+
+    this.segundosReunion.set(Math.max(segundosTranscurridos, 0));
+  }
+
+  private fechaConHora(hora: string): Date {
+    const hoy = new Date();
+    const partes = hora.split(':').map(Number);
+
+    return new Date(
+      hoy.getFullYear(),
+      hoy.getMonth(),
+      hoy.getDate(),
+      partes[0] || 0,
+      partes[1] || 0,
+      partes[2] || 0
     );
+  }
 
-    const actual =
-      visibles.find((item: any) => item.status === 'interviniendo') ?? null;
+  private async cargarIntervenciones(): Promise<void> {
+    try {
+      const res: any = await this.api.get('/intervenciones');
+      const data = res?.data ?? res ?? [];
+      const lista = Array.isArray(data) ? data : data.data ?? [];
 
-    const pendientes = visibles
-      .filter((item: any) => item.status === 'aun no intervino')
-      .sort(
-        (a: any, b: any) =>
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      const visibles = lista.filter((item: any) =>
+        ['aun no intervino', 'interviniendo'].includes(item.status)
       );
 
-    this.intervencionActual.set(actual);
-    this.cola.set(pendientes);
+      const actual =
+        visibles.find((item: any) => item.status === 'interviniendo') ?? null;
 
-    const reunion =
-      actual?.participante?.reunion ?? pendientes[0]?.participante?.reunion;
+      const pendientes = visibles
+        .filter((item: any) => item.status === 'aun no intervino')
+        .sort(
+          (a: any, b: any) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
 
-    if (reunion) this.reunion.set(reunion);
+      this.intervencionActual.set(actual);
+      this.cola.set(pendientes);
 
-    if (actual && !this.corriendo()) {
-      this.segundos.set(300);
-      this.iniciarCronometro();
-      return;
-    }
+      const reunion =
+        actual?.participante?.reunion ?? pendientes[0]?.participante?.reunion;
 
-    if (!actual && pendientes.length > 0 && !this.preparando()) {
-      await this.prepararSiguiente(pendientes[0]);
-      return;
-    }
+      if (reunion) {
+        this.reunion.set(reunion);
+        this.sincronizarCronometroReunion(reunion);
+      }
 
-    if (!actual && pendientes.length === 0 && !this.preparando()) {
-      this.detenerCronometro();
-      this.segundos.set(300);
+      if (actual && !this.corriendo()) {
+        this.segundos.set(300);
+        this.iniciarCronometro();
+        return;
+      }
+
+      if (!actual && pendientes.length > 0 && !this.preparando()) {
+        await this.prepararSiguiente(pendientes[0]);
+        return;
+      }
+
+      if (!actual && pendientes.length === 0 && !this.preparando()) {
+        this.detenerCronometro();
+        this.segundos.set(300);
+      }
+    } catch (error) {
+      console.error('Error cargando intervenciones:', error);
     }
   }
 
@@ -307,6 +410,92 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.intervencionActual()) this.iniciarCronometro();
   }
 
+  async iniciarReunion(): Promise<void> {
+    let reunion = this.reunion();
+
+    try {
+      if (!reunion?.id) {
+        const res: any = await this.api.get('/reuniones-activa');
+        reunion = res?.data ?? res;
+
+        if (reunion?.id) {
+          this.reunion.set(reunion);
+        }
+      }
+
+      if (!reunion?.id) {
+        alert('No hay reunión registrada para iniciar.');
+        return;
+      }
+
+      await this.api.post(`/reuniones/${reunion.id}/iniciar`, {});
+
+      this.segundosReunion.set(0);
+      this.iniciarCronometroReunion();
+
+      await this.loadData();
+    } catch (error) {
+      console.error(error);
+      alert('No se pudo iniciar la reunión.');
+    }
+  }
+
+  async terminarReunion(): Promise<void> {
+    const reunion = this.reunion();
+
+    if (!reunion?.id) {
+      alert('No hay reunión seleccionada para terminar.');
+      return;
+    }
+
+    try {
+      await this.api.post(`/reuniones/${reunion.id}/terminar`, {});
+
+      this.detenerCronometroReunion();
+
+      await this.loadData();
+    } catch (error) {
+      console.error(error);
+      alert('No se pudo terminar la reunión.');
+    }
+  }
+
+  iniciarCronometroReunion(): void {
+    clearInterval(this.reunionId);
+
+    this.reunionCorriendo.set(true);
+
+    this.reunionId = setInterval(() => {
+      this.segundosReunion.update(v => v + 1);
+    }, 1000);
+  }
+
+  detenerCronometroReunion(): void {
+    clearInterval(this.reunionId);
+    this.reunionCorriendo.set(false);
+  }
+
+  actualizarReloj(): void {
+    const now = new Date();
+
+    this.horaActual.set(
+      now.toLocaleTimeString('es-MX', {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+      })
+    );
+
+    this.fechaActual.set(
+      now.toLocaleDateString('es-MX', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    );
+  }
+
   nombreParticipante(item: any): string {
     return (
       item?.participante?.miembro?.nombre ||
@@ -332,6 +521,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   pantallaCompleta(): void {
+    this.modoPresentacion.update(v => !v);
+
+    document.body.classList.toggle('modo-presentacion', this.modoPresentacion());
+    window.dispatchEvent(new Event('modo-presentacion-change'));
+
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen();
     } else {

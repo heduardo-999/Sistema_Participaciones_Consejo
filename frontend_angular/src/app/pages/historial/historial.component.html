@@ -57,7 +57,7 @@
       <input
         class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
         placeholder="Buscar por usuario, afectado, correo, operación, tabla o dato..."
-        [(ngModel)]="qInput"
+        [ngModel]="qInput()"
         (ngModelChange)="qInput.set($event)"
       />
 
@@ -72,13 +72,13 @@
         }
       </select>
 
-    <button
-      type="button"
-      class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600"
-      (click)="buscar()"
-    >
-      Buscar
-    </button>
+      <button
+        type="button"
+        class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600"
+        (click)="buscar()"
+      >
+        Buscar
+      </button>
 
       <button
         type="button"
@@ -165,15 +165,15 @@
 
     <div class="flex flex-col gap-3 border-t border-slate-200 p-4 dark:border-slate-800 md:flex-row md:items-center md:justify-between">
       <p class="text-sm font-bold text-slate-500 dark:text-slate-400">
-        Página {{ page }} de {{ lastPage() }} · Total {{ total() }} registros
+        Página {{ page() }} de {{ lastPage() }} · Total {{ total() }} registros
       </p>
 
       <div class="flex flex-wrap gap-2">
         <button
           type="button"
           class="rounded-xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-200 disabled:opacity-40 dark:bg-slate-800 dark:text-slate-200"
-          (click)="cambiarPagina(page - 1)"
-          [disabled]="page <= 1 || loading()"
+          (click)="cambiarPagina(page() - 1)"
+          [disabled]="page() <= 1 || loading()"
         >
           Anterior
         </button>
@@ -182,12 +182,12 @@
           <button
             type="button"
             class="rounded-xl px-4 py-2 text-sm font-black"
-            [class.bg-rose-600]="p === page"
-            [class.text-white]="p === page"
-            [class.bg-slate-100]="p !== page"
-            [class.text-slate-700]="p !== page"
-            [class.dark\:bg-slate-800]="p !== page"
-            [class.dark\:text-slate-200]="p !== page"
+            [class.bg-rose-600]="p === page()"
+            [class.text-white]="p === page()"
+            [class.bg-slate-100]="p !== page()"
+            [class.text-slate-700]="p !== page()"
+            [class.dark\:bg-slate-800]="p !== page()"
+            [class.dark\:text-slate-200]="p !== page()"
             (click)="cambiarPagina(p)"
             [disabled]="loading()"
           >
@@ -198,8 +198,8 @@
         <button
           type="button"
           class="rounded-xl bg-slate-100 px-4 py-2 text-sm font-black text-slate-700 hover:bg-slate-200 disabled:opacity-40 dark:bg-slate-800 dark:text-slate-200"
-          (click)="cambiarPagina(page + 1)"
-          [disabled]="page >= lastPage() || loading()"
+          (click)="cambiarPagina(page() + 1)"
+          [disabled]="page() >= lastPage() || loading()"
         >
           Siguiente
         </button>

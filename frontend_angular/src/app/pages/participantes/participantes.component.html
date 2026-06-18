@@ -52,7 +52,7 @@
   </div>
 
   <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-    <div class="grid gap-3 lg:grid-cols-[1fr_220px_260px_auto_auto]">
+    <div class="grid gap-3 lg:grid-cols-[1fr_220px_auto_auto]">
       <input
         class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
         placeholder="Buscar por nombre, RFID, reunión o estado..."
@@ -65,16 +65,6 @@
       >
         @for (estado of estados; track estado.value) {
           <option [value]="estado.value">{{ estado.label }}</option>
-        }
-      </select>
-
-      <select
-        class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-        [(ngModel)]="filtroReunion"
-      >
-        <option value="">Todas las reuniones</option>
-        @for (reunion of reuniones(); track reunion.id) {
-          <option [value]="reunion.id">{{ reunion.sesion }}</option>
         }
       </select>
 
@@ -99,14 +89,13 @@
 
   <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
     <div class="overflow-x-auto">
-      <table class="w-full min-w-[1180px]">
+      <table class="w-full min-w-[980px]">
         <thead class="bg-slate-50 dark:bg-slate-950">
           <tr>
             <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Participante</th>
             <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Tipo</th>
             <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">RFID</th>
             <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Reunión</th>
-            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Fecha</th>
             <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Estado</th>
             <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">QR</th>
             <th class="px-5 py-4 text-right text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Acciones</th>
@@ -135,10 +124,6 @@
 
               <td class="px-5 py-4 text-sm font-bold text-slate-700 dark:text-slate-300">
                 {{ nombreReunion(item) }}
-              </td>
-
-              <td class="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
-                {{ formatDate(item.fecha) }}
               </td>
 
               <td class="px-5 py-4">
@@ -189,7 +174,7 @@
             </tr>
           } @empty {
             <tr>
-              <td colspan="8" class="px-5 py-12 text-center text-slate-500 dark:text-slate-400">
+              <td colspan="7" class="px-5 py-12 text-center text-slate-500 dark:text-slate-400">
                 No hay participantes en reuniones activas que coincidan con los filtros.
               </td>
             </tr>
@@ -212,7 +197,7 @@
             </h3>
 
             <p class="text-sm text-slate-500 dark:text-slate-400">
-              Asigna un miembro o invitado a una reunión activa.
+              La reunión activa, fecha y estado se asignan automáticamente.
             </p>
           </div>
 
@@ -305,47 +290,6 @@
               </select>
             </label>
           }
-
-          <label class="md:col-span-2">
-            <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
-              Reunión activa
-            </span>
-
-            <select
-              class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-              [(ngModel)]="form.reunion_id"
-              name="reunion_id"
-              required
-            >
-              <option value="">Selecciona una reunión activa</option>
-              @for (reunion of reuniones(); track reunion.id) {
-                <option [value]="reunion.id">
-                  {{ reunion.sesion }} - {{ formatDate(reunion.fecha) }}
-                </option>
-              }
-            </select>
-          </label>
-
-          <div class="md:col-span-2 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm font-bold text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
-            Fecha asignada automáticamente:
-            {{ form.reunion_id ? formatDate(obtenerFechaReunion(form.reunion_id)) : 'Selecciona una reunión' }}
-          </div>
-
-          <label class="md:col-span-2">
-            <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
-              Estado
-            </span>
-
-            <select
-              class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-              [(ngModel)]="form.status"
-              name="status"
-              required
-            >
-              <option value="presente">Presente</option>
-              <option value="retirado">Retirado</option>
-            </select>
-          </label>
         </div>
 
         <div class="mt-8 flex justify-end gap-3">
@@ -383,7 +327,7 @@
             </h3>
 
             <p class="text-sm text-slate-500 dark:text-slate-400">
-              Esta URL solo funciona para este participante y mientras la reunión siga activa.
+              Esta URL funciona durante 12 horas y solo si la reunión sigue activa.
             </p>
           </div>
 
@@ -435,11 +379,9 @@
               {{ qrData?.url }}
             </p>
           </div>
-
         </div>
 
         <div class="mt-8 flex flex-wrap justify-end gap-3">
-
           <button
             type="button"
             class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white hover:bg-blue-700"

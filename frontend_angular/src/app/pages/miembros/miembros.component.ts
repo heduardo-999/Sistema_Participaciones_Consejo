@@ -2,6 +2,7 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-miembros',
@@ -16,7 +17,7 @@ export class MiembrosComponent implements OnInit {
   error = signal('');
 
   q = '';
-  filtroBaja = '';
+  filtroBaja = '0';
 
   modal = false;
   editing: any = null;
@@ -25,40 +26,36 @@ export class MiembrosComponent implements OnInit {
 
   miembros = computed(() => {
     const search = this.q.trim().toLowerCase();
-    const baja = this.filtroBaja;
+    const filtro = this.filtroBaja;
 
-    return this.allItems()
-      .filter(item => {
-        const nombre = String(item.nombre || '').toLowerCase();
-        const rfid = String(item.rfid || '').toLowerCase();
-        const fecha = String(item.fecha || '').toLowerCase();
-        const estado = this.estadoLabel(item.baja).toLowerCase();
+    return this.allItems().filter(item => {
+      const nombre = String(item.nombre || '').toLowerCase();
+      const fecha = String(item.fecha || '').toLowerCase();
+      const rfid = String(item.rfid || '').toLowerCase();
+      const baja = String(Number(item.baja || 0));
+      const estado = baja === '1' ? 'baja' : 'activo';
 
-        const matchesSearch =
-          !search ||
-          nombre.includes(search) ||
-          rfid.includes(search) ||
-          fecha.includes(search) ||
-          estado.includes(search);
+      const matchesSearch =
+        !search ||
+        nombre.includes(search) ||
+        fecha.includes(search) ||
+        rfid.includes(search) ||
+        estado.includes(search);
 
-        const matchesBaja = baja === '' || String(item.baja) === String(baja);
+      const matchesBaja = filtro === '' || baja === filtro;
 
-        return matchesSearch && matchesBaja;
-      })
-      .sort((a, b) => {
-        if (Number(a.baja) !== Number(b.baja)) {
-          return Number(a.baja) - Number(b.baja);
-        }
-
-        return String(a.nombre || '').localeCompare(String(b.nombre || ''));
-      });
+      return matchesSearch && matchesBaja;
+    });
   });
 
   total = computed(() => this.allItems().length);
-  activos = computed(() => this.allItems().filter(i => Number(i.baja) === 0).length);
-  bajas = computed(() => this.allItems().filter(i => Number(i.baja) === 1).length);
+  activos = computed(() => this.allItems().filter(i => Number(i.baja || 0) === 0).length);
+  bajas = computed(() => this.allItems().filter(i => Number(i.baja || 0) === 1).length);
 
-  constructor(private api: ApiService) {}
+  constructor(
+    private api: ApiService,
+    private auth: AuthService
+  ) {}
 
   async ngOnInit(): Promise<void> {
     await this.load();
@@ -71,9 +68,9 @@ export class MiembrosComponent implements OnInit {
     try {
       const res: any = await this.api.get('/miembros');
       this.allItems.set(this.normalizarRespuesta(res));
-    } catch (error) {
-      console.error('Error cargando miembros:', error);
-      this.error.set('No se pudieron cargar los miembros.');
+    } catch (error: any) {
+      console.error(error);
+      this.error.set(this.extractError(error) || 'No se pudieron cargar los miembros.');
       this.allItems.set([]);
     } finally {
       this.loading.set(false);
@@ -84,13 +81,15 @@ export class MiembrosComponent implements OnInit {
     this.error.set('');
     this.editing = item || null;
 
-    this.form = item
-      ? {
-          nombre: item.nombre || '',
-          fecha: item.fecha || new Date().toISOString().slice(0, 10),
-          rfid: item.rfid || '',
-        }
-      : this.emptyForm();
+    if (item) {
+      this.form = {
+        nombre: item.nombre || '',
+        fecha: this.toInputDate(item.fecha),
+        rfid: item.rfid || '',
+      };
+    } else {
+      this.form = this.emptyForm();
+    }
 
     this.modal = true;
   }
@@ -103,8 +102,18 @@ export class MiembrosComponent implements OnInit {
   }
 
   async save(): Promise<void> {
-    if (!this.form.nombre || !this.form.fecha || !this.form.rfid) {
-      this.error.set('Completa nombre, fecha y RFID.');
+    if (!this.form.nombre?.trim()) {
+      this.error.set('Escribe el nombre del miembro.');
+      return;
+    }
+
+    if (!this.form.fecha) {
+      this.error.set('Selecciona la fecha.');
+      return;
+    }
+
+    if (!this.form.rfid?.trim()) {
+      this.error.set('Escribe el RFID.');
       return;
     }
 
@@ -112,9 +121,9 @@ export class MiembrosComponent implements OnInit {
     this.error.set('');
 
     const payload = {
-      nombre: this.form.nombre,
+      nombre: this.form.nombre.trim(),
       fecha: this.form.fecha,
-      rfid: this.form.rfid,
+      rfid: this.form.rfid.trim(),
     };
 
     try {
@@ -127,7 +136,7 @@ export class MiembrosComponent implements OnInit {
       this.close();
       await this.load();
     } catch (error: any) {
-      console.error('Error guardando miembro:', error);
+      console.error(error);
       this.error.set(this.extractError(error) || 'No se pudo guardar el miembro.');
     } finally {
       this.saving.set(false);
@@ -135,7 +144,7 @@ export class MiembrosComponent implements OnInit {
   }
 
   async darBaja(item: any): Promise<void> {
-    if (!confirm(`¿Dar de baja a ${item.nombre}?`)) return;
+    if (!confirm(`¿Seguro que deseas dar de baja a ${item.nombre}?`)) return;
 
     this.saving.set(true);
     this.error.set('');
@@ -144,7 +153,7 @@ export class MiembrosComponent implements OnInit {
       await this.api.delete(`/miembros/${item.id}`);
       await this.load();
     } catch (error: any) {
-      console.error('Error dando de baja:', error);
+      console.error(error);
       this.error.set(this.extractError(error) || 'No se pudo dar de baja al miembro.');
     } finally {
       this.saving.set(false);
@@ -152,12 +161,7 @@ export class MiembrosComponent implements OnInit {
   }
 
   async reactivar(item: any): Promise<void> {
-    if (!this.puedeReactivar()) {
-      this.error.set('No tienes permiso para reactivar miembros.');
-      return;
-    }
-
-    if (!confirm(`¿Reactivar a ${item.nombre}?`)) return;
+    if (!confirm(`¿Seguro que deseas reactivar a ${item.nombre}?`)) return;
 
     this.saving.set(true);
     this.error.set('');
@@ -166,43 +170,47 @@ export class MiembrosComponent implements OnInit {
       await this.api.put(`/miembros/${item.id}/reactivar`, {});
       await this.load();
     } catch (error: any) {
-      console.error('Error reactivando miembro:', error);
+      console.error(error);
       this.error.set(this.extractError(error) || 'No se pudo reactivar al miembro.');
     } finally {
       this.saving.set(false);
     }
   }
 
-  limpiarFiltros(): void {
-    this.q = '';
+  mostrarActivos(): void {
+    this.filtroBaja = '0';
+  }
+
+  mostrarBajas(): void {
+    this.filtroBaja = '1';
+  }
+
+  mostrarTodos(): void {
     this.filtroBaja = '';
   }
 
+  limpiarFiltros(): void {
+    this.q = '';
+    this.filtroBaja = '0';
+  }
+
   esBaja(item: any): boolean {
-    return Number(item.baja) === 1;
-  }
-
-  estadoLabel(baja: any): string {
-    return Number(baja) === 1 ? 'Baja' : 'Activo';
-  }
-
-  estadoClass(baja: any): string {
-    return Number(baja) === 1
-      ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300'
-      : 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-300';
+    return Number(item.baja || 0) === 1;
   }
 
   puedeReactivar(): boolean {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    const roles = user?.roles || [];
+    const roles = this.auth.user()?.roles ?? [];
+    return roles.includes('super admin') || roles.includes('admin');
+  }
 
-    if (Array.isArray(roles)) {
-      const names = roles.map((r: any) => String(r?.name || r || '').toLowerCase());
-      return names.includes('admin') || names.includes('super admin');
-    }
+  estadoLabel(baja: any): string {
+    return Number(baja || 0) === 1 ? 'Baja' : 'Activo';
+  }
 
-    const role = String(user?.role || user?.rol || '').toLowerCase();
-    return role === 'admin' || role === 'super admin';
+  estadoClass(baja: any): string {
+    return Number(baja || 0) === 1
+      ? 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300'
+      : 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-300';
   }
 
   formatDate(fecha: string): string {
@@ -210,6 +218,11 @@ export class MiembrosComponent implements OnInit {
 
     const partes = fecha.toString().split('T')[0].split('-');
     return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : fecha;
+  }
+
+  private toInputDate(fecha: string): string {
+    if (!fecha) return '';
+    return fecha.toString().split('T')[0];
   }
 
   private emptyForm(): any {
@@ -226,7 +239,7 @@ export class MiembrosComponent implements OnInit {
   }
 
   private extractError(error: any): string {
-    const data = error?.response?.data;
+    const data = error?.response?.data ?? error?.data ?? error;
 
     if (data?.message) return data.message;
 

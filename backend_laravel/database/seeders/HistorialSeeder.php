@@ -9,37 +9,46 @@ class HistorialSeeder extends Seeder
 {
     public function run(): void
     {
-        Historial::create([
-            'user_id' => 1,
-            'operacion' => 'Inicio de sesión',
-            'tabla' => 'users',
-            'dato' => [
-                'email' => 'admin@sistema.com',
-                'fecha' => now(),
+        $historiales = [
+            [
+                'user_id' => 1,
+                'operacion' => 'Inicio de sesión',
+                'tabla' => 'users',
+                'dato' => [
+                    'email' => 'admin@sistema.com',
+                    'fecha' => now()->toDateTimeString(),
+                ],
             ],
-        ]);
+            [
+                'user_id' => 1,
+                'operacion' => 'Crear miembro',
+                'tabla' => 'miembros',
+                'dato' => [
+                    'nombre' => 'Maria Lopez',
+                    'rfid' => 'RFID100',
+                    'baja' => 0,
+                ],
+            ],
+            [
+                'user_id' => 1,
+                'operacion' => 'Crear reunión',
+                'tabla' => 'reuniones',
+                'dato' => [
+                    'sesion' => 'Sesion Ordinaria',
+                    'status' => 'activa',
+                ],
+            ],
+        ];
 
-        Historial::create([
-            'user_id' => 1,
-            'operacion' => 'Crear miembro',
-            'tabla' => 'miembros',
-            'dato' => [
-                'id' => 1,
-                'nombre' => 'Maria Lopez',
-                'rfid' => 'RFID100',
-                'baja' => 0,
-            ],
-        ]);
-
-        Historial::create([
-            'user_id' => 1,
-            'operacion' => 'Crear reunión',
-            'tabla' => 'reuniones',
-            'dato' => [
-                'id' => 1,
-                'sesion' => 'Sesion Ordinaria',
-                'status' => 'activa',
-            ],
-        ]);
+        foreach ($historiales as $historial) {
+            Historial::updateOrCreate(
+                [
+                    'user_id' => $historial['user_id'],
+                    'operacion' => $historial['operacion'],
+                    'tabla' => $historial['tabla'],
+                ],
+                $historial
+            );
+        }
     }
 }
