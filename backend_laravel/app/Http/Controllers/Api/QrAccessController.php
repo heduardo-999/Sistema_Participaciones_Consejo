@@ -426,8 +426,40 @@ class QrAccessController extends Controller
 
     private function urlQr(string $token): string
     {
-        return config('app.frontend_url', env('FRONTEND_URL', 'http://192.168.1.113:4200'))
-            . '/qr/esp32/' . $token;
+        $frontendUrl = trim((string) config('app.frontend_url', ''));
+
+        if ($frontendUrl !== '') {
+            $baseUrl = rtrim($frontendUrl, '/');
+        } else {
+            $baseUrl = $this->frontendUrlAutomatica();
+        }
+
+        return $baseUrl . '/qr/esp32/' . $token;
+    }
+
+    private function frontendUrlAutomatica(): string
+    {
+        $scheme = request()->getScheme();
+        $host = request()->getHost();
+        $backendPort = request()->getPort();
+        $frontendPort = trim((string) config('app.frontend_port', ''));
+
+        $esLocal = in_array($host, ['localhost', '127.0.0.1', '::1'], true)
+            || str_starts_with($host, '192.168.')
+            || str_starts_with($host, '10.')
+            || preg_match('/^172\.(1[6-9]|2[0-9]|3[0-1])\./', $host);
+
+        if ($esLocal && $frontendPort !== '') {
+            return $scheme . '://' . $host . ':' . $frontendPort;
+        }
+
+        $url = $scheme . '://' . $host;
+
+        if ($backendPort && !in_array((int) $backendPort, [80, 443], true)) {
+            $url .= ':' . $backendPort;
+        }
+
+        return rtrim($url, '/');
     }
 
     private function usuarioHistorialQr(): int

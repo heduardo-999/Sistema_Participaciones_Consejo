@@ -1,1 +1,26 @@
-export const environment = { production: false, apiUrl: 'http://192.168.1.113:8000/api' };
+// src/environments/environment.ts
+
+function limpiarBaseUrl(url: string): string {
+  return url.replace(/\/+$/, '');
+}
+
+function construirApiUrl(): string {
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  const frontendPort = window.location.port;
+
+  // Cuando corres Angular con ng serve normalmente estás en el puerto 4200.
+  // En ese caso el backend Laravel se toma en la misma IP/dominio, pero puerto 8000.
+  if (frontendPort === '4200') {
+    return `${protocol}//${hostname}:8000/api`;
+  }
+
+  // Cuando lo subas a un servidor y frontend/backend estén bajo el mismo dominio,
+  // se usará automáticamente el mismo dominio donde se abrió el frontend.
+  return `${window.location.origin}/api`;
+}
+
+export const environment = {
+  production: false,
+  apiUrl: limpiarBaseUrl(construirApiUrl()),
+};

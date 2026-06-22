@@ -14,6 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
 
+        // Útil cuando el proyecto esté detrás de proxy, hosting, Nginx, Apache o HTTPS.
+        $middleware->trustProxies(at: '*');
+
         $middleware->alias([
             'CheckBaja' => \App\Http\Middleware\CheckBaja::class,
         ]);
