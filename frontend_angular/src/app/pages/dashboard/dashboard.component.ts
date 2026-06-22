@@ -30,6 +30,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   segundosReunion = signal(0);
   reunionCorriendo = signal(false);
   modoPresentacion = signal(false);
+  intervencionesPausadas = signal(false);
 
   private intervalId: any = null;
   private refreshId: any = null;
@@ -38,6 +39,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private reunionId: any = null;
   private iniciandoAutomatico = false;
   private historialLocalItems: any[] = [];
+
+  private ocultarHistorialDashboard =
+    sessionStorage.getItem('ocultarHistorialDashboard') === '1';
+
+  private historialInicioId = Number(
+    sessionStorage.getItem('historialInicioId') || 0
+  );
 
   private fullscreenHandler = () => {
     if (!document.fullscreenElement && this.modoPresentacion()) {
@@ -105,58 +113,29 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
       if (reunion?.id) {
         this.reunion.set(reunion);
-        this.sincronizarCronometroReunion(reunion);
+      } else {
+        this.historialLocalItems = [];
+        this.historial.set([]);
       }
     } catch (error) {
       console.error('Error cargando reunión activa:', error);
     }
   }
 
-  private sincronizarCronometroReunion(reunion: any): void {
-    const status = reunion?.status || reunion?.estado;
+  private async obtenerUltimoHistorialId(): Promise<number> {
+    const res: any = await this.api.get('/historial?page=1');
 
-    if (status === 'activa' && reunion?.hora_inicio) {
-      this.reconstruirCronometroReunion(reunion.hora_inicio);
-      return;
+    const items =
+      res?.data?.data?.data ??
+      res?.data?.data ??
+      res?.data ??
+      [];
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return 0;
     }
 
-    if (status === 'terminada' && reunion?.hora_inicio && reunion?.hora_fin) {
-      this.reconstruirDuracionReunionTerminada(reunion.hora_inicio, reunion.hora_fin);
-      this.detenerCronometroReunion();
-      return;
-    }
-
-    this.detenerCronometroReunion();
-  }
-
-  private reconstruirCronometroReunion(horaInicio: string): void {
-    const inicio = this.fechaConHora(horaInicio);
-    const segundosTranscurridos = Math.floor((Date.now() - inicio.getTime()) / 1000);
-
-    this.segundosReunion.set(Math.max(segundosTranscurridos, 0));
-    this.iniciarCronometroReunion();
-  }
-
-  private reconstruirDuracionReunionTerminada(horaInicio: string, horaFin: string): void {
-    const inicio = this.fechaConHora(horaInicio);
-    const fin = this.fechaConHora(horaFin);
-    const segundosTranscurridos = Math.floor((fin.getTime() - inicio.getTime()) / 1000);
-
-    this.segundosReunion.set(Math.max(segundosTranscurridos, 0));
-  }
-
-  private fechaConHora(hora: string): Date {
-    const hoy = new Date();
-    const partes = hora.split(':').map(Number);
-
-    return new Date(
-      hoy.getFullYear(),
-      hoy.getMonth(),
-      hoy.getDate(),
-      partes[0] || 0,
-      partes[1] || 0,
-      partes[2] || 0
-    );
+    return Math.max(...items.map((item: any) => Number(item.id || 0)));
   }
 
   private async cargarIntervenciones(): Promise<void> {
@@ -187,7 +166,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
       if (reunion) {
         this.reunion.set(reunion);
-        this.sincronizarCronometroReunion(reunion);
       }
 
       if (actual && !this.corriendo()) {
@@ -196,7 +174,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
         return;
       }
 
-      if (!actual && pendientes.length > 0 && !this.preparando()) {
+      if (
+        !actual &&
+        pendientes.length > 0 &&
+        !this.preparando() &&
+        !this.intervencionesPausadas()
+      ) {
         await this.prepararSiguiente(pendientes[0]);
         return;
       }
@@ -211,7 +194,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private async prepararSiguiente(siguiente: any): Promise<void> {
-    if (this.iniciandoAutomatico) return;
+    if (this.iniciandoAutomatico || this.intervencionesPausadas()) return;
 
     this.iniciandoAutomatico = true;
     this.participantePreparando.set(siguiente);
@@ -221,6 +204,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
     clearInterval(this.preparacionId);
 
     this.preparacionId = setInterval(async () => {
+      if (this.intervencionesPausadas()) {
+        clearInterval(this.preparacionId);
+        this.preparando.set(false);
+        this.participantePreparando.set(null);
+        this.iniciandoAutomatico = false;
+        return;
+      }
+
       if (this.preparacionSegundos() > 1) {
         this.preparacionSegundos.update(v => v - 1);
         return;
@@ -232,6 +223,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private async iniciarIntervencionReal(item: any): Promise<void> {
+    if (this.intervencionesPausadas()) return;
+
     try {
       await this.api.put(`/intervenciones/${item.id}`, {
         status: 'interviniendo',
@@ -252,7 +245,25 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  togglePausaIntervenciones(): void {
+    this.intervencionesPausadas.update(v => !v);
+
+    if (this.intervencionesPausadas()) {
+      clearInterval(this.preparacionId);
+      this.preparando.set(false);
+      this.participantePreparando.set(null);
+      this.iniciandoAutomatico = false;
+    } else {
+      this.cargarIntervenciones();
+    }
+  }
+
   async manejarPulsoEsp32(): Promise<void> {
+    if (this.intervencionesPausadas()) {
+      alert('Las intervenciones están pausadas.');
+      return;
+    }
+
     if (this.preparando() && this.participantePreparando()) {
       await this.cancelarPreparacion();
       return;
@@ -290,8 +301,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.preparando.set(false);
     this.participantePreparando.set(null);
     this.iniciandoAutomatico = false;
-
-    await this.loadData();
   }
 
   async finalizarIntervencion(): Promise<void> {
@@ -310,15 +319,28 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
       this.detenerCronometro();
       this.segundos.set(300);
-      await this.loadData();
+      await this.cargarIntervenciones();
     } catch (error) {
       console.error('Error finalizando intervención:', error);
     }
   }
 
   private async cargarHistorial(): Promise<void> {
+    const reunionActual = this.reunion();
+    const status = reunionActual?.status || reunionActual?.estado;
+
+    if (
+      this.ocultarHistorialDashboard ||
+      status !== 'activa' ||
+      !this.historialInicioId
+    ) {
+      this.historialLocalItems = [];
+      this.historial.set([]);
+      return;
+    }
+
     try {
-      const histRes: any = await this.api.get('/historial');
+      const histRes: any = await this.api.get('/historial?page=1');
 
       const historialItems =
         histRes?.data?.data?.data ??
@@ -330,6 +352,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
       const soloIntervenciones = lista
         .filter((item: any) => this.esHistorialIntervencionVisible(item))
+        .filter((item: any) => Number(item.id || 0) > this.historialInicioId)
         .map((item: any) => ({
           ...item,
           participante_nombre: this.extraerNombreHistorial(item),
@@ -348,7 +371,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const operacion = String(item?.operacion || '').toLowerCase();
 
     const esIntervencion = tabla === 'intervenciones';
-    const mencionaIntervencion = operacion.includes('intervención');
+
+    const mencionaIntervencion =
+      operacion.includes('intervención') ||
+      operacion.includes('intervencion');
 
     const esActualizar =
       operacion === 'actualizar intervención' ||
@@ -358,6 +384,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private agregarHistorialLocal(operacion: string, nombre: string): void {
+    if (!this.historialInicioId) return;
+
     this.historialLocalItems.unshift({
       id: `local-${Date.now()}`,
       operacion,
@@ -428,12 +456,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
         return;
       }
 
+      this.historialLocalItems = [];
+      this.historial.set([]);
+
+      this.ocultarHistorialDashboard = false;
+      sessionStorage.removeItem('ocultarHistorialDashboard');
+
+      this.historialInicioId = await this.obtenerUltimoHistorialId();
+      sessionStorage.setItem('historialInicioId', String(this.historialInicioId));
+
       await this.api.post(`/reuniones/${reunion.id}/iniciar`, {});
 
+      this.intervencionesPausadas.set(false);
       this.segundosReunion.set(0);
       this.iniciarCronometroReunion();
 
-      await this.loadData();
+      await this.cargarReunionActiva();
+      await this.cargarHistorial();
     } catch (error) {
       console.error(error);
       alert('No se pudo iniciar la reunión.');
@@ -451,9 +490,30 @@ export class DashboardComponent implements OnInit, OnDestroy {
     try {
       await this.api.post(`/reuniones/${reunion.id}/terminar`, {});
 
-      this.detenerCronometroReunion();
+      this.intervencionActual.set(null);
+      this.cola.set([]);
 
-      await this.loadData();
+      this.detenerCronometroReunion();
+      this.segundosReunion.set(0);
+      this.detenerCronometro();
+      this.segundos.set(300);
+
+      clearInterval(this.preparacionId);
+      this.preparando.set(false);
+      this.participantePreparando.set(null);
+      this.iniciandoAutomatico = false;
+      this.intervencionesPausadas.set(false);
+
+      this.historialLocalItems = [];
+      this.historial.set([]);
+
+      this.ocultarHistorialDashboard = true;
+      sessionStorage.setItem('ocultarHistorialDashboard', '1');
+
+      this.historialInicioId = 0;
+      sessionStorage.removeItem('historialInicioId');
+
+      await this.cargarReunionActiva();
     } catch (error) {
       console.error(error);
       alert('No se pudo terminar la reunión.');

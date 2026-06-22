@@ -426,7 +426,7 @@ class QrAccessController extends Controller
 
     private function urlQr(string $token): string
     {
-        return config('app.frontend_url', env('FRONTEND_URL', 'http://192.168.0.26:4200'))
+        return config('app.frontend_url', env('FRONTEND_URL', 'http://192.168.1.113:4200'))
             . '/qr/esp32/' . $token;
     }
 

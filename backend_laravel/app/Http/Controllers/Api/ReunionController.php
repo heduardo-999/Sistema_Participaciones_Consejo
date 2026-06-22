@@ -3,9 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Historial;
 use App\Models\Reunion;
+use App\Models\Historial;
 use App\Models\User;
+use App\Models\Intervencion;
+use App\Models\LugarAsignado;
+use App\Models\Participante;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -48,7 +51,7 @@ class ReunionController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'sesion' => 'required|string|max:255',
+            'sesion' => 'required|string|max:100',
             'fecha' => 'required|date',
             'status' => 'required|in:activa,terminada,cancelada,pospuesta',
             'hora_inicio' => 'nullable',
@@ -125,7 +128,7 @@ class ReunionController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'sesion' => 'required|string|max:255',
+            'sesion' => 'required|string|max:100',
             'fecha' => 'required|date',
             'status' => 'required|in:activa,terminada,cancelada,pospuesta',
             'hora_inicio' => 'nullable',
@@ -202,21 +205,45 @@ class ReunionController extends Controller
             ], 404);
         }
 
+        $horaFin = now()->format('H:i:s');
+
+        $participantesIds = Participante::where('reunion_id', $id)
+            ->pluck('id');
+
+        LugarAsignado::whereIn('participante_id', $participantesIds)
+            ->delete();
+
+        Intervencion::whereHas('participante', function ($query) use ($id) {
+            $query->where('reunion_id', $id);
+        })
+            ->whereIn('status', [
+                'aun no intervino',
+                'interviniendo'
+            ])
+            ->update([
+                'status' => 'fin intervencion',
+                'hora_fin' => $horaFin,
+            ]);
+
         $reunion->update([
             'status' => 'terminada',
-            'hora_fin' => now()->format('H:i:s'),
+            'hora_fin' => $horaFin,
         ]);
 
         Historial::create([
             'user_id' => User::mySelf()->id,
             'operacion' => 'Terminar reunión',
             'tabla' => 'reuniones',
-            'dato' => $reunion->fresh()->toArray(),
+            'dato' => [
+                'reunion' => $reunion->fresh()->toArray(),
+                'lugares_liberados' => $participantesIds->count(),
+                'intervenciones_finalizadas' => true,
+            ],
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Reunión terminada correctamente',
+            'message' => 'Reunión terminada correctamente. Intervenciones finalizadas y lugares liberados.',
             'data' => $reunion->fresh()
         ]);
     }

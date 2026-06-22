@@ -57,7 +57,16 @@ export class RolesPermisosComponent implements OnInit {
       this.roles.set(this.normalizarRespuesta(rolesRes));
       this.permissions.set(this.normalizarRespuesta(permissionsRes));
 
-      if (this.roles().length > 0 && !this.selectedRole()) {
+      if (this.selectedRole()) {
+        const actualizado = this.roles().find(r => r.id === this.selectedRole().id);
+
+        if (actualizado) {
+          await this.seleccionarRol(actualizado);
+        } else {
+          this.selectedRole.set(null);
+          this.selectedPermissionIds.set([]);
+        }
+      } else if (this.roles().length > 0) {
         await this.seleccionarRol(this.roles()[0]);
       }
     } catch (error) {
@@ -124,6 +133,40 @@ export class RolesPermisosComponent implements OnInit {
     }
   }
 
+  async eliminarRol(): Promise<void> {
+    const role = this.selectedRole();
+
+    if (!role) {
+      this.error.set('Selecciona un rol para eliminar.');
+      return;
+    }
+
+    if (role.name === 'super admin') {
+      this.error.set('No se puede eliminar el rol super admin.');
+      return;
+    }
+
+    if (!confirm(`¿Seguro que deseas eliminar el rol "${role.name}"?`)) return;
+
+    this.saving.set(true);
+    this.error.set('');
+    this.success.set('');
+
+    try {
+      await this.crud.remove('/roles-admin', role.id);
+
+      this.selectedRole.set(null);
+      this.selectedPermissionIds.set([]);
+      this.success.set('Rol eliminado correctamente.');
+      await this.load();
+    } catch (error: any) {
+      console.error(error);
+      this.error.set(this.extractError(error) || 'No se pudo eliminar el rol.');
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
   async crearPermiso(): Promise<void> {
     if (!this.nuevoPermiso.trim()) {
       this.error.set('Escribe el nombre del permiso.');
@@ -150,9 +193,40 @@ export class RolesPermisosComponent implements OnInit {
     }
   }
 
+  async eliminarPermiso(permission: any): Promise<void> {
+    if (!permission?.id) return;
+
+    if (!confirm(`¿Seguro que deseas eliminar el permiso "${permission.name}"?`)) return;
+
+    this.saving.set(true);
+    this.error.set('');
+    this.success.set('');
+
+    try {
+      await this.crud.remove('/permissions-admin', permission.id);
+
+      this.selectedPermissionIds.set(
+        this.selectedPermissionIds().filter(id => Number(id) !== Number(permission.id))
+      );
+
+      this.success.set('Permiso eliminado correctamente.');
+      await this.load();
+    } catch (error: any) {
+      console.error(error);
+      this.error.set(this.extractError(error) || 'No se pudo eliminar el permiso.');
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
   async guardarPermisos(): Promise<void> {
     if (!this.selectedRole()) {
       this.error.set('Selecciona un rol.');
+      return;
+    }
+
+    if (this.selectedRole()?.name === 'super admin') {
+      this.error.set('No se pueden modificar los permisos del super admin.');
       return;
     }
 

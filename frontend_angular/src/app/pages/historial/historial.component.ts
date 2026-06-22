@@ -34,6 +34,11 @@ export class HistorialComponent implements OnInit {
     'lugares',
     'lugares_asignados',
     'token_qrs',
+    'roles',
+    'permissions',
+    'roles_permissions',
+    'menus',
+    'role_menus',
   ];
 
   filteredItems = computed(() => {
@@ -106,7 +111,6 @@ export class HistorialComponent implements OnInit {
 
     const lastPage = Number(firstPaginator?.last_page || 1);
 
-
     for (let pagina = 2; pagina <= lastPage; pagina++) {
       const res: any = await this.api.get(`/historial?page=${pagina}`);
       const paginator = this.extraerPaginador(res);
@@ -154,7 +158,6 @@ export class HistorialComponent implements OnInit {
 
   cambiarPagina(pagina: number): void {
     if (!pagina || pagina < 1 || pagina > this.lastPage()) return;
-
     this.page.set(pagina);
   }
 
@@ -194,10 +197,13 @@ export class HistorialComponent implements OnInit {
     if (typeof dato.invitado === 'string') return dato.invitado;
 
     const nombreDirecto =
+      dato.rol ||
+      dato.nombre ||
+      dato.menu ||
+      dato.permiso ||
       dato.participante_nombre ||
       dato.miembro_nombre ||
       dato.invitado_nombre ||
-      dato.nombre ||
       dato.participante?.miembro?.nombre ||
       dato.participante?.invitado?.nombre ||
       dato.miembro?.nombre ||
@@ -248,6 +254,16 @@ export class HistorialComponent implements OnInit {
       'Generar QR temporal': 'Generación de QR temporal',
       'Iniciar reunión': 'Inicio de reunión',
       'Terminar reunión': 'Fin de reunión',
+
+      'Crear rol': 'Creación de rol',
+      'Eliminar rol': 'Eliminación de rol',
+      'Crear permiso': 'Creación de permiso',
+      'Eliminar permiso': 'Eliminación de permiso',
+      'Actualizar permisos de rol': 'Actualización de permisos del rol',
+      'Crear menú': 'Creación de menú',
+      'Actualizar menú': 'Actualización de menú',
+      'Eliminar menú': 'Eliminación de menú',
+      'Actualizar menús de rol': 'Actualización de menús del rol',
     };
 
     return texto[op] || op || 'Sin operación';
@@ -256,7 +272,7 @@ export class HistorialComponent implements OnInit {
   operacionClass(operacion: string): string {
     const op = String(operacion || '').toLowerCase();
 
-    if (op.includes('inicio') || op.includes('crear') || op.includes('generar') || op.includes('solicitud')) {
+    if (op.includes('inicio') || op.includes('crear') || op.includes('generar') || op.includes('solicitud') || op.includes('creación')) {
       return 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-300';
     }
 
@@ -264,11 +280,11 @@ export class HistorialComponent implements OnInit {
       return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
     }
 
-    if (op.includes('baja') || op.includes('eliminar') || op.includes('cancelar')) {
+    if (op.includes('baja') || op.includes('eliminar') || op.includes('eliminación') || op.includes('cancelar')) {
       return 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300';
     }
 
-    if (op.includes('actualizar') || op.includes('editar') || op.includes('reactivar')) {
+    if (op.includes('actualizar') || op.includes('actualización') || op.includes('editar') || op.includes('reactivar')) {
       return 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300';
     }
 
@@ -324,13 +340,13 @@ export class HistorialComponent implements OnInit {
       .replace(/[\u0300-\u036f]/g, '');
   }
 
-private extraerPaginador(res: any): any {
-  return res?.data ?? {};
-}
+  private extraerPaginador(res: any): any {
+    return res?.data ?? {};
+  }
 
-private extraerDataPaginada(paginator: any): any[] {
-  return Array.isArray(paginator?.data)
-    ? paginator.data
-    : [];
-}
+  private extraerDataPaginada(paginator: any): any[] {
+    return Array.isArray(paginator?.data)
+      ? paginator.data
+      : [];
+  }
 }

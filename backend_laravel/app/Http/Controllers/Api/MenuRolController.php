@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Historial;
 use App\Models\Menu;
 use App\Models\RoleMenu;
 use App\Models\User;
@@ -60,6 +61,18 @@ class MenuRolController extends Controller
             'baja' => $validated['baja'] ?? 0,
         ]);
 
+        Historial::create([
+            'user_id' => User::mySelf()->id,
+            'operacion' => 'Crear menú',
+            'tabla' => 'menus',
+            'dato' => [
+                'id' => $menu->id,
+                'nombre' => $menu->nombre,
+                'url' => $menu->url,
+                'icono' => $menu->icono,
+            ],
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Menú creado correctamente',
@@ -88,6 +101,8 @@ class MenuRolController extends Controller
             'baja' => 'nullable|in:0,1',
         ]);
 
+        $antes = $menu->toArray();
+
         $menu->update([
             'nombre' => $validated['nombre'],
             'url' => $validated['url'],
@@ -95,10 +110,20 @@ class MenuRolController extends Controller
             'baja' => $validated['baja'] ?? $menu->baja,
         ]);
 
+        Historial::create([
+            'user_id' => User::mySelf()->id,
+            'operacion' => 'Actualizar menú',
+            'tabla' => 'menus',
+            'dato' => [
+                'antes' => $antes,
+                'despues' => $menu->fresh()->toArray(),
+            ],
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Menú actualizado correctamente',
-            'data' => $menu
+            'data' => $menu->fresh()
         ]);
     }
 
@@ -116,11 +141,23 @@ class MenuRolController extends Controller
             ], 404);
         }
 
+        $antes = $menu->toArray();
+
         $menu->update([
             'baja' => 1
         ]);
 
         RoleMenu::where('menu_id', $menu->id)->delete();
+
+        Historial::create([
+            'user_id' => User::mySelf()->id,
+            'operacion' => 'Eliminar menú',
+            'tabla' => 'menus',
+            'dato' => [
+                'antes' => $antes,
+                'despues' => $menu->fresh()->toArray(),
+            ],
+        ]);
 
         return response()->json([
             'success' => true,
@@ -182,6 +219,17 @@ class MenuRolController extends Controller
             'menu_ids.*' => 'exists:menus,id',
         ]);
 
+        $menuIdsAntes = RoleMenu::where('role_id', $role->id)
+            ->pluck('menu_id')
+            ->map(fn ($id) => (int) $id)
+            ->toArray();
+
+        $menusAntes = Menu::whereIn('id', $menuIdsAntes)
+            ->orderBy('id')
+            ->pluck('nombre')
+            ->values()
+            ->toArray();
+
         $menuIdsPermitidos = Menu::where('baja', 0)
             ->whereNotIn('url', [
                 '/menus-roles',
@@ -190,7 +238,17 @@ class MenuRolController extends Controller
             ])
             ->whereIn('id', $validated['menu_ids'])
             ->pluck('id')
+            ->map(fn ($id) => (int) $id)
             ->toArray();
+
+        $menusDespues = Menu::whereIn('id', $menuIdsPermitidos)
+            ->orderBy('id')
+            ->pluck('nombre')
+            ->values()
+            ->toArray();
+
+        $menusAgregados = array_values(array_diff($menusDespues, $menusAntes));
+        $menusQuitados = array_values(array_diff($menusAntes, $menusDespues));
 
         RoleMenu::where('role_id', $role->id)->delete();
 
@@ -200,6 +258,19 @@ class MenuRolController extends Controller
                 'menu_id' => $menuId,
             ]);
         }
+
+        Historial::create([
+            'user_id' => User::mySelf()->id,
+            'operacion' => 'Actualizar menús de rol',
+            'tabla' => 'role_menus',
+            'dato' => [
+                'rol' => $role->name,
+                'menus_antes' => $menusAntes,
+                'menus_despues' => $menusDespues,
+                'menus_agregados' => $menusAgregados,
+                'menus_quitados' => $menusQuitados,
+            ],
+        ]);
 
         return response()->json([
             'success' => true,
