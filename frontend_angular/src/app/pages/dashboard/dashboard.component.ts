@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
+import { RealtimeService } from '../../core/services/realtime.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -188,7 +189,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   };
 
-  constructor(private api: ApiService) {}
+  constructor(
+    private api: ApiService,
+    private realtime: RealtimeService
+  ) {}
 
   ngOnInit(): void {
     this.detenerTimers();
@@ -199,22 +203,61 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.relojId = setInterval(() => {
       this.actualizarReloj();
       this.serverNowMs.set(Date.now() + this.serverOffsetMs());
+      this.revisarPreparacionBackend();
       this.revisarFinAutomaticoIntervencion();
     }, 1000);
 
     this.refreshId = setInterval(() => {
       this.loadData(false);
-    }, 5000);
+    }, 15000);
 
     document.addEventListener('fullscreenchange', this.fullscreenHandler);
+
+    this.iniciarSocketDashboard();
   }
 
   ngOnDestroy(): void {
     this.detenerTimers();
 
+    this.realtime.off('reunion:updated');
+    this.realtime.off('intervenciones:updated');
+    this.realtime.off('dashboard:updated');
+    this.realtime.off('tema:updated');
+    this.realtime.off('participantes:updated');
+    this.realtime.off('lugares:updated');
+
     document.removeEventListener('fullscreenchange', this.fullscreenHandler);
     document.body.classList.remove('modo-presentacion');
     window.dispatchEvent(new Event('modo-presentacion-change'));
+  }
+
+  private iniciarSocketDashboard(): void {
+    this.realtime.connect();
+
+    this.realtime.on('reunion:updated', async () => {
+      await this.loadData(false);
+    });
+
+    this.realtime.on('intervenciones:updated', async () => {
+      await this.loadData(false);
+    });
+
+    this.realtime.on('dashboard:updated', async () => {
+      await this.loadData(false);
+    });
+
+    this.realtime.on('tema:updated', async () => {
+      await this.cargarTemaActual();
+      await this.loadData(false);
+    });
+
+    this.realtime.on('participantes:updated', async () => {
+      await this.loadData(false);
+    });
+
+    this.realtime.on('lugares:updated', async () => {
+      await this.loadData(false);
+    });
   }
 
   private detenerTimers(): void {
@@ -444,11 +487,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
       const lista = Array.isArray(data) ? data : data.data ?? [];
 
       const visibles = lista.filter((item: any) =>
-        ['aun no intervino', 'interviniendo'].includes(item.status)
+        ['aun no intervino', 'preparando', 'interviniendo'].includes(item.status)
       );
 
       const actual =
         visibles.find((item: any) => item.status === 'interviniendo') ?? null;
+
+      const preparando =
+        visibles.find((item: any) => item.status === 'preparando') ?? null;
 
       const pendientes = visibles
         .filter((item: any) => item.status === 'aun no intervino')
@@ -462,8 +508,25 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.intervencionActual.set(actual);
       this.cola.set(pendientes);
 
+      if (preparando) {
+        this.preparando.set(true);
+        this.participantePreparando.set(preparando);
+
+        const prepMs = preparando?.preparacion_inicia_at
+          ? new Date(preparando.preparacion_inicia_at).getTime()
+          : NaN;
+
+        this.preparacionIniciaAt.set(
+          Number.isNaN(prepMs) ? null : prepMs
+        );
+      } else if (!this.iniciandoAutomatico) {
+        this.limpiarPreparacion();
+      }
+
       const reunion =
-        actual?.participante?.reunion ?? pendientes[0]?.participante?.reunion;
+        actual?.participante?.reunion ??
+        preparando?.participante?.reunion ??
+        pendientes[0]?.participante?.reunion;
 
       if (reunion) {
         this.reunion.set({
@@ -484,6 +547,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
       if (
         !actual &&
+        !preparando &&
         pendientes.length > 0 &&
         !this.preparando() &&
         !this.iniciandoAutomatico &&
@@ -493,7 +557,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         return;
       }
 
-      if (!actual && pendientes.length === 0 && !this.preparando()) {
+      if (!actual && !preparando && pendientes.length === 0 && !this.preparando()) {
         this.participantePreparando.set(null);
         this.preparacionIniciaAt.set(null);
       }
@@ -536,41 +600,43 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (this.iniciandoAutomatico || this.intervencionesPausadas()) return;
 
     this.iniciandoAutomatico = true;
-    this.participantePreparando.set(siguiente);
-    this.preparacionIniciaAt.set(this.serverNowMs());
-    this.preparacionSegundos.set(10);
-    this.preparando.set(true);
 
-    if (this.preparacionId) {
-      clearInterval(this.preparacionId);
-      this.preparacionId = null;
+    try {
+      const res: any = await this.api.put(`/intervenciones/${siguiente.id}`, {
+        status: 'preparando',
+      });
+
+      this.sincronizarHoraServidor(this.obtenerServerNow(res));
+
+      const preparando = this.obtenerPayload(res);
+
+      if (preparando?.id) {
+        this.preparando.set(true);
+        this.participantePreparando.set(preparando);
+
+        const prepMs = preparando?.preparacion_inicia_at
+          ? new Date(preparando.preparacion_inicia_at).getTime()
+          : NaN;
+
+        this.preparacionIniciaAt.set(
+          Number.isNaN(prepMs) ? null : prepMs
+        );
+      }
+
+      await this.cargarIntervenciones();
+      await this.cargarHistorial();
+    } catch (error) {
+      console.error('Error preparando intervención:', error);
+    } finally {
+      this.iniciandoAutomatico = false;
     }
-
-    this.preparacionId = setInterval(async () => {
-      if (this.intervencionesPausadas()) {
-        this.limpiarPreparacion();
-        return;
-      }
-
-      const restante = this.segundosPreparacion();
-
-      this.preparacionSegundos.set(restante);
-
-      if (restante > 0) {
-        return;
-      }
-
-      if (this.preparacionId) {
-        clearInterval(this.preparacionId);
-        this.preparacionId = null;
-      }
-
-      await this.iniciarIntervencionReal(siguiente);
-    }, 250);
   }
 
   private async iniciarIntervencionReal(item: any): Promise<void> {
     if (this.intervencionesPausadas()) return;
+    if (!item?.id) return;
+
+    this.iniciandoAutomatico = true;
 
     try {
       const res: any = await this.api.put(`/intervenciones/${item.id}`, {
@@ -582,16 +648,28 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.limpiarPreparacion();
       this.limpiarPausaIntervencion();
 
-      this.iniciandoAutomatico = false;
-
       await this.cargarIntervenciones();
       await this.cargarHistorial();
     } catch (error) {
       console.error('Error iniciando intervención:', error);
 
       this.limpiarPreparacion();
+    } finally {
       this.iniciandoAutomatico = false;
     }
+  }
+
+  private async revisarPreparacionBackend(): Promise<void> {
+    const preparando = this.participantePreparando();
+
+    if (!this.reunionIniciada()) return;
+    if (this.intervencionesPausadas()) return;
+    if (!this.preparando() || !preparando?.id) return;
+    if (this.iniciandoAutomatico) return;
+    if (this.finalizandoAutomatico) return;
+    if (this.segundosPreparacion() > 0) return;
+
+    await this.iniciarIntervencionReal(preparando);
   }
 
   private async revisarFinAutomaticoIntervencion(): Promise<void> {
@@ -640,7 +718,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.participantePreparando.set(null);
     this.preparacionIniciaAt.set(null);
     this.preparacionSegundos.set(10);
-    this.iniciandoAutomatico = false;
   }
 
   async togglePausaIntervenciones(): Promise<void> {
@@ -709,11 +786,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     if (!participante) return;
 
-    if (this.preparacionId) {
-      clearInterval(this.preparacionId);
-      this.preparacionId = null;
-    }
-
     try {
       const res: any = await this.api.put(`/intervenciones/${participante.id}`, {
         status: 'fin intervencion',
@@ -730,6 +802,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     );
 
     this.limpiarPreparacion();
+    await this.cargarIntervenciones();
+    await this.cargarHistorial();
   }
 
   async finalizarIntervencion(): Promise<void> {

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Historial;
 use App\Models\Miembro;
 use App\Models\User;
+use App\Services\SocketService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -66,6 +67,16 @@ class MiembroController extends Controller
             'operacion' => 'Crear miembro',
             'tabla' => 'miembros',
             'dato' => $miembro->toArray(),
+        ]);
+
+        SocketService::emit('miembros:updated', [
+            'accion' => 'crear',
+            'miembro_id' => $miembro->id,
+        ]);
+
+        SocketService::emit('dashboard:updated', [
+            'accion' => 'crear_miembro',
+            'miembro_id' => $miembro->id,
         ]);
 
         return response()->json([
@@ -148,6 +159,16 @@ class MiembroController extends Controller
             ],
         ]);
 
+        SocketService::emit('miembros:updated', [
+            'accion' => 'actualizar',
+            'miembro_id' => $miembro->id,
+        ]);
+
+        SocketService::emit('dashboard:updated', [
+            'accion' => 'actualizar_miembro',
+            'miembro_id' => $miembro->id,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Miembro actualizado correctamente',
@@ -189,6 +210,16 @@ class MiembroController extends Controller
             ],
         ]);
 
+        SocketService::emit('miembros:updated', [
+            'accion' => 'dar_baja',
+            'miembro_id' => $miembro->id,
+        ]);
+
+        SocketService::emit('dashboard:updated', [
+            'accion' => 'dar_baja_miembro',
+            'miembro_id' => $miembro->id,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Miembro dado de baja correctamente'
@@ -227,6 +258,16 @@ class MiembroController extends Controller
                 'antes' => $antes,
                 'despues' => $miembro->fresh()->toArray(),
             ],
+        ]);
+
+        SocketService::emit('miembros:updated', [
+            'accion' => 'reactivar',
+            'miembro_id' => $miembro->id,
+        ]);
+
+        SocketService::emit('dashboard:updated', [
+            'accion' => 'reactivar_miembro',
+            'miembro_id' => $miembro->id,
         ]);
 
         return response()->json([

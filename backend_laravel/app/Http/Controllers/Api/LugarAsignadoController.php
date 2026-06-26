@@ -8,6 +8,7 @@ use App\Models\LugarAsignado;
 use App\Models\Participante;
 use App\Models\User;
 use App\Models\Historial;
+use App\Services\SocketService;
 use Illuminate\Http\Request;
 
 class LugarAsignadoController extends Controller
@@ -123,6 +124,24 @@ class LugarAsignadoController extends Controller
                 'esp_id' => $lugar->esp_id,
                 'warning' => $warning,
             ],
+        ]);
+
+        SocketService::emit('lugares:updated', [
+            'accion' => 'asignar',
+            'lugar_id' => $lugar->id,
+            'participante_id' => $participante->id,
+            'reunion_id' => $participante->reunion?->id,
+        ]);
+
+        SocketService::emit('participantes:updated', [
+            'accion' => 'presente_por_asignacion',
+            'participante_id' => $participante->id,
+            'reunion_id' => $participante->reunion?->id,
+        ]);
+
+        SocketService::emit('dashboard:updated', [
+            'accion' => 'asignar_lugar',
+            'lugar_id' => $lugar->id,
         ]);
 
         return response()->json([
@@ -279,6 +298,19 @@ class LugarAsignadoController extends Controller
             ],
         ]);
 
+        SocketService::emit('lugares:updated', [
+            'accion' => 'actualizar_asignacion',
+            'lugar_id' => $lugar->id,
+            'participante_id' => $participante->id,
+            'reunion_id' => $participante->reunion?->id,
+        ]);
+
+        SocketService::emit('participantes:updated', [
+            'accion' => 'actualizar_asignacion',
+            'participante_id' => $participante->id,
+            'reunion_id' => $participante->reunion?->id,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Asignación actualizada correctamente',
@@ -325,6 +357,17 @@ class LugarAsignadoController extends Controller
                 'despues' => $participante->fresh()->toArray(),
                 'lugar_asignado_id' => $asignacion->id,
             ],
+        ]);
+
+        SocketService::emit('participantes:updated', [
+            'accion' => 'marcar_ausente',
+            'participante_id' => $participante->id,
+            'reunion_id' => $participante->reunion?->id,
+        ]);
+
+        SocketService::emit('lugares:updated', [
+            'accion' => 'marcar_ausente',
+            'lugar_asignado_id' => $asignacion->id,
         ]);
 
         return response()->json([
@@ -431,6 +474,18 @@ class LugarAsignadoController extends Controller
             ],
         ]);
 
+        SocketService::emit('lugares:updated', [
+            'accion' => 'liberar',
+            'lugar_asignado_id' => $asignacion->id,
+            'reunion_id' => $participante->reunion?->id,
+        ]);
+
+        SocketService::emit('participantes:updated', [
+            'accion' => 'ausente_por_liberacion',
+            'participante_id' => $participante->id,
+            'reunion_id' => $participante->reunion?->id,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Lugar liberado correctamente. El participante quedó como ausente.',
@@ -480,6 +535,18 @@ class LugarAsignadoController extends Controller
                 'reunion_id' => $participante?->reunion?->id,
                 'reunion' => $participante?->reunion?->sesion,
             ],
+        ]);
+
+        SocketService::emit('lugares:updated', [
+            'accion' => 'eliminar_asignacion',
+            'lugar_asignado_id' => $id,
+            'reunion_id' => $participante?->reunion?->id,
+        ]);
+
+        SocketService::emit('participantes:updated', [
+            'accion' => 'eliminar_asignacion',
+            'participante_id' => $participante?->id,
+            'reunion_id' => $participante?->reunion?->id,
         ]);
 
         return response()->json([

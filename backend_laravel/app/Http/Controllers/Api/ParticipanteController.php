@@ -7,6 +7,7 @@ use App\Models\Participante;
 use App\Models\Historial;
 use App\Models\User;
 use App\Models\Reunion;
+use App\Services\SocketService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -234,6 +235,17 @@ class ParticipanteController extends Controller
             'operacion' => 'Eliminar participante',
             'tabla' => 'participantes',
             'dato' => $antes,
+        ]);
+
+        SocketService::emit('participantes:updated', [
+            'accion' => 'eliminar',
+            'participante_id' => $id,
+            'reunion_id' => $antes['reunion_id'] ?? null,
+        ]);
+
+        SocketService::emit('dashboard:updated', [
+            'accion' => 'eliminar_participante',
+            'participante_id' => $id,
         ]);
 
         return response()->json([

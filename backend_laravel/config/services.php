@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'socket' => [
+        'url' => env('SOCKET_SERVER_URL', 'http://127.0.0.1:3001'),
+        'secret' => env('SOCKET_SECRET', 'mi_socket_secret_local_123'),
+    ],
+
 ];

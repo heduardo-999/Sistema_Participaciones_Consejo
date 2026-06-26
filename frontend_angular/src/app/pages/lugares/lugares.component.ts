@@ -1,8 +1,9 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
+import { RealtimeService } from '../../core/services/realtime.service';
 import * as QRCode from 'qrcode';
 
 @Component({
@@ -11,7 +12,7 @@ import * as QRCode from 'qrcode';
   imports: [CommonModule, FormsModule],
   templateUrl: './lugares.component.html',
 })
-export class LugaresComponent implements OnInit {
+export class LugaresComponent implements OnInit, OnDestroy {
   lugares = signal<any[]>([]);
   asignados = signal<any[]>([]);
   participantes = signal<any[]>([]);
@@ -31,11 +32,40 @@ export class LugaresComponent implements OnInit {
 
   constructor(
     private api: ApiService,
-    private auth: AuthService
+    private auth: AuthService,
+    private realtime: RealtimeService
   ) {}
 
   async ngOnInit(): Promise<void> {
     await this.load();
+    this.iniciarSocketLugares();
+  }
+
+  ngOnDestroy(): void {
+    this.realtime.off('lugares:updated');
+    this.realtime.off('participantes:updated');
+    this.realtime.off('reunion:updated');
+    this.realtime.off('intervenciones:updated');
+  }
+
+  private iniciarSocketLugares(): void {
+    this.realtime.connect();
+
+    this.realtime.on('lugares:updated', async () => {
+      await this.load();
+    });
+
+    this.realtime.on('participantes:updated', async () => {
+      await this.load();
+    });
+
+    this.realtime.on('reunion:updated', async () => {
+      await this.load();
+    });
+
+    this.realtime.on('intervenciones:updated', async () => {
+      await this.load();
+    });
   }
 
   async load(): Promise<void> {

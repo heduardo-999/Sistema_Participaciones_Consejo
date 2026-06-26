@@ -8,6 +8,7 @@ use App\Models\Intervencion;
 use App\Models\Participante;
 use App\Models\TokenQr;
 use App\Models\User;
+use App\Services\SocketService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
@@ -235,6 +236,18 @@ class QrAccessController extends Controller
             ],
         ]);
 
+        SocketService::emit('intervenciones:updated', [
+            'accion' => 'solicitar_qr',
+            'intervencion_id' => $intervencion->id,
+            'participante_id' => $participante->id,
+            'reunion_id' => $participante->reunion?->id,
+        ]);
+
+        SocketService::emit('qr:updated', [
+            'accion' => 'solicitar_intervencion',
+            'participante_id' => $participante->id,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Intervención solicitada correctamente',
@@ -264,6 +277,18 @@ class QrAccessController extends Controller
             ],
         ]);
 
+        SocketService::emit('intervenciones:updated', [
+            'accion' => 'cancelar_qr',
+            'intervencion_id' => $antes['id'] ?? null,
+            'participante_id' => $participante->id,
+            'reunion_id' => $participante->reunion?->id,
+        ]);
+
+        SocketService::emit('qr:updated', [
+            'accion' => 'cancelar_intervencion',
+            'participante_id' => $participante->id,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Solicitud de intervención cancelada correctamente',
@@ -280,6 +305,7 @@ class QrAccessController extends Controller
         $intervencion->update([
             'solicita_intervencion' => false,
             'hora_fin' => now()->format('H:i:s'),
+            'fin_real_at' => now(),
             'status' => 'fin intervencion',
         ]);
 
@@ -296,6 +322,18 @@ class QrAccessController extends Controller
                 'intervencion_antes' => $antes,
                 'intervencion_despues' => $intervencion->fresh()->toArray(),
             ],
+        ]);
+
+        SocketService::emit('intervenciones:updated', [
+            'accion' => 'finalizar_qr',
+            'intervencion_id' => $intervencion->id,
+            'participante_id' => $participante->id,
+            'reunion_id' => $participante->reunion?->id,
+        ]);
+
+        SocketService::emit('qr:updated', [
+            'accion' => 'finalizar_intervencion',
+            'participante_id' => $participante->id,
         ]);
 
         return response()->json([

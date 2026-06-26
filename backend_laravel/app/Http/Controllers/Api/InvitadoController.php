@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Invitado;
 use App\Models\Historial;
 use App\Models\User;
+use App\Services\SocketService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -57,6 +58,16 @@ class InvitadoController extends Controller
             'operacion' => 'Crear invitado',
             'tabla' => 'invitados',
             'dato' => $invitado->toArray(),
+        ]);
+
+        SocketService::emit('invitados:updated', [
+            'accion' => 'crear',
+            'invitado_id' => $invitado->id,
+        ]);
+
+        SocketService::emit('dashboard:updated', [
+            'accion' => 'crear_invitado',
+            'invitado_id' => $invitado->id,
         ]);
 
         return response()->json([
@@ -137,6 +148,16 @@ class InvitadoController extends Controller
             ],
         ]);
 
+        SocketService::emit('invitados:updated', [
+            'accion' => 'actualizar',
+            'invitado_id' => $invitado->id,
+        ]);
+
+        SocketService::emit('dashboard:updated', [
+            'accion' => 'actualizar_invitado',
+            'invitado_id' => $invitado->id,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Invitado actualizado correctamente',
@@ -171,6 +192,16 @@ class InvitadoController extends Controller
             'operacion' => 'Eliminar invitado',
             'tabla' => 'invitados',
             'dato' => $antes,
+        ]);
+
+        SocketService::emit('invitados:updated', [
+            'accion' => 'eliminar',
+            'invitado_id' => $id,
+        ]);
+
+        SocketService::emit('dashboard:updated', [
+            'accion' => 'eliminar_invitado',
+            'invitado_id' => $id,
         ]);
 
         return response()->json([

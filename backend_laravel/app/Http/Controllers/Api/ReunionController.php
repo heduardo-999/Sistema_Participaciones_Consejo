@@ -10,6 +10,7 @@ use App\Models\Intervencion;
 use App\Models\LugarAsignado;
 use App\Models\Participante;
 use App\Models\TemaReunion;
+use App\Services\SocketService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -92,6 +93,16 @@ class ReunionController extends Controller
             'operacion' => 'Crear reunión',
             'tabla' => 'reuniones',
             'dato' => $reunion->toArray(),
+        ]);
+
+        SocketService::emit('reunion:updated', [
+            'accion' => 'crear',
+            'reunion_id' => $reunion->id,
+        ]);
+
+        SocketService::emit('dashboard:updated', [
+            'accion' => 'crear_reunion',
+            'reunion_id' => $reunion->id,
         ]);
 
         return response()->json([
@@ -204,6 +215,16 @@ class ReunionController extends Controller
             ],
         ]);
 
+        SocketService::emit('reunion:updated', [
+            'accion' => 'actualizar',
+            'reunion_id' => $reunion->id,
+        ]);
+
+        SocketService::emit('dashboard:updated', [
+            'accion' => 'actualizar_reunion',
+            'reunion_id' => $reunion->id,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Reunión actualizada correctamente',
@@ -236,6 +257,21 @@ class ReunionController extends Controller
             'operacion' => 'Iniciar reunión',
             'tabla' => 'reuniones',
             'dato' => $reunion->fresh()->toArray(),
+        ]);
+
+        SocketService::emit('reunion:updated', [
+            'accion' => 'iniciar',
+            'reunion_id' => $reunion->id,
+        ]);
+
+        SocketService::emit('intervenciones:updated', [
+            'accion' => 'iniciar_reunion',
+            'reunion_id' => $reunion->id,
+        ]);
+
+        SocketService::emit('dashboard:updated', [
+            'accion' => 'iniciar_reunion',
+            'reunion_id' => $reunion->id,
         ]);
 
         return response()->json([
@@ -303,6 +339,31 @@ class ReunionController extends Controller
             ],
         ]);
 
+        SocketService::emit('reunion:updated', [
+            'accion' => 'terminar',
+            'reunion_id' => $reunion->id,
+        ]);
+
+        SocketService::emit('intervenciones:updated', [
+            'accion' => 'finalizar_todas',
+            'reunion_id' => $reunion->id,
+        ]);
+
+        SocketService::emit('lugares:updated', [
+            'accion' => 'liberar_por_fin_reunion',
+            'reunion_id' => $reunion->id,
+        ]);
+
+        SocketService::emit('tema:updated', [
+            'accion' => 'finalizar_reunion',
+            'reunion_id' => $reunion->id,
+        ]);
+
+        SocketService::emit('dashboard:updated', [
+            'accion' => 'terminar_reunion',
+            'reunion_id' => $reunion->id,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Reunión terminada correctamente. Intervenciones finalizadas y lugares liberados.',
@@ -347,6 +408,16 @@ class ReunionController extends Controller
                 ],
             ]);
 
+            SocketService::emit('reunion:updated', [
+                'accion' => 'pausar_intervenciones',
+                'reunion_id' => $reunion->id,
+            ]);
+
+            SocketService::emit('intervenciones:updated', [
+                'accion' => 'pausar',
+                'reunion_id' => $reunion->id,
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Intervenciones pausadas',
@@ -389,6 +460,16 @@ class ReunionController extends Controller
             ],
         ]);
 
+        SocketService::emit('reunion:updated', [
+            'accion' => 'reanudar_intervenciones',
+            'reunion_id' => $reunion->id,
+        ]);
+
+        SocketService::emit('intervenciones:updated', [
+            'accion' => 'reanudar',
+            'reunion_id' => $reunion->id,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Intervenciones reanudadas',
@@ -424,6 +505,16 @@ class ReunionController extends Controller
             'operacion' => 'Eliminar reunión',
             'tabla' => 'reuniones',
             'dato' => $antes,
+        ]);
+
+        SocketService::emit('reunion:updated', [
+            'accion' => 'eliminar',
+            'reunion_id' => $id,
+        ]);
+
+        SocketService::emit('dashboard:updated', [
+            'accion' => 'eliminar_reunion',
+            'reunion_id' => $id,
         ]);
 
         return response()->json([

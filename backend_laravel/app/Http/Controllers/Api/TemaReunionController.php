@@ -7,6 +7,7 @@ use App\Models\TemaReunion;
 use App\Models\Reunion;
 use App\Models\Historial;
 use App\Models\User;
+use App\Services\SocketService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -71,6 +72,12 @@ class TemaReunionController extends Controller
             'operacion' => 'Crear tema de reunión',
             'tabla' => 'temas_reunion',
             'dato' => $tema->toArray(),
+        ]);
+
+        SocketService::emit('tema:updated', [
+            'accion' => 'crear',
+            'tema_id' => $tema->id,
+            'reunion_id' => $tema->reunion_id,
         ]);
 
         return response()->json([
@@ -145,6 +152,12 @@ class TemaReunionController extends Controller
             ],
         ]);
 
+        SocketService::emit('tema:updated', [
+            'accion' => 'actualizar',
+            'tema_id' => $tema->id,
+            'reunion_id' => $tema->reunion_id,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Tema actualizado correctamente',
@@ -172,6 +185,12 @@ class TemaReunionController extends Controller
             'operacion' => 'Eliminar tema de reunión',
             'tabla' => 'temas_reunion',
             'dato' => $antes,
+        ]);
+
+        SocketService::emit('tema:updated', [
+            'accion' => 'eliminar',
+            'tema_id' => $id,
+            'reunion_id' => $antes['reunion_id'] ?? null,
         ]);
 
         return response()->json([
@@ -216,6 +235,12 @@ class TemaReunionController extends Controller
                 $tema->update([
                     'status' => 'en_curso',
                     'completado_at' => null,
+                ]);
+
+                SocketService::emit('tema:updated', [
+                    'accion' => 'iniciar_tema_actual',
+                    'tema_id' => $tema->id,
+                    'reunion_id' => $tema->reunion_id,
                 ]);
             }
         }
@@ -265,6 +290,13 @@ class TemaReunionController extends Controller
             ],
         ]);
 
+        SocketService::emit('tema:updated', [
+            'accion' => 'completar',
+            'tema_id' => $tema->id,
+            'siguiente_tema_id' => $siguiente?->id,
+            'reunion_id' => $tema->reunion_id,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Tema completado correctamente',
@@ -289,6 +321,11 @@ class TemaReunionController extends Controller
         TemaReunion::where('reunion_id', $reunionId)->update([
             'status' => 'pendiente',
             'completado_at' => null,
+        ]);
+
+        SocketService::emit('tema:updated', [
+            'accion' => 'reiniciar',
+            'reunion_id' => $reunionId,
         ]);
 
         return response()->json([

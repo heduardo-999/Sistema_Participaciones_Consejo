@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Lugar;
 use App\Models\User;
 use App\Models\Historial;
+use App\Services\SocketService;
 use Illuminate\Http\Request;
 
 class LugarController extends Controller
@@ -52,6 +53,16 @@ class LugarController extends Controller
             'operacion' => 'Crear lugar',
             'tabla' => 'lugares',
             'dato' => $lugar->toArray(),
+        ]);
+
+        SocketService::emit('lugares:updated', [
+            'accion' => 'crear',
+            'lugar_id' => $lugar->id,
+        ]);
+
+        SocketService::emit('dashboard:updated', [
+            'accion' => 'crear_lugar',
+            'lugar_id' => $lugar->id,
         ]);
 
         return response()->json([
@@ -137,6 +148,16 @@ class LugarController extends Controller
             ],
         ]);
 
+        SocketService::emit('lugares:updated', [
+            'accion' => 'actualizar',
+            'lugar_id' => $lugar->id,
+        ]);
+
+        SocketService::emit('dashboard:updated', [
+            'accion' => 'actualizar_lugar',
+            'lugar_id' => $lugar->id,
+        ]);
+
         return response()->json([
             'success' => true,
             'message' => 'Lugar actualizado correctamente',
@@ -176,6 +197,16 @@ class LugarController extends Controller
                 'antes' => $antes,
                 'despues' => $lugar->toArray(),
             ],
+        ]);
+
+        SocketService::emit('lugares:updated', [
+            'accion' => 'dar_baja',
+            'lugar_id' => $lugar->id,
+        ]);
+
+        SocketService::emit('dashboard:updated', [
+            'accion' => 'dar_baja_lugar',
+            'lugar_id' => $lugar->id,
         ]);
 
         return response()->json([

@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
+import { RealtimeService } from '../../core/services/realtime.service';
 
 @Component({
   selector: 'app-qr-esp32',
@@ -23,7 +24,8 @@ export class QrEsp32Component implements OnInit, OnDestroy {
 
   constructor(
     private route: ActivatedRoute,
-    private api: ApiService
+    private api: ApiService,
+    private realtime: RealtimeService
   ) {}
 
   async ngOnInit(): Promise<void> {
@@ -36,15 +38,42 @@ export class QrEsp32Component implements OnInit, OnDestroy {
 
     await this.validarToken();
 
+    this.iniciarSocketQr();
+
     this.refreshInterval = setInterval(() => {
       this.validarToken(true);
-    }, 5000);
+    }, 15000);
   }
 
   ngOnDestroy(): void {
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
     }
+
+    this.realtime.off('reunion:updated');
+    this.realtime.off('intervenciones:updated');
+    this.realtime.off('participantes:updated');
+    this.realtime.off('lugares:updated');
+  }
+
+  private iniciarSocketQr(): void {
+    this.realtime.connect();
+
+    this.realtime.on('reunion:updated', async () => {
+      await this.validarToken(true);
+    });
+
+    this.realtime.on('intervenciones:updated', async () => {
+      await this.validarToken(true);
+    });
+
+    this.realtime.on('participantes:updated', async () => {
+      await this.validarToken(true);
+    });
+
+    this.realtime.on('lugares:updated', async () => {
+      await this.validarToken(true);
+    });
   }
 
   async validarToken(silent = false): Promise<void> {
