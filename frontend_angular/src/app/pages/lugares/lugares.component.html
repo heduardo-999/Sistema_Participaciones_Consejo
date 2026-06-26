@@ -1,11 +1,11 @@
-<section class="space-y-6">
+<section class="space-y-6 overflow-x-hidden">
   <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-    <div>
+    <div class="min-w-0">
       <p class="text-sm font-black uppercase tracking-widest text-rose-600 dark:text-rose-400">
         Mapa de consejo
       </p>
 
-      <h2 class="text-3xl font-black text-slate-900 dark:text-white">
+      <h2 class="text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
         Lugares
       </h2>
 
@@ -16,7 +16,7 @@
 
     <button
       type="button"
-      class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600"
+      class="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 sm:w-auto"
       (click)="load()"
       [disabled]="loading()"
     >
@@ -30,153 +30,399 @@
     </div>
   }
 
-  <div class="grid gap-4 md:grid-cols-4 xl:grid-cols-8">
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
     <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <p class="text-xs font-bold text-slate-500 dark:text-slate-400">Total</p>
-      <p class="mt-1 text-3xl font-black text-slate-900 dark:text-white">{{ resumen()?.total || 0 }}</p>
+      <p class="text-xs font-bold text-slate-500 dark:text-slate-400">
+        Total
+      </p>
+
+      <p class="mt-1 text-3xl font-black text-slate-900 dark:text-white">
+        {{ resumen()?.total || 0 }}
+      </p>
     </div>
 
     <div class="rounded-2xl border border-green-200 bg-green-50 p-4 shadow-sm dark:border-green-900/40 dark:bg-green-950/20">
-      <p class="text-xs font-bold text-green-700 dark:text-green-300">Disponibles</p>
-      <p class="mt-1 text-3xl font-black text-green-700 dark:text-green-300">{{ resumen()?.disponibles || 0 }}</p>
+      <p class="text-xs font-bold text-green-700 dark:text-green-300">
+        Disponibles
+      </p>
+
+      <p class="mt-1 text-3xl font-black text-green-700 dark:text-green-300">
+        {{ resumen()?.disponibles || 0 }}
+      </p>
     </div>
 
     <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 shadow-sm dark:border-blue-900/40 dark:bg-blue-950/20">
-      <p class="text-xs font-bold text-blue-700 dark:text-blue-300">Ocupados</p>
-      <p class="mt-1 text-3xl font-black text-blue-700 dark:text-blue-300">{{ resumen()?.ocupados || 0 }}</p>
+      <p class="text-xs font-bold text-blue-700 dark:text-blue-300">
+        Ocupados
+      </p>
+
+      <p class="mt-1 text-3xl font-black text-blue-700 dark:text-blue-300">
+        {{ resumen()?.ocupados || 0 }}
+      </p>
     </div>
 
-    <div class="rounded-2xl border border-yellow-200 bg-yellow-50 p-4 shadow-sm dark:border-yellow-900/40 dark:bg-yellow-950/20">
-      <p class="text-xs font-bold text-yellow-700 dark:text-yellow-300">Ausentes</p>
-      <p class="mt-1 text-3xl font-black text-yellow-700 dark:text-yellow-300">{{ resumen()?.ausentes || 0 }}</p>
+    <div class="rounded-2xl border border-orange-200 bg-orange-50 p-4 shadow-sm dark:border-orange-900/40 dark:bg-orange-950/20">
+      <p class="text-xs font-bold text-orange-700 dark:text-orange-300">
+        Ausentes
+      </p>
+
+      <p class="mt-1 text-3xl font-black text-orange-700 dark:text-orange-300">
+        {{ resumen()?.ausentes || 0 }}
+      </p>
     </div>
 
     <div class="rounded-2xl border border-green-200 bg-white p-4 shadow-sm dark:border-green-900/40 dark:bg-slate-900">
-      <p class="text-xs font-bold text-slate-500 dark:text-slate-400">Funcionales</p>
-      <p class="mt-1 text-3xl font-black text-green-700 dark:text-green-300">{{ resumen()?.funcionales || 0 }}</p>
+      <p class="text-xs font-bold text-slate-500 dark:text-slate-400">
+        Funcionales
+      </p>
+
+      <p class="mt-1 text-3xl font-black text-green-700 dark:text-green-300">
+        {{ resumen()?.funcionales || 0 }}
+      </p>
     </div>
 
     <div class="rounded-2xl border border-yellow-200 bg-white p-4 shadow-sm dark:border-yellow-900/40 dark:bg-slate-900">
-      <p class="text-xs font-bold text-slate-500 dark:text-slate-400">Mantenimiento</p>
-      <p class="mt-1 text-3xl font-black text-yellow-700 dark:text-yellow-300">{{ resumen()?.mantenimiento || 0 }}</p>
+      <p class="text-xs font-bold text-slate-500 dark:text-slate-400">
+        Mantenimiento
+      </p>
+
+      <p class="mt-1 text-3xl font-black text-yellow-700 dark:text-yellow-300">
+        {{ resumen()?.mantenimiento || 0 }}
+      </p>
     </div>
 
     <div class="rounded-2xl border border-red-200 bg-white p-4 shadow-sm dark:border-red-900/40 dark:bg-slate-900">
-      <p class="text-xs font-bold text-slate-500 dark:text-slate-400">Dañadas</p>
+      <p class="text-xs font-bold text-slate-500 dark:text-slate-400">
+        Dañadas
+      </p>
+
       <p class="mt-1 text-3xl font-black text-red-700 dark:text-red-300">
         {{ resumen()?.['dañadas'] || resumen()?.danadas || 0 }}
       </p>
     </div>
 
     <div class="rounded-2xl border border-slate-300 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
-      <p class="text-xs font-bold text-slate-500 dark:text-slate-400">Denegados</p>
-      <p class="mt-1 text-3xl font-black text-slate-700 dark:text-slate-300">{{ resumen()?.denegados || 0 }}</p>
+      <p class="text-xs font-bold text-slate-500 dark:text-slate-400">
+        Denegados
+      </p>
+
+      <p class="mt-1 text-3xl font-black text-slate-700 dark:text-slate-300">
+        {{ resumen()?.denegados || 0 }}
+      </p>
     </div>
   </div>
 
-  <div class="grid gap-6 xl:grid-cols-[1fr_340px]">
-    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h3 class="text-2xl font-black text-slate-900 dark:text-white">
+  <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+    <div class="min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
+      <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div class="min-w-0">
+          <h3 class="text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
             Mesa rectangular
           </h3>
+
           <p class="text-sm text-slate-500 dark:text-slate-400">
             Selecciona un lugar para ver el detalle o asignar participante.
           </p>
         </div>
 
         <div class="flex flex-wrap gap-2 text-xs font-black">
-          <span class="rounded-full bg-green-100 px-3 py-1 text-green-700 dark:bg-green-950/40 dark:text-green-300">Disponible</span>
-          <span class="rounded-full bg-blue-100 px-3 py-1 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">Ocupado</span>
-          <span class="rounded-full bg-yellow-100 px-3 py-1 text-yellow-700 dark:bg-yellow-950/40 dark:text-yellow-300">Mantenimiento</span>
-          <span class="rounded-full bg-red-100 px-3 py-1 text-red-700 dark:bg-red-950/40 dark:text-red-300">Dañada</span>
-          <span class="rounded-full bg-slate-200 px-3 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-300">Denegado</span>
+          <span class="rounded-full bg-green-100 px-3 py-1 text-green-700 dark:bg-green-950/40 dark:text-green-300">
+            Disponible
+          </span>
+
+          <span class="rounded-full bg-blue-100 px-3 py-1 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300">
+            Ocupado
+          </span>
+
+          <span class="rounded-full bg-orange-100 px-3 py-1 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300">
+            Ausente
+          </span>
+
+          <span class="rounded-full bg-yellow-100 px-3 py-1 text-yellow-700 dark:bg-yellow-950/40 dark:text-yellow-300">
+            Mantenimiento
+          </span>
+
+          <span class="rounded-full bg-red-100 px-3 py-1 text-red-700 dark:bg-red-950/40 dark:text-red-300">
+            Dañada
+          </span>
+
+          <span class="rounded-full bg-slate-200 px-3 py-1 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+            Denegado
+          </span>
         </div>
       </div>
 
-      <div class="rounded-[2rem] bg-slate-50 p-5 dark:bg-slate-950">
-        <div class="mx-auto max-w-6xl space-y-4">
-          <div class="grid grid-cols-10 gap-3">
+      <!-- Vista móvil -->
+      <div class="md:hidden">
+        <div class="rounded-3xl bg-slate-50 p-3 dark:bg-slate-950">
+          <div class="mb-4 rounded-2xl border border-slate-200 bg-white p-4 text-center dark:border-slate-800 dark:bg-slate-900">
+            <p class="text-xs font-black uppercase tracking-[0.25em] text-rose-600 dark:text-rose-400">
+              Vista móvil
+            </p>
+
+            <h4 class="mt-2 text-2xl font-black text-slate-900 dark:text-white">
+              30 lugares
+            </h4>
+
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              Toca un lugar para ver detalle o asignar participante.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
             @for (lugar of topSeats(); track lugar.id) {
-              <button type="button" class="min-h-24 rounded-2xl border-2 p-2 text-center text-xs font-bold shadow-sm transition hover:scale-105" [class]="seatClass(lugar)" (click)="seleccionar(lugar)">
-                <span class="block text-xl font-black">{{ numeroLugar(lugar) }}</span>
-                <span class="block truncate">{{ lugar.esp_id }}</span>
-                <span class="block truncate">{{ nombreParticipantePorLugar(lugar) }}</span>
+              <button
+                type="button"
+                class="min-h-24 rounded-2xl border-2 p-2 text-center text-xs font-bold shadow-sm transition active:scale-95"
+                [class]="seatClass(lugar)"
+                (click)="seleccionar(lugar)"
+              >
+                <span class="block text-xl font-black">
+                  {{ numeroLugar(lugar) }}
+                </span>
+
+                <span class="block truncate">
+                  {{ lugar.esp_id }}
+                </span>
+
+                <span class="block truncate">
+                  {{ nombreParticipantePorLugar(lugar) }}
+                </span>
               </button>
             }
-          </div>
 
-          <div class="grid grid-cols-[100px_1fr_100px] gap-4">
-            <div class="grid gap-3">
-              @for (lugar of leftSeats(); track lugar.id) {
-                <button type="button" class="min-h-24 rounded-2xl border-2 p-2 text-center text-xs font-bold shadow-sm transition hover:scale-105" [class]="seatClass(lugar)" (click)="seleccionar(lugar)">
-                  <span class="block text-xl font-black">{{ numeroLugar(lugar) }}</span>
-                  <span class="block truncate">{{ lugar.esp_id }}</span>
-                  <span class="block truncate">{{ nombreParticipantePorLugar(lugar) }}</span>
-                </button>
-              }
-            </div>
+            @for (lugar of rightSeats(); track lugar.id) {
+              <button
+                type="button"
+                class="min-h-24 rounded-2xl border-2 p-2 text-center text-xs font-bold shadow-sm transition active:scale-95"
+                [class]="seatClass(lugar)"
+                (click)="seleccionar(lugar)"
+              >
+                <span class="block text-xl font-black">
+                  {{ numeroLugar(lugar) }}
+                </span>
 
-            <div class="grid place-items-center rounded-[2rem] border-4 border-slate-300 bg-white p-8 text-center shadow-inner dark:border-slate-700 dark:bg-slate-900">
-              <div>
-                <p class="text-sm font-black uppercase tracking-[0.3em] text-rose-600 dark:text-rose-400">
-                  Mesa de consejo
-                </p>
-                <h4 class="mt-3 text-4xl font-black text-slate-900 dark:text-white">
-                  30 lugares
-                </h4>
-                <p class="mt-2 text-slate-500 dark:text-slate-400">
-                  Vista superior del acomodo institucional.
-                </p>
-              </div>
-            </div>
+                <span class="block truncate">
+                  {{ lugar.esp_id }}
+                </span>
 
-            <div class="grid gap-3">
-              @for (lugar of rightSeats(); track lugar.id) {
-                <button type="button" class="min-h-24 rounded-2xl border-2 p-2 text-center text-xs font-bold shadow-sm transition hover:scale-105" [class]="seatClass(lugar)" (click)="seleccionar(lugar)">
-                  <span class="block text-xl font-black">{{ numeroLugar(lugar) }}</span>
-                  <span class="block truncate">{{ lugar.esp_id }}</span>
-                  <span class="block truncate">{{ nombreParticipantePorLugar(lugar) }}</span>
-                </button>
-              }
-            </div>
-          </div>
+                <span class="block truncate">
+                  {{ nombreParticipantePorLugar(lugar) }}
+                </span>
+              </button>
+            }
 
-          <div class="grid grid-cols-10 gap-3">
             @for (lugar of bottomSeats(); track lugar.id) {
-              <button type="button" class="min-h-24 rounded-2xl border-2 p-2 text-center text-xs font-bold shadow-sm transition hover:scale-105" [class]="seatClass(lugar)" (click)="seleccionar(lugar)">
-                <span class="block text-xl font-black">{{ numeroLugar(lugar) }}</span>
-                <span class="block truncate">{{ lugar.esp_id }}</span>
-                <span class="block truncate">{{ nombreParticipantePorLugar(lugar) }}</span>
+              <button
+                type="button"
+                class="min-h-24 rounded-2xl border-2 p-2 text-center text-xs font-bold shadow-sm transition active:scale-95"
+                [class]="seatClass(lugar)"
+                (click)="seleccionar(lugar)"
+              >
+                <span class="block text-xl font-black">
+                  {{ numeroLugar(lugar) }}
+                </span>
+
+                <span class="block truncate">
+                  {{ lugar.esp_id }}
+                </span>
+
+                <span class="block truncate">
+                  {{ nombreParticipantePorLugar(lugar) }}
+                </span>
+              </button>
+            }
+
+            @for (lugar of leftSeats(); track lugar.id) {
+              <button
+                type="button"
+                class="min-h-24 rounded-2xl border-2 p-2 text-center text-xs font-bold shadow-sm transition active:scale-95"
+                [class]="seatClass(lugar)"
+                (click)="seleccionar(lugar)"
+              >
+                <span class="block text-xl font-black">
+                  {{ numeroLugar(lugar) }}
+                </span>
+
+                <span class="block truncate">
+                  {{ lugar.esp_id }}
+                </span>
+
+                <span class="block truncate">
+                  {{ nombreParticipantePorLugar(lugar) }}
+                </span>
               </button>
             }
           </div>
         </div>
+      </div>
+
+      <!-- Vista tablet / escritorio -->
+      <div class="hidden md:block">
+        <div class="overflow-x-auto rounded-[2rem] bg-slate-50 p-4 dark:bg-slate-950 sm:p-5">
+          <div class="mx-auto min-w-[760px] max-w-6xl space-y-4">
+            <div class="grid grid-cols-10 gap-3">
+              @for (lugar of topSeats(); track lugar.id) {
+                <button
+                  type="button"
+                  class="min-h-24 rounded-2xl border-2 p-2 text-center text-xs font-bold shadow-sm transition hover:scale-105"
+                  [class]="seatClass(lugar)"
+                  (click)="seleccionar(lugar)"
+                >
+                  <span class="block text-xl font-black">
+                    {{ numeroLugar(lugar) }}
+                  </span>
+
+                  <span class="block truncate">
+                    {{ lugar.esp_id }}
+                  </span>
+
+                  <span class="block truncate">
+                    {{ nombreParticipantePorLugar(lugar) }}
+                  </span>
+                </button>
+              }
+            </div>
+
+            <div class="grid grid-cols-[100px_1fr_100px] gap-4">
+              <div class="grid gap-3">
+                @for (lugar of leftSeats(); track lugar.id) {
+                  <button
+                    type="button"
+                    class="min-h-24 rounded-2xl border-2 p-2 text-center text-xs font-bold shadow-sm transition hover:scale-105"
+                    [class]="seatClass(lugar)"
+                    (click)="seleccionar(lugar)"
+                  >
+                    <span class="block text-xl font-black">
+                      {{ numeroLugar(lugar) }}
+                    </span>
+
+                    <span class="block truncate">
+                      {{ lugar.esp_id }}
+                    </span>
+
+                    <span class="block truncate">
+                      {{ nombreParticipantePorLugar(lugar) }}
+                    </span>
+                  </button>
+                }
+              </div>
+
+              <div class="grid place-items-center rounded-[2rem] border-4 border-slate-300 bg-white p-8 text-center shadow-inner dark:border-slate-700 dark:bg-slate-900">
+                <div>
+                  <p class="text-sm font-black uppercase tracking-[0.3em] text-rose-600 dark:text-rose-400">
+                    Mesa de consejo
+                  </p>
+
+                  <h4 class="mt-3 text-3xl font-black text-slate-900 dark:text-white lg:text-4xl">
+                    30 lugares
+                  </h4>
+
+                  <p class="mt-2 text-slate-500 dark:text-slate-400">
+                    Vista superior del acomodo institucional.
+                  </p>
+                </div>
+              </div>
+
+              <div class="grid gap-3">
+                @for (lugar of rightSeats(); track lugar.id) {
+                  <button
+                    type="button"
+                    class="min-h-24 rounded-2xl border-2 p-2 text-center text-xs font-bold shadow-sm transition hover:scale-105"
+                    [class]="seatClass(lugar)"
+                    (click)="seleccionar(lugar)"
+                  >
+                    <span class="block text-xl font-black">
+                      {{ numeroLugar(lugar) }}
+                    </span>
+
+                    <span class="block truncate">
+                      {{ lugar.esp_id }}
+                    </span>
+
+                    <span class="block truncate">
+                      {{ nombreParticipantePorLugar(lugar) }}
+                    </span>
+                  </button>
+                }
+              </div>
+            </div>
+
+            <div class="grid grid-cols-10 gap-3">
+              @for (lugar of bottomSeats(); track lugar.id) {
+                <button
+                  type="button"
+                  class="min-h-24 rounded-2xl border-2 p-2 text-center text-xs font-bold shadow-sm transition hover:scale-105"
+                  [class]="seatClass(lugar)"
+                  (click)="seleccionar(lugar)"
+                >
+                  <span class="block text-xl font-black">
+                    {{ numeroLugar(lugar) }}
+                  </span>
+
+                  <span class="block truncate">
+                    {{ lugar.esp_id }}
+                  </span>
+
+                  <span class="block truncate">
+                    {{ nombreParticipantePorLugar(lugar) }}
+                  </span>
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+
+        <p class="mt-3 text-xs font-bold text-slate-400 dark:text-slate-500">
+          En pantallas medianas puedes deslizar horizontalmente si la mesa no cabe completa.
+        </p>
       </div>
     </div>
 
     <aside class="space-y-6">
-      <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
         <h3 class="text-xl font-black text-slate-900 dark:text-white">
           Panel de operación
         </h3>
 
         <div class="mt-5 space-y-3 text-sm">
-          <div class="flex justify-between rounded-2xl bg-slate-50 p-3 dark:bg-slate-950">
-            <span class="font-bold text-slate-600 dark:text-slate-300">Asignaciones</span>
-            <b class="text-slate-900 dark:text-white">{{ asignados().length }}</b>
+          <div class="flex justify-between gap-3 rounded-2xl bg-slate-50 p-3 dark:bg-slate-950">
+            <span class="font-bold text-slate-600 dark:text-slate-300">
+              Lugares ocupados
+            </span>
+
+            <b class="text-slate-900 dark:text-white">
+              {{ asignacionesActivas().length }}
+            </b>
           </div>
 
-          <div class="flex justify-between rounded-2xl bg-slate-50 p-3 dark:bg-slate-950">
-            <span class="font-bold text-slate-600 dark:text-slate-300">Participantes disponibles</span>
-            <b class="text-slate-900 dark:text-white">{{ participantesDisponibles().length }}</b>
+          <div class="flex justify-between gap-3 rounded-2xl bg-slate-50 p-3 dark:bg-slate-950">
+            <span class="font-bold text-slate-600 dark:text-slate-300">
+              Participantes disponibles
+            </span>
+
+            <b class="text-slate-900 dark:text-white">
+              {{ participantesDisponibles().length }}
+            </b>
+          </div>
+
+          <div class="flex justify-between gap-3 rounded-2xl bg-slate-50 p-3 dark:bg-slate-950">
+            <span class="font-bold text-slate-600 dark:text-slate-300">
+              Participantes totales
+            </span>
+
+            <b class="text-slate-900 dark:text-white">
+              {{ participantes().length }}
+            </b>
           </div>
         </div>
       </div>
 
-      <div class="rounded-3xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
-        <p class="font-black">Regla del sistema</p>
+      <div class="rounded-3xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300 sm:p-6">
+        <p class="font-black">
+          Regla del sistema
+        </p>
+
         <p class="mt-2">
           Si un ESP32 está en mantenimiento o dañado, el sistema puede usar QR como respaldo para la solicitud de intervención.
         </p>
@@ -185,49 +431,63 @@
   </div>
 
   @if (selected()) {
-    <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-4">
-      <div class="w-full max-w-3xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+    <div class="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-950/60 p-4">
+      <div class="my-6 w-full max-w-3xl rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-6">
         <div class="flex items-start justify-between gap-4">
-          <div>
+          <div class="min-w-0">
             <p class="text-sm font-black uppercase tracking-widest text-rose-600 dark:text-rose-400">
               Detalle de lugar
             </p>
 
-            <h3 class="text-3xl font-black text-slate-900 dark:text-white">
+            <h3 class="text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
               Lugar {{ numeroLugar(selected()) }}
             </h3>
 
-            <p class="text-sm text-slate-500 dark:text-slate-400">
+            <p class="break-words text-sm text-slate-500 dark:text-slate-400">
               {{ selected()?.mesa_id }} · {{ selected()?.esp_id }}
             </p>
           </div>
 
-          <button type="button" class="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300" (click)="cerrarModal()">
+          <button
+            type="button"
+            class="shrink-0 rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+            (click)="cerrarModal()"
+          >
             ✕
           </button>
         </div>
 
         <div class="mt-6 grid gap-4 md:grid-cols-2">
           <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
-            <p class="text-xs font-bold text-slate-500 dark:text-slate-400">Estado visual</p>
-            <p class="mt-1 text-2xl font-black text-slate-900 dark:text-white">
+            <p class="text-xs font-bold text-slate-500 dark:text-slate-400">
+              Estado visual
+            </p>
+
+            <p class="mt-1 text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
               {{ estadoVisual(selected()) }}
             </p>
           </div>
 
           <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
-            <p class="text-xs font-bold text-slate-500 dark:text-slate-400">Estado ESP32</p>
-            <p class="mt-1 text-2xl font-black text-slate-900 dark:text-white">
+            <p class="text-xs font-bold text-slate-500 dark:text-slate-400">
+              Estado ESP32
+            </p>
+
+            <p class="mt-1 text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
               {{ statusLabel(selected()?.status) }}
             </p>
           </div>
 
-          <div class="md:col-span-2 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
-            <p class="text-xs font-bold text-slate-500 dark:text-slate-400">Participante asignado</p>
-            <p class="mt-1 text-2xl font-black text-slate-900 dark:text-white">
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950 md:col-span-2">
+            <p class="text-xs font-bold text-slate-500 dark:text-slate-400">
+              Participante asignado
+            </p>
+
+            <p class="mt-1 break-words text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
               {{ nombreParticipantePorLugar(selected()) }}
             </p>
-            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+
+            <p class="mt-1 break-words text-sm text-slate-500 dark:text-slate-400">
               RFID: {{ rfidParticipantePorLugar(selected()) }} · Estado participante: {{ statusLabel(estadoParticipantePorLugar(selected())) }}
             </p>
           </div>
@@ -236,14 +496,23 @@
             <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
               Asignar participante
             </span>
-            <select class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white" [(ngModel)]="participante_id">
+
+            <select
+              class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              [(ngModel)]="participante_id"
+            >
               <option value="">Selecciona un participante</option>
+
               @for (p of participantesDisponibles(); track p.id) {
                 <option [value]="p.id">
                   {{ nombreParticipante(p) }} · {{ tipoParticipante(p) }} · {{ rfidParticipante(p) }} · {{ reunionParticipante(p) }}
                 </option>
               }
             </select>
+
+            <p class="mt-2 text-xs font-bold text-slate-500 dark:text-slate-400">
+              Solo aparecen participantes sin lugar asignado.
+            </p>
           </label>
 
           @if (puedeCambiarEstado()) {
@@ -251,7 +520,11 @@
               <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
                 Cambiar estado del ESP32
               </span>
-              <select class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white" [(ngModel)]="nuevoStatus">
+
+              <select
+                class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                [(ngModel)]="nuevoStatus"
+              >
                 <option value="funcional">Funcional</option>
                 <option value="mantenimiento">Mantenimiento</option>
                 <option value="dañada">Dañada</option>
@@ -261,32 +534,61 @@
           }
         </div>
 
-        <div class="mt-8 flex flex-wrap justify-end gap-3">
-          <button type="button" class="rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200" (click)="cerrarModal()">
+        <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
+          <button
+            type="button"
+            class="w-full rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 sm:w-auto"
+            (click)="cerrarModal()"
+          >
             Cerrar
           </button>
 
-          <button type="button" class="rounded-xl bg-slate-700 px-5 py-3 text-sm font-black text-white hover:bg-slate-800" (click)="reiniciar()" [disabled]="saving()">
+          <button
+            type="button"
+            class="w-full rounded-xl bg-slate-700 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 sm:w-auto"
+            (click)="reiniciar()"
+            [disabled]="saving()"
+          >
             Reiniciar temporizador
           </button>
 
           @if (puedeCambiarEstado()) {
-            <button type="button" class="rounded-xl bg-yellow-500 px-5 py-3 text-sm font-black text-slate-950 hover:bg-yellow-400" (click)="cambiarEstado()" [disabled]="saving()">
+            <button
+              type="button"
+              class="w-full rounded-xl bg-yellow-500 px-5 py-3 text-sm font-black text-slate-950 hover:bg-yellow-400 sm:w-auto"
+              (click)="cambiarEstado()"
+              [disabled]="saving()"
+            >
               Guardar estado
             </button>
           }
 
           @if (participanteAsignado(selected())) {
-            <button type="button" class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white hover:bg-blue-700" (click)="generarQrLugar()" [disabled]="saving()">
+            <button
+              type="button"
+              class="w-full rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white hover:bg-blue-700 sm:w-auto"
+              (click)="generarQrLugar()"
+              [disabled]="saving()"
+            >
               Generar QR
             </button>
           }
 
-          <button type="button" class="rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-700" (click)="asignar()" [disabled]="saving()">
+          <button
+            type="button"
+            class="w-full rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-700 sm:w-auto"
+            (click)="asignar()"
+            [disabled]="saving()"
+          >
             Asignar
           </button>
 
-          <button type="button" class="rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white hover:bg-red-700" (click)="liberar()" [disabled]="saving()">
+          <button
+            type="button"
+            class="w-full rounded-xl bg-red-600 px-5 py-3 text-sm font-black text-white hover:bg-red-700 sm:w-auto"
+            (click)="liberar()"
+            [disabled]="saving()"
+          >
             Liberar
           </button>
         </div>
@@ -295,15 +597,15 @@
   }
 
   @if (qrModal) {
-    <div class="fixed inset-0 z-[60] grid place-items-center bg-slate-950/70 p-4">
-      <div class="w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+    <div class="fixed inset-0 z-[60] grid place-items-center overflow-y-auto bg-slate-950/70 p-4">
+      <div class="my-6 w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-6">
         <div class="flex items-start justify-between gap-4">
-          <div>
+          <div class="min-w-0">
             <p class="text-sm font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">
               Acceso QR
             </p>
 
-            <h3 class="text-2xl font-black text-slate-900 dark:text-white">
+            <h3 class="text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
               QR generado correctamente
             </h3>
 
@@ -312,36 +614,59 @@
             </p>
           </div>
 
-          <button type="button" (click)="cerrarQr()" class="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300">
+          <button
+            type="button"
+            (click)="cerrarQr()"
+            class="shrink-0 rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+          >
             ✕
           </button>
         </div>
 
         @if (qrImage) {
           <div class="mt-6 flex justify-center">
-            <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700">
-              <img [src]="qrImage" alt="QR temporal" class="h-72 w-72 object-contain" />
+            <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 sm:p-5">
+              <img
+                [src]="qrImage"
+                alt="QR temporal"
+                class="h-56 w-56 object-contain sm:h-72 sm:w-72"
+              />
             </div>
           </div>
         }
 
         <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
-          <p class="text-xs font-bold text-slate-500 dark:text-slate-400">URL temporal</p>
-          <p class="mt-2 break-all text-xs font-mono text-blue-600 dark:text-blue-300">
+          <p class="text-xs font-bold text-slate-500 dark:text-slate-400">
+            URL temporal
+          </p>
+
+          <p class="mt-2 break-all font-mono text-xs text-blue-600 dark:text-blue-300">
             {{ qrData?.url }}
           </p>
         </div>
 
-        <div class="mt-6 flex flex-wrap justify-end gap-3">
-          <button type="button" class="rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white hover:bg-blue-700" (click)="copiarQr()">
+        <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
+          <button
+            type="button"
+            class="w-full rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white hover:bg-blue-700 sm:w-auto"
+            (click)="copiarQr()"
+          >
             Copiar URL
           </button>
 
-          <a [href]="qrData?.url" target="_blank" class="rounded-xl bg-green-600 px-5 py-3 text-sm font-black text-white hover:bg-green-700">
+          <a
+            [href]="qrData?.url"
+            target="_blank"
+            class="w-full rounded-xl bg-green-600 px-5 py-3 text-center text-sm font-black text-white hover:bg-green-700 sm:w-auto"
+          >
             Abrir ESP32 Virtual
           </a>
 
-          <button type="button" class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700" (click)="cerrarQr()">
+          <button
+            type="button"
+            class="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700 sm:w-auto"
+            (click)="cerrarQr()"
+          >
             Cerrar
           </button>
         </div>

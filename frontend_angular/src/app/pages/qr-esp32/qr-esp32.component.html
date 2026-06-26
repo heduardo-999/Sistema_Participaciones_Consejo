@@ -1,8 +1,8 @@
-<div class="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-6 text-white">
-  <div class="mx-auto max-w-lg">
+<div class="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-4 text-white sm:p-6">
+  <div class="mx-auto w-full max-w-lg">
 
     @if (loading()) {
-      <div class="mt-20 rounded-3xl border border-slate-700 bg-slate-900 p-8 text-center shadow-2xl">
+      <div class="mt-16 rounded-3xl border border-slate-700 bg-slate-900 p-6 text-center shadow-2xl sm:mt-20 sm:p-8">
         <div class="mx-auto h-16 w-16 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
 
         <h2 class="mt-6 text-2xl font-black">
@@ -16,8 +16,10 @@
     }
 
     @if (!loading() && error()) {
-      <div class="mt-20 rounded-3xl border border-red-900 bg-red-950/40 p-8 text-center shadow-2xl">
-        <div class="mx-auto h-20 w-20 rounded-full bg-red-500 shadow-[0_0_35px_rgba(239,68,68,0.95)]"></div>
+      <div class="mt-16 rounded-3xl border border-red-900 bg-red-950/40 p-6 text-center shadow-2xl sm:mt-20 sm:p-8">
+        <div class="mx-auto grid h-20 w-20 place-items-center rounded-full bg-red-500 shadow-[0_0_35px_rgba(239,68,68,0.95)]">
+          <i class="fa-solid fa-triangle-exclamation fa-shake text-3xl text-white"></i>
+        </div>
 
         <h2 class="mt-6 text-2xl font-black text-red-300">
           Acceso denegado
@@ -28,23 +30,22 @@
         </p>
 
         <button
-          class="mt-6 rounded-2xl bg-slate-800 px-6 py-3 font-black hover:bg-slate-700"
+          type="button"
+          class="mt-6 w-full rounded-2xl bg-slate-800 px-6 py-3 font-black hover:bg-slate-700 sm:w-auto"
           (click)="validarToken()"
         >
+          <i class="fa-solid fa-rotate-right mr-2"></i>
           Reintentar
         </button>
       </div>
     }
 
     @if (!loading() && !error() && data()) {
+      <div class="overflow-hidden rounded-[2rem] border border-slate-700 bg-slate-900 shadow-2xl">
 
-      <div class="rounded-[2rem] border border-slate-700 bg-slate-900 shadow-2xl overflow-hidden">
-
-        <!-- CABECERA -->
-        <div class="border-b border-slate-800 bg-slate-950 px-6 py-5">
-          <div class="flex items-center justify-between">
-
-            <div>
+        <div class="border-b border-slate-800 bg-slate-950 px-5 py-5 sm:px-6">
+          <div class="flex items-center justify-between gap-4">
+            <div class="min-w-0">
               <h1 class="text-2xl font-black">
                 ESP32 Virtual
               </h1>
@@ -54,26 +55,25 @@
               </p>
             </div>
 
-            <div class="flex items-center gap-2">
-              <div class="h-3 w-3 rounded-full bg-green-400 animate-pulse"></div>
+            <div class="flex shrink-0 items-center gap-2">
+              <div class="grid h-8 w-8 place-items-center rounded-full bg-green-500/15">
+                <i class="fa-solid fa-wifi fa-fade text-green-300"></i>
+              </div>
 
               <span class="text-xs font-bold uppercase tracking-wider text-green-300">
                 Online
               </span>
             </div>
-
           </div>
         </div>
 
-        <!-- PARTICIPANTE -->
-        <div class="p-6">
-
+        <div class="p-5 sm:p-6">
           <div class="rounded-3xl bg-slate-950 p-5">
             <p class="text-xs font-black uppercase tracking-widest text-slate-500">
               Participante
             </p>
 
-            <h2 class="mt-2 text-2xl font-black">
+            <h2 class="mt-2 break-words text-2xl font-black">
               {{ participante()?.nombre }}
             </h2>
 
@@ -82,16 +82,47 @@
             </p>
           </div>
 
-          <!-- LEDS -->
-          <div class="mt-6 grid grid-cols-2 gap-4">
+          @if (estadoLedIntervencion() === 'participa') {
+            <div class="mt-6 overflow-hidden rounded-[2rem] border border-yellow-400/60 bg-yellow-400/10 p-6 text-center shadow-[0_0_40px_rgba(250,204,21,0.22)]">
+              <div class="mx-auto grid h-28 w-28 place-items-center rounded-full border-4 border-yellow-300 bg-yellow-300 text-slate-950 shadow-[0_0_45px_rgba(250,204,21,0.95)]">
+                <i
+                  class="fa-solid fa-microphone fa-beat-fade text-5xl"
+                  style="--fa-animation-duration: 1.1s; --fa-beat-fade-scale: 1.22; --fa-beat-fade-opacity: 0.55;"
+                ></i>
+              </div>
 
-            <!-- LED PARTICIPANTE -->
+              <p class="mt-5 text-xs font-black uppercase tracking-[0.25em] text-yellow-300">
+                Participando ahora
+              </p>
+
+              <h2 class="mt-2 text-3xl font-black text-white">
+                Micrófono activo
+              </h2>
+
+              <div class="mt-4 flex items-center justify-center gap-3 text-yellow-200">
+                <i class="fa-solid fa-volume-high fa-bounce text-xl"></i>
+                <span class="font-bold">
+                  Tu intervención está en curso
+                </span>
+                <i class="fa-solid fa-volume-high fa-bounce text-xl"></i>
+              </div>
+            </div>
+          }
+
+          <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div class="rounded-3xl bg-slate-950 p-5 text-center">
-
               <div
-                class="mx-auto h-16 w-16 rounded-full border-4 border-slate-800"
+                class="mx-auto grid h-16 w-16 place-items-center rounded-full border-4 border-slate-800"
                 [class]="ledParticipanteClass()"
-              ></div>
+              >
+                @if (estadoLedParticipante() === 'verde') {
+                  <i class="fa-solid fa-user-check text-2xl text-slate-950"></i>
+                } @else if (estadoLedParticipante() === 'azul') {
+                  <i class="fa-solid fa-user-clock text-2xl text-white"></i>
+                } @else {
+                  <i class="fa-solid fa-user-xmark text-2xl text-white"></i>
+                }
+              </div>
 
               <p class="mt-4 text-xs font-black uppercase tracking-widest text-slate-500">
                 Estado participante
@@ -100,16 +131,24 @@
               <p class="mt-2 font-black">
                 {{ ledParticipanteTexto() }}
               </p>
-
             </div>
 
-            <!-- LED INTERVENCIÓN -->
             <div class="rounded-3xl bg-slate-950 p-5 text-center">
-
               <div
-                class="mx-auto h-16 w-16 rounded-full border-4 border-slate-800"
+                class="mx-auto grid h-16 w-16 place-items-center rounded-full border-4 border-slate-800"
                 [class]="ledIntervencionClass()"
-              ></div>
+              >
+                @if (estadoLedIntervencion() === 'participa') {
+                  <i
+                    class="fa-solid fa-microphone fa-beat-fade text-2xl text-slate-950"
+                    style="--fa-animation-duration: 1s; --fa-beat-fade-scale: 1.25;"
+                  ></i>
+                } @else if (estadoLedIntervencion() === 'solicita_participacion') {
+                  <i class="fa-solid fa-hand fa-fade text-2xl text-slate-950"></i>
+                } @else {
+                  <i class="fa-solid fa-microphone-slash text-2xl text-slate-300"></i>
+                }
+              </div>
 
               <p class="mt-4 text-xs font-black uppercase tracking-widest text-slate-500">
                 Participación
@@ -118,36 +157,50 @@
               <p class="mt-2 font-black">
                 {{ ledIntervencionTexto() }}
               </p>
-
             </div>
-
           </div>
 
-          <!-- ESTADO ACTUAL -->
-          <div class="mt-6 rounded-3xl bg-slate-950 p-5">
-
-            <p class="text-xs font-black uppercase tracking-widest text-slate-500">
+          <div
+            class="mt-6 rounded-3xl p-5"
+            [class.bg-yellow-400]="estadoLedIntervencion() === 'participa'"
+            [class.text-slate-950]="estadoLedIntervencion() === 'participa'"
+            [class.bg-slate-950]="estadoLedIntervencion() !== 'participa'"
+          >
+            <p
+              class="text-xs font-black uppercase tracking-widest"
+              [class.text-slate-700]="estadoLedIntervencion() === 'participa'"
+              [class.text-slate-500]="estadoLedIntervencion() !== 'participa'"
+            >
               Estado actual
             </p>
 
-            <h3 class="mt-2 text-xl font-black">
+            <h3 class="mt-2 break-words text-xl font-black">
+              @if (estadoLedIntervencion() === 'participa') {
+                <i class="fa-solid fa-microphone fa-beat mr-2"></i>
+              }
+
+              @if (estadoLedIntervencion() === 'solicita_participacion') {
+                <i class="fa-solid fa-hourglass-half fa-fade mr-2"></i>
+              }
+
               {{ textoIntervencion() }}
             </h3>
 
-            <p class="mt-2 text-sm text-slate-400">
+            <p
+              class="mt-2 text-sm"
+              [class.text-slate-800]="estadoLedIntervencion() === 'participa'"
+              [class.text-slate-400]="estadoLedIntervencion() !== 'participa'"
+            >
               {{ descripcionBoton() }}
             </p>
-
           </div>
 
-          <!-- REUNIÓN -->
           <div class="mt-6 rounded-3xl bg-slate-950 p-5">
-
             <p class="text-xs font-black uppercase tracking-widest text-slate-500">
               Reunión
             </p>
 
-            <h3 class="mt-2 text-lg font-black">
+            <h3 class="mt-2 break-words text-lg font-black">
               {{ reunion()?.sesion }}
             </h3>
 
@@ -158,44 +211,49 @@
             <p class="text-slate-400">
               {{ reunion()?.hora_inicio }} - {{ reunion()?.hora_fin }}
             </p>
-
           </div>
 
-          <!-- BOTÓN ESP32 -->
           <button
             type="button"
-            class="mt-8 h-44 w-full rounded-[2rem] text-xl font-black shadow-2xl transition active:scale-95 disabled:opacity-50"
+            class="mt-8 flex h-36 w-full items-center justify-center gap-3 rounded-[2rem] text-lg font-black shadow-2xl transition active:scale-95 disabled:opacity-50 sm:h-44 sm:text-xl"
             [class]="actionButtonClass()"
             [disabled]="sending()"
             (click)="pulsarBoton()"
           >
-            {{ textoBoton() }}
+            @if (sending()) {
+              <i class="fa-solid fa-spinner fa-spin-pulse text-2xl"></i>
+            } @else if (estadoLedIntervencion() === 'participa') {
+              <i class="fa-solid fa-stop fa-beat text-2xl"></i>
+            } @else if (estadoLedIntervencion() === 'solicita_participacion') {
+              <i class="fa-solid fa-hand fa-fade text-2xl"></i>
+            } @else {
+              <i class="fa-solid fa-microphone text-2xl"></i>
+            }
+
+            <span>
+              {{ textoBoton() }}
+            </span>
           </button>
 
-          <!-- MENSAJE -->
           @if (message()) {
             <div class="mt-6 rounded-2xl border border-green-800 bg-green-950/40 p-4 text-center">
               <p class="font-black text-green-300">
+                <i class="fa-solid fa-circle-check mr-2"></i>
                 {{ message() }}
               </p>
             </div>
           }
 
-          <!-- REFRESH -->
           <div class="mt-6 text-center">
-
             @if (refreshing()) {
               <span class="text-xs font-bold uppercase tracking-widest text-blue-300">
+                <i class="fa-solid fa-rotate fa-spin mr-2"></i>
                 Actualizando estado...
               </span>
             }
-
           </div>
-
         </div>
-
       </div>
-
     }
   </div>
 </div>

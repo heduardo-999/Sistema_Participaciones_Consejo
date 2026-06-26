@@ -57,7 +57,6 @@ export class LugaresComponent implements OnInit {
 
       this.lugares.set(lugares);
       this.asignados.set(asignados);
-
       this.participantes.set(this.normalizarRespuesta(participantesRes));
     } catch (error: any) {
       console.error(error);
@@ -72,14 +71,79 @@ export class LugaresComponent implements OnInit {
   bottomSeats = computed(() => this.lugares().slice(15, 25).reverse());
   leftSeats = computed(() => this.lugares().slice(25, 30).reverse());
 
+  asignacionesActivas = computed(() => {
+    const asignaciones: any[] = [];
+
+    for (const asignacion of this.asignados()) {
+      if (this.esAsignacionActiva(asignacion)) {
+        asignaciones.push(asignacion);
+      }
+    }
+
+    for (const lugar of this.lugares()) {
+      if (lugar?.asignacion && this.esAsignacionActiva(lugar.asignacion)) {
+        asignaciones.push(lugar.asignacion);
+      }
+
+      if (Array.isArray(lugar?.asignaciones)) {
+        for (const asignacion of lugar.asignaciones) {
+          if (this.esAsignacionActiva(asignacion)) {
+            asignaciones.push(asignacion);
+          }
+        }
+      }
+    }
+
+    const unicas = new Map<number, any>();
+
+    for (const asignacion of asignaciones) {
+      const id = Number(asignacion?.id || 0);
+
+      if (id) {
+        unicas.set(id, asignacion);
+        continue;
+      }
+
+      const participanteId = Number(asignacion?.participante_id || asignacion?.participante?.id || 0);
+      const lugarId = Number(asignacion?.lugar_id || asignacion?.lugar?.id || 0);
+
+      if (participanteId && lugarId) {
+        unicas.set(Number(`${lugarId}${participanteId}`), asignacion);
+      }
+    }
+
+    return Array.from(unicas.values());
+  });
+
+  participantesAsignadosIds = computed(() => {
+    const ids = new Set<number>();
+
+    for (const asignacion of this.asignacionesActivas()) {
+      const participanteId = Number(
+        asignacion?.participante_id ||
+        asignacion?.participante?.id ||
+        0
+      );
+
+      if (participanteId) {
+        ids.add(participanteId);
+      }
+    }
+
+    return ids;
+  });
+
   participantesDisponibles = computed(() => {
-    const asignadosIds = this.asignados()
-      .filter(a => !['liberado', 'retirado'].includes(String(a.status || '').toLowerCase()))
-      .map(a => Number(a.participante_id));
+    const asignadosIds = this.participantesAsignadosIds();
 
     return this.participantes().filter(p => {
-      if (p.status === 'retirado') return false;
-      return !asignadosIds.includes(Number(p.id));
+      const participanteId = Number(p?.id || 0);
+      const status = String(p?.status || '').toLowerCase();
+
+      if (!participanteId) return false;
+      if (status === 'retirado') return false;
+
+      return !asignadosIds.has(participanteId);
     });
   });
 
@@ -106,13 +170,25 @@ export class LugaresComponent implements OnInit {
       return;
     }
 
+    const participanteId = Number(this.participante_id);
+
+    if (this.participantesAsignadosIds().has(participanteId)) {
+      this.error.set('Este participante ya tiene un lugar asignado.');
+      return;
+    }
+
+    if (this.asignacionPorLugar(lugar)) {
+      this.error.set('Este lugar ya tiene una asignación activa. Libera el lugar antes de asignar otro participante.');
+      return;
+    }
+
     this.saving.set(true);
     this.error.set('');
 
     try {
       await this.api.post('/lugares-asignados', {
         lugar_id: lugar.id,
-        participante_id: Number(this.participante_id),
+        participante_id: participanteId,
       });
 
       await this.load();
@@ -207,71 +283,71 @@ export class LugaresComponent implements OnInit {
     }
   }
 
- async generarQrLugar(): Promise<void> {
-  const lugar = this.selected();
-  const asignacion = this.asignacionPorLugar(lugar);
+  async generarQrLugar(): Promise<void> {
+    const lugar = this.selected();
+    const asignacion = this.asignacionPorLugar(lugar);
 
-  if (!lugar || !asignacion?.participante_id) {
-    this.error.set('Este lugar no tiene participante asignado.');
-    return;
-  }
+    if (!lugar || !asignacion?.participante_id) {
+      this.error.set('Este lugar no tiene participante asignado.');
+      return;
+    }
 
-  this.saving.set(true);
-  this.error.set('');
-  this.qrImage = '';
+    this.saving.set(true);
+    this.error.set('');
+    this.qrImage = '';
 
-  try {
-    const res: any = await this.api.post('/qr/generar', {
-      participante_id: Number(asignacion.participante_id),
-    });
-
-    this.qrData = res?.data?.data ?? res?.data ?? res;
-
-    if (this.qrData?.url) {
-      this.qrImage = await QRCode.toDataURL(this.qrData.url, {
-        width: 300,
-        margin: 2,
+    try {
+      const res: any = await this.api.post('/qr/generar', {
+        participante_id: Number(asignacion.participante_id),
       });
+
+      this.qrData = res?.data?.data ?? res?.data ?? res;
+
+      if (this.qrData?.url) {
+        this.qrImage = await QRCode.toDataURL(this.qrData.url, {
+          width: 300,
+          margin: 2,
+        });
+      }
+
+      this.qrModal = true;
+    } catch (error: any) {
+      console.error(error);
+      this.error.set(this.extractError(error) || 'No se pudo generar el QR.');
+    } finally {
+      this.saving.set(false);
     }
-
-    this.qrModal = true;
-  } catch (error: any) {
-    console.error(error);
-    this.error.set(this.extractError(error) || 'No se pudo generar el QR.');
-  } finally {
-    this.saving.set(false);
   }
-}
 
-async copiarQr(): Promise<void> {
-  const url = this.qrData?.url;
+  async copiarQr(): Promise<void> {
+    const url = this.qrData?.url;
 
-  if (!url) return;
+    if (!url) return;
 
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(url);
-    } else {
-      const textarea = document.createElement('textarea');
-      textarea.value = url;
-      textarea.style.position = 'fixed';
-      textarea.style.left = '-9999px';
-      textarea.style.top = '-9999px';
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = url;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '-9999px';
 
-      document.body.appendChild(textarea);
-      textarea.focus();
-      textarea.select();
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
 
-      document.execCommand('copy');
-      document.body.removeChild(textarea);
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+
+      alert('URL copiada.');
+    } catch (error) {
+      console.error(error);
+      alert('No se pudo copiar la URL. Cópiala manualmente.');
     }
-
-    alert('URL copiada.');
-  } catch (error) {
-    console.error(error);
-    alert('No se pudo copiar la URL. Cópiala manualmente.');
   }
-}
 
   cerrarQr(): void {
     this.qrModal = false;
@@ -279,34 +355,30 @@ async copiarQr(): Promise<void> {
     this.qrImage = '';
   }
 
-asignacionPorLugar(lugar: any): any {
-  if (!lugar) return null;
+  asignacionPorLugar(lugar: any): any {
+    if (!lugar) return null;
 
-  if (
-    Array.isArray(lugar.asignaciones) &&
-    lugar.asignaciones.length > 0
-  ) {
-    return lugar.asignaciones[0];
+    if (lugar.asignacion && this.esAsignacionActiva(lugar.asignacion)) {
+      return lugar.asignacion;
+    }
+
+    if (Array.isArray(lugar.asignaciones)) {
+      const activa = lugar.asignaciones.find((a: any) => this.esAsignacionActiva(a));
+      if (activa) return activa;
+    }
+
+    return this.asignacionesActivas().find(
+      a => Number(a.lugar_id || a.lugar?.id) === Number(lugar.id)
+    ) || null;
   }
 
-  if (lugar.asignacion) {
-    return lugar.asignacion;
+  participanteAsignado(lugar: any): any {
+    const asignacion = this.asignacionPorLugar(lugar);
+
+    if (!asignacion) return null;
+
+    return asignacion.participante || null;
   }
-
-  return this.asignados().find(
-    a => Number(a.lugar_id) === Number(lugar.id)
-  ) || null;
-}
-
-participanteAsignado(lugar: any): any {
-  const asignacion = this.asignacionPorLugar(lugar);
-
-  if (!asignacion) {
-    return null;
-  }
-
-  return asignacion.participante || null;
-}
 
   nombreParticipantePorLugar(lugar: any): string {
     const participante = this.participanteAsignado(lugar);
@@ -359,7 +431,7 @@ participanteAsignado(lugar: any): any {
     const participante = this.participanteAsignado(lugar);
 
     if (!participante) return 'Disponible';
-    if (participante.status === 'ausente') return 'Ausente';
+    if (String(participante.status || '').toLowerCase() === 'ausente') return 'Ausente';
 
     return 'Ocupado';
   }
@@ -370,7 +442,7 @@ participanteAsignado(lugar: any): any {
     const classes: Record<string, string> = {
       Disponible: 'border-green-300 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-950/40 dark:text-green-300',
       Ocupado: 'border-blue-300 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950/40 dark:text-blue-300',
-      Ausente: 'border-yellow-300 bg-yellow-50 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-300',
+      Ausente: 'border-orange-300 bg-orange-50 text-orange-800 dark:border-orange-800 dark:bg-orange-950/40 dark:text-orange-300',
       Mantenimiento: 'border-yellow-300 bg-yellow-50 text-yellow-800 dark:border-yellow-800 dark:bg-yellow-950/40 dark:text-yellow-300',
       Dañada: 'border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300',
       Denegado: 'border-slate-300 bg-slate-200 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300',
@@ -398,6 +470,14 @@ participanteAsignado(lugar: any): any {
   puedeCambiarEstado(): boolean {
     const roles = this.auth.user()?.roles ?? [];
     return roles.includes('super admin') || roles.includes('admin');
+  }
+
+  private esAsignacionActiva(asignacion: any): boolean {
+    if (!asignacion) return false;
+
+    const status = String(asignacion.status || '').toLowerCase();
+
+    return !['liberado', 'retirado', 'cancelado', 'cancelada', 'inactivo', 'inactiva'].includes(status);
   }
 
   private normalizarRespuesta(res: any): any[] {

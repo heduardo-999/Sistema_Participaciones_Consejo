@@ -27,8 +27,16 @@ export class ReunionesComponent implements OnInit {
   detalleReunion: any = null;
   loadingDetalle = signal(false);
 
+  temasModal = false;
+  reunionTemas: any = null;
+  temas = signal<any[]>([]);
+  loadingTemas = signal(false);
+  savingTema = signal(false);
+  temaForm: any = this.emptyTemaForm();
+
   estados = [
     { value: '', label: 'Todos' },
+    { value: 'programada', label: 'Programada' },
     { value: 'activa', label: 'Activa' },
     { value: 'terminada', label: 'Terminada' },
     { value: 'cancelada', label: 'Cancelada' },
@@ -43,12 +51,20 @@ export class ReunionesComponent implements OnInit {
       const sesion = String(item.sesion || '').toLowerCase();
       const fecha = String(item.fecha || '').toLowerCase();
       const estado = String(item.status || '').toLowerCase();
+      const inicioPrevisto = String(item.hora_inicio || '').toLowerCase();
+      const finPrevisto = String(item.hora_fin || '').toLowerCase();
+      const inicioReal = String(item.inicio_real_at || '').toLowerCase();
+      const finReal = String(item.fin_real_at || '').toLowerCase();
 
       const matchesSearch =
         !search ||
         sesion.includes(search) ||
         fecha.includes(search) ||
-        estado.includes(search);
+        estado.includes(search) ||
+        inicioPrevisto.includes(search) ||
+        finPrevisto.includes(search) ||
+        inicioReal.includes(search) ||
+        finReal.includes(search);
 
       const matchesStatus = !status || item.status === status;
 
@@ -57,9 +73,22 @@ export class ReunionesComponent implements OnInit {
   });
 
   total = computed(() => this.allItems().length);
+  programadas = computed(() => this.allItems().filter(i => i.status === 'programada').length);
   activas = computed(() => this.allItems().filter(i => i.status === 'activa').length);
   terminadas = computed(() => this.allItems().filter(i => i.status === 'terminada').length);
   canceladas = computed(() => this.allItems().filter(i => i.status === 'cancelada').length);
+
+  temasPendientes = computed(() =>
+    this.temas().filter(tema => tema.status === 'pendiente')
+  );
+
+  temasEnCurso = computed(() =>
+    this.temas().filter(tema => tema.status === 'en_curso')
+  );
+
+  temasCompletados = computed(() =>
+    this.temas().filter(tema => tema.status === 'completado')
+  );
 
   constructor(private api: ApiService) {}
 
@@ -91,7 +120,7 @@ export class ReunionesComponent implements OnInit {
       this.form = {
         sesion: item.sesion || '',
         fecha: this.toInputDate(item.fecha),
-        status: item.status || 'activa',
+        status: item.status || 'programada',
         hora_inicio: this.toInputTime(item.hora_inicio),
         hora_fin: this.toInputTime(item.hora_fin),
       };
@@ -126,7 +155,7 @@ export class ReunionesComponent implements OnInit {
     const payload = {
       sesion: this.form.sesion.trim(),
       fecha: this.form.fecha,
-      status: this.form.status,
+      status: this.form.status || 'programada',
       hora_inicio: this.form.hora_inicio || null,
       hora_fin: this.form.hora_fin || null,
     };
@@ -191,6 +220,111 @@ export class ReunionesComponent implements OnInit {
     this.detalleReunion = null;
   }
 
+  async abrirTemas(item: any): Promise<void> {
+    this.error.set('');
+    this.reunionTemas = item;
+    this.temaForm = this.emptyTemaForm();
+    this.temas.set([]);
+    this.temasModal = true;
+
+    await this.cargarTemas(item.id);
+  }
+
+  cerrarTemas(): void {
+    this.temasModal = false;
+    this.reunionTemas = null;
+    this.temas.set([]);
+    this.temaForm = this.emptyTemaForm();
+    this.error.set('');
+  }
+
+  async cargarTemas(reunionId: number): Promise<void> {
+    this.loadingTemas.set(true);
+    this.error.set('');
+
+    try {
+      const res: any = await this.api.get(`/temas-reunion?reunion_id=${reunionId}`);
+      this.temas.set(this.normalizarRespuesta(res));
+    } catch (error: any) {
+      console.error(error);
+      this.error.set(this.extractError(error) || 'No se pudieron cargar los temas de la reunión.');
+      this.temas.set([]);
+    } finally {
+      this.loadingTemas.set(false);
+    }
+  }
+
+  async agregarTema(): Promise<void> {
+    if (!this.reunionTemas?.id) {
+      this.error.set('No hay una reunión seleccionada.');
+      return;
+    }
+
+    if (!this.temaForm.titulo?.trim()) {
+      this.error.set('Escribe el título del tema.');
+      return;
+    }
+
+    this.savingTema.set(true);
+    this.error.set('');
+
+    const payload = {
+      reunion_id: this.reunionTemas.id,
+      titulo: this.temaForm.titulo.trim(),
+      descripcion: this.temaForm.descripcion?.trim() || null,
+    };
+
+    try {
+      await this.api.post('/temas-reunion', payload);
+      this.temaForm = this.emptyTemaForm();
+      await this.cargarTemas(this.reunionTemas.id);
+    } catch (error: any) {
+      console.error(error);
+      this.error.set(this.extractError(error) || 'No se pudo agregar el tema.');
+    } finally {
+      this.savingTema.set(false);
+    }
+  }
+
+  async eliminarTema(tema: any): Promise<void> {
+    if (!confirm(`¿Seguro que deseas eliminar el tema "${tema.titulo}"?`)) return;
+
+    this.loadingTemas.set(true);
+    this.error.set('');
+
+    try {
+      await this.api.delete(`/temas-reunion/${tema.id}`);
+
+      if (this.reunionTemas?.id) {
+        await this.cargarTemas(this.reunionTemas.id);
+      }
+    } catch (error: any) {
+      console.error(error);
+      this.error.set(this.extractError(error) || 'No se pudo eliminar el tema.');
+    } finally {
+      this.loadingTemas.set(false);
+    }
+  }
+
+  async reiniciarTemas(): Promise<void> {
+    if (!this.reunionTemas?.id) return;
+
+    if (!confirm('¿Seguro que deseas reiniciar todos los temas como pendientes?')) return;
+
+    this.loadingTemas.set(true);
+    this.error.set('');
+
+    try {
+      await this.api.post(`/reuniones/${this.reunionTemas.id}/temas/reiniciar`, {});
+      await this.cargarTemas(this.reunionTemas.id);
+    } catch (error: any) {
+      console.error(error);
+      this.error.set(this.extractError(error) || 'No se pudieron reiniciar los temas.');
+    } finally {
+      this.loadingTemas.set(false);
+    }
+  }
+
   limpiarFiltros(): void {
     this.q = '';
     this.filtroStatus = '';
@@ -204,7 +338,8 @@ export class ReunionesComponent implements OnInit {
     const participantes = this.participantesDetalle();
 
     return participantes.flatMap((participante: any) => {
-      const intervenciones = participante?.intervenciones ?? [];
+      const intervenciones =
+        participante?.intervenciones ?? [];
 
       return intervenciones.map((intervencion: any) => ({
         ...intervencion,
@@ -231,6 +366,7 @@ export class ReunionesComponent implements OnInit {
 
   badgeClass(status: string): string {
     const classes: Record<string, string> = {
+      programada: 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300',
       activa: 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-300',
       terminada: 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300',
       cancelada: 'bg-red-100 text-red-700 dark:bg-red-950/40 dark:text-red-300',
@@ -242,10 +378,31 @@ export class ReunionesComponent implements OnInit {
 
   statusLabel(status: string): string {
     const labels: Record<string, string> = {
+      programada: 'Programada',
       activa: 'Activa',
       terminada: 'Terminada',
       cancelada: 'Cancelada',
       pospuesta: 'Pospuesta',
+    };
+
+    return labels[status] || status || 'Sin estado';
+  }
+
+  temaBadgeClass(status: string): string {
+    const classes: Record<string, string> = {
+      pendiente: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-950/40 dark:text-yellow-300',
+      en_curso: 'bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300',
+      completado: 'bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-300',
+    };
+
+    return classes[status] || 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+  }
+
+  temaStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      pendiente: 'Pendiente',
+      en_curso: 'En curso',
+      completado: 'Completado',
     };
 
     return labels[status] || status || 'Sin estado';
@@ -281,14 +438,14 @@ export class ReunionesComponent implements OnInit {
     return classes[status] || 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
   }
 
-  formatDate(fecha: string): string {
+  formatDate(fecha: string | null | undefined): string {
     if (!fecha) return 'Sin fecha';
 
     const partes = fecha.toString().split('T')[0].split('-');
     return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : fecha;
   }
 
-  formatTime(hora: string): string {
+  formatTime(hora: string | null | undefined): string {
     if (!hora) return '--:--';
 
     const partes = hora.toString().split(':');
@@ -299,12 +456,31 @@ export class ReunionesComponent implements OnInit {
     return hora;
   }
 
-  private toInputDate(fecha: string): string {
+  formatDateTime(fecha: string | null | undefined): string {
+    if (!fecha) return '--:--';
+
+    const date = new Date(fecha);
+
+    if (isNaN(date.getTime())) {
+      return fecha;
+    }
+
+    return date.toLocaleString('es-MX', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  }
+
+  private toInputDate(fecha: string | null | undefined): string {
     if (!fecha) return '';
     return fecha.toString().split('T')[0];
   }
 
-  private toInputTime(hora: string): string {
+  private toInputTime(hora: string | null | undefined): string {
     if (!hora) return '';
 
     const partes = hora.toString().split(':');
@@ -319,9 +495,16 @@ export class ReunionesComponent implements OnInit {
     return {
       sesion: '',
       fecha: new Date().toISOString().slice(0, 10),
-      status: 'activa',
+      status: 'programada',
       hora_inicio: '',
       hora_fin: '',
+    };
+  }
+
+  private emptyTemaForm(): any {
+    return {
+      titulo: '',
+      descripcion: '',
     };
   }
 

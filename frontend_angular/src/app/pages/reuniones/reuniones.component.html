@@ -1,11 +1,11 @@
-<section class="space-y-6">
+<section class="space-y-6 overflow-x-hidden">
   <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-    <div>
+    <div class="min-w-0">
       <p class="text-sm font-black uppercase tracking-widest text-rose-600 dark:text-rose-400">
         Gestión de sesiones
       </p>
 
-      <h2 class="text-3xl font-black text-slate-900 dark:text-white">
+      <h2 class="text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
         Reuniones
       </h2>
 
@@ -16,7 +16,7 @@
 
     <button
       type="button"
-      class="rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white shadow hover:bg-rose-700 transition"
+      class="w-full rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white shadow transition hover:bg-rose-700 sm:w-auto"
       (click)="open()"
     >
       + Nueva reunión
@@ -29,38 +29,63 @@
     </div>
   }
 
-  <div class="grid gap-4 md:grid-cols-4">
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
     <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <p class="text-sm font-bold text-slate-500 dark:text-slate-400">Total</p>
-      <p class="mt-2 text-4xl font-black text-slate-900 dark:text-white">{{ total() }}</p>
+      <p class="text-sm font-bold text-slate-500 dark:text-slate-400">
+        Total
+      </p>
+      <p class="mt-2 text-3xl font-black text-slate-900 dark:text-white sm:text-4xl">
+        {{ total() }}
+      </p>
+    </div>
+
+    <div class="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm dark:border-blue-900/40 dark:bg-blue-950/20">
+      <p class="text-sm font-bold text-blue-700 dark:text-blue-300">
+        Programadas
+      </p>
+      <p class="mt-2 text-3xl font-black text-blue-700 dark:text-blue-300 sm:text-4xl">
+        {{ programadas() }}
+      </p>
     </div>
 
     <div class="rounded-2xl border border-green-200 bg-green-50 p-5 shadow-sm dark:border-green-900/40 dark:bg-green-950/20">
-      <p class="text-sm font-bold text-green-700 dark:text-green-300">Activas</p>
-      <p class="mt-2 text-4xl font-black text-green-700 dark:text-green-300">{{ activas() }}</p>
+      <p class="text-sm font-bold text-green-700 dark:text-green-300">
+        Activas
+      </p>
+      <p class="mt-2 text-3xl font-black text-green-700 dark:text-green-300 sm:text-4xl">
+        {{ activas() }}
+      </p>
     </div>
 
     <div class="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <p class="text-sm font-bold text-slate-500 dark:text-slate-400">Terminadas</p>
-      <p class="mt-2 text-4xl font-black text-slate-700 dark:text-slate-200">{{ terminadas() }}</p>
+      <p class="text-sm font-bold text-slate-500 dark:text-slate-400">
+        Terminadas
+      </p>
+      <p class="mt-2 text-3xl font-black text-slate-700 dark:text-slate-200 sm:text-4xl">
+        {{ terminadas() }}
+      </p>
     </div>
 
     <div class="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm dark:border-red-900/40 dark:bg-red-950/20">
-      <p class="text-sm font-bold text-red-700 dark:text-red-300">Canceladas</p>
-      <p class="mt-2 text-4xl font-black text-red-700 dark:text-red-300">{{ canceladas() }}</p>
+      <p class="text-sm font-bold text-red-700 dark:text-red-300">
+        Canceladas
+      </p>
+      <p class="mt-2 text-3xl font-black text-red-700 dark:text-red-300 sm:text-4xl">
+        {{ canceladas() }}
+      </p>
     </div>
   </div>
 
-  <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-    <div class="grid gap-3 md:grid-cols-[1fr_220px_auto_auto]">
+  <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
+    <div class="grid gap-3 lg:grid-cols-[1fr_220px_auto_auto]">
       <input
-        class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-        placeholder="Buscar por sesión, fecha o estado..."
+        class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+        placeholder="Buscar por sesión, fecha, estado u horario..."
         [(ngModel)]="q"
       />
 
       <select
-        class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+        class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
         [(ngModel)]="filtroStatus"
       >
         @for (estado of estados; track estado.value) {
@@ -70,7 +95,7 @@
 
       <button
         type="button"
-        class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600"
+        class="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 lg:w-auto"
         (click)="load()"
         [disabled]="loading()"
       >
@@ -79,7 +104,7 @@
 
       <button
         type="button"
-        class="rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+        class="w-full rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 lg:w-auto"
         (click)="limpiarFiltros()"
       >
         Limpiar
@@ -89,15 +114,40 @@
 
   <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
     <div class="overflow-x-auto">
-      <table class="w-full min-w-[980px]">
+      <table class="w-full min-w-[1350px]">
         <thead class="bg-slate-50 dark:bg-slate-950">
           <tr>
-            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Sesión</th>
-            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Fecha</th>
-            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Inicio</th>
-            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Fin</th>
-            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Estado</th>
-            <th class="px-5 py-4 text-right text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Acciones</th>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              Sesión
+            </th>
+
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              Fecha
+            </th>
+
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              Inicio previsto
+            </th>
+
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              Fin previsto
+            </th>
+
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              Inicio real
+            </th>
+
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              Final real
+            </th>
+
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              Estado
+            </th>
+
+            <th class="px-5 py-4 text-right text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              Acciones
+            </th>
           </tr>
         </thead>
 
@@ -105,8 +155,12 @@
           @for (item of items(); track item.id) {
             <tr class="hover:bg-slate-50 dark:hover:bg-slate-950/60">
               <td class="px-5 py-4">
-                <p class="font-black text-slate-900 dark:text-white">{{ item.sesion }}</p>
-                <p class="text-xs text-slate-500 dark:text-slate-400">ID: {{ item.id }}</p>
+                <p class="font-black text-slate-900 dark:text-white">
+                  {{ item.sesion }}
+                </p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                  ID: {{ item.id }}
+                </p>
               </td>
 
               <td class="px-5 py-4 text-sm font-bold text-slate-700 dark:text-slate-300">
@@ -119,6 +173,14 @@
 
               <td class="px-5 py-4 text-sm text-slate-600 dark:text-slate-300">
                 {{ formatTime(item.hora_fin) }}
+              </td>
+
+              <td class="px-5 py-4 text-sm font-bold text-green-700 dark:text-green-300">
+                {{ formatDateTime(item.inicio_real_at) }}
+              </td>
+
+              <td class="px-5 py-4 text-sm font-bold text-red-700 dark:text-red-300">
+                {{ formatDateTime(item.fin_real_at) }}
               </td>
 
               <td class="px-5 py-4">
@@ -136,6 +198,15 @@
                     [disabled]="loadingDetalle()"
                   >
                     Detalle
+                  </button>
+
+                  <button
+                    type="button"
+                    class="rounded-xl bg-purple-100 px-4 py-2 text-xs font-black text-purple-700 hover:bg-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:hover:bg-purple-950"
+                    (click)="abrirTemas(item)"
+                    [disabled]="loadingTemas()"
+                  >
+                    Temas
                   </button>
 
                   <button
@@ -158,7 +229,7 @@
             </tr>
           } @empty {
             <tr>
-              <td colspan="6" class="px-5 py-12 text-center text-slate-500 dark:text-slate-400">
+              <td colspan="8" class="px-5 py-12 text-center text-slate-500 dark:text-slate-400">
                 No hay reuniones que coincidan con los filtros.
               </td>
             </tr>
@@ -169,14 +240,14 @@
   </div>
 
   @if (modal) {
-    <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-4">
+    <div class="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-950/60 p-4">
       <form
-        class="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
+        class="my-6 w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-6"
         (ngSubmit)="save()"
       >
         <div class="flex items-start justify-between gap-4">
-          <div>
-            <h3 class="text-2xl font-black text-slate-900 dark:text-white">
+          <div class="min-w-0">
+            <h3 class="text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
               {{ editing ? 'Editar reunión' : 'Crear reunión' }}
             </h3>
 
@@ -199,6 +270,7 @@
             <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
               Nombre de la sesión
             </span>
+
             <input
               class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               [(ngModel)]="form.sesion"
@@ -212,10 +284,11 @@
             <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
               Fecha
             </span>
+
             <input
               #fechaInput
               type="date"
-              class="mt-1 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white no-picker-icon"
+              class="no-picker-icon mt-1 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               [(ngModel)]="form.fecha"
               name="fecha"
               required
@@ -228,12 +301,14 @@
             <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
               Estado
             </span>
+
             <select
               class="mt-1 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               [(ngModel)]="form.status"
               name="status"
               required
             >
+              <option value="programada">Programada</option>
               <option value="activa">Activa</option>
               <option value="terminada">Terminada</option>
               <option value="cancelada">Cancelada</option>
@@ -243,12 +318,13 @@
 
           <label>
             <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
-              Hora inicio
+              Hora inicio prevista
             </span>
+
             <input
               #horaInicioInput
               type="time"
-              class="mt-1 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white no-picker-icon"
+              class="no-picker-icon mt-1 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               [(ngModel)]="form.hora_inicio"
               name="hora_inicio"
               (click)="horaInicioInput.showPicker && horaInicioInput.showPicker()"
@@ -258,12 +334,13 @@
 
           <label>
             <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
-              Hora fin
+              Hora fin prevista
             </span>
+
             <input
               #horaFinInput
               type="time"
-              class="mt-1 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white no-picker-icon"
+              class="no-picker-icon mt-1 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               [(ngModel)]="form.hora_fin"
               name="hora_fin"
               (click)="horaFinInput.showPicker && horaFinInput.showPicker()"
@@ -272,10 +349,10 @@
           </label>
         </div>
 
-        <div class="mt-8 flex justify-end gap-3">
+        <div class="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button
             type="button"
-            class="rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
+            class="w-full rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 sm:w-auto"
             (click)="close()"
           >
             Cancelar
@@ -283,7 +360,7 @@
 
           <button
             type="submit"
-            class="rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-700 disabled:opacity-50"
+            class="w-full rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-700 disabled:opacity-50 sm:w-auto"
             [disabled]="saving()"
           >
             {{ saving() ? 'Guardando...' : 'Guardar reunión' }}
@@ -294,15 +371,15 @@
   }
 
   @if (detalleModal && detalleReunion) {
-    <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-4">
-      <div class="max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+    <div class="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-950/60 p-4">
+      <div class="my-6 max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-6">
         <div class="flex items-start justify-between gap-4">
-          <div>
+          <div class="min-w-0">
             <p class="text-sm font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">
               Detalle de reunión
             </p>
 
-            <h3 class="text-3xl font-black text-slate-900 dark:text-white">
+            <h3 class="break-words text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
               {{ detalleReunion.sesion }}
             </h3>
 
@@ -313,14 +390,14 @@
 
           <button
             type="button"
-            class="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+            class="shrink-0 rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
             (click)="cerrarDetalle()"
           >
             ✕
           </button>
         </div>
 
-        <div class="mt-6 grid gap-4 md:grid-cols-5">
+        <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
           <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
             <p class="text-xs font-bold text-slate-500 dark:text-slate-400">Fecha</p>
             <p class="mt-1 font-black text-slate-900 dark:text-white">{{ formatDate(detalleReunion.fecha) }}</p>
@@ -334,16 +411,26 @@
           </div>
 
           <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
-            <p class="text-xs font-bold text-slate-500 dark:text-slate-400">Inicio</p>
+            <p class="text-xs font-bold text-slate-500 dark:text-slate-400">Inicio previsto</p>
             <p class="mt-1 font-black text-slate-900 dark:text-white">{{ formatTime(detalleReunion.hora_inicio) }}</p>
           </div>
 
           <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
-            <p class="text-xs font-bold text-slate-500 dark:text-slate-400">Fin</p>
+            <p class="text-xs font-bold text-slate-500 dark:text-slate-400">Fin previsto</p>
             <p class="mt-1 font-black text-slate-900 dark:text-white">{{ formatTime(detalleReunion.hora_fin) }}</p>
           </div>
 
-          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+          <div class="rounded-2xl border border-green-200 bg-green-50 p-4 dark:border-green-900/40 dark:bg-green-950/20">
+            <p class="text-xs font-bold text-green-700 dark:text-green-300">Inicio real</p>
+            <p class="mt-1 font-black text-green-700 dark:text-green-300">{{ formatDateTime(detalleReunion.inicio_real_at) }}</p>
+          </div>
+
+          <div class="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900/40 dark:bg-red-950/20">
+            <p class="text-xs font-bold text-red-700 dark:text-red-300">Final real</p>
+            <p class="mt-1 font-black text-red-700 dark:text-red-300">{{ formatDateTime(detalleReunion.fin_real_at) }}</p>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950 sm:col-span-2 lg:col-span-6">
             <p class="text-xs font-bold text-slate-500 dark:text-slate-400">Participantes</p>
             <p class="mt-1 text-2xl font-black text-slate-900 dark:text-white">{{ participantesDetalle().length }}</p>
           </div>
@@ -358,9 +445,9 @@
             <div class="mt-4 space-y-3">
               @for (participante of participantesDetalle(); track participante.id) {
                 <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
-                  <div class="flex items-start justify-between gap-3">
-                    <div>
-                      <p class="font-black text-slate-900 dark:text-white">
+                  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="min-w-0">
+                      <p class="break-words font-black text-slate-900 dark:text-white">
                         {{ nombreParticipante(participante) }}
                       </p>
 
@@ -369,7 +456,7 @@
                       </p>
                     </div>
 
-                    <span class="rounded-full px-3 py-1 text-xs font-black" [class]="participanteBadgeClass(participante.status)">
+                    <span class="w-fit rounded-full px-3 py-1 text-xs font-black" [class]="participanteBadgeClass(participante.status)">
                       {{ participanteStatusLabel(participante.status) }}
                     </span>
                   </div>
@@ -390,18 +477,22 @@
             <div class="mt-4 space-y-3">
               @for (intervencion of intervencionesDetalle(); track intervencion.id) {
                 <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-900">
-                  <div class="flex items-start justify-between gap-3">
-                    <div>
-                      <p class="font-black text-slate-900 dark:text-white">
+                  <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div class="min-w-0">
+                      <p class="break-words font-black text-slate-900 dark:text-white">
                         {{ nombreParticipante(intervencion.participante) }}
                       </p>
 
                       <p class="text-sm text-slate-500 dark:text-slate-400">
-                        Inicio: {{ formatTime(intervencion.hora_inicio) }} · Fin: {{ formatTime(intervencion.hora_fin) }}
+                        Inicio previsto: {{ formatTime(intervencion.hora_inicio) }} · Fin previsto: {{ formatTime(intervencion.hora_fin) }}
+                      </p>
+
+                      <p class="mt-1 text-xs font-bold text-slate-500 dark:text-slate-400">
+                        Inicio real: {{ formatDateTime(intervencion.inicio_real_at) }} · Final real: {{ formatDateTime(intervencion.fin_real_at) }}
                       </p>
                     </div>
 
-                    <span class="rounded-full px-3 py-1 text-xs font-black" [class]="intervencionBadgeClass(intervencion.status)">
+                    <span class="w-fit rounded-full px-3 py-1 text-xs font-black" [class]="intervencionBadgeClass(intervencion.status)">
                       {{ intervencion.status }}
                     </span>
                   </div>
@@ -418,7 +509,7 @@
         <div class="mt-8 flex justify-end">
           <button
             type="button"
-            class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700"
+            class="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700 sm:w-auto"
             (click)="cerrarDetalle()"
           >
             Cerrar detalle
@@ -427,4 +518,180 @@
       </div>
     </div>
   }
+
+
+
+  @if (temasModal && reunionTemas) {
+  <div class="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-950/60 p-4">
+    <div class="my-6 max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-6">
+      <div class="flex items-start justify-between gap-4">
+        <div class="min-w-0">
+          <p class="text-sm font-black uppercase tracking-widest text-purple-600 dark:text-purple-400">
+            Temas de reunión
+          </p>
+
+          <h3 class="break-words text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
+            {{ reunionTemas.sesion }}
+          </h3>
+
+          <p class="text-sm text-slate-500 dark:text-slate-400">
+            Agrega los temas que se tratarán durante esta reunión. Los completados y pendientes quedarán guardados.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="shrink-0 rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+          (click)="cerrarTemas()"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div class="mt-6 grid gap-4 sm:grid-cols-3">
+        <div class="rounded-2xl border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-900/40 dark:bg-yellow-950/20">
+          <p class="text-sm font-bold text-yellow-700 dark:text-yellow-300">
+            Pendientes
+          </p>
+          <p class="mt-2 text-3xl font-black text-yellow-700 dark:text-yellow-300">
+            {{ temasPendientes().length }}
+          </p>
+        </div>
+
+        <div class="rounded-2xl border border-blue-200 bg-blue-50 p-4 dark:border-blue-900/40 dark:bg-blue-950/20">
+          <p class="text-sm font-bold text-blue-700 dark:text-blue-300">
+            En curso
+          </p>
+          <p class="mt-2 text-3xl font-black text-blue-700 dark:text-blue-300">
+            {{ temasEnCurso().length }}
+          </p>
+        </div>
+
+        <div class="rounded-2xl border border-green-200 bg-green-50 p-4 dark:border-green-900/40 dark:bg-green-950/20">
+          <p class="text-sm font-bold text-green-700 dark:text-green-300">
+            Completados
+          </p>
+          <p class="mt-2 text-3xl font-black text-green-700 dark:text-green-300">
+            {{ temasCompletados().length }}
+          </p>
+        </div>
+      </div>
+
+      <form
+        class="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950"
+        (ngSubmit)="agregarTema()"
+      >
+        <h4 class="text-lg font-black text-slate-900 dark:text-white">
+          Agregar nuevo tema
+        </h4>
+
+        <div class="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
+          <input
+            class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-purple-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+            placeholder="Ej. Manejo de horarios"
+            [(ngModel)]="temaForm.titulo"
+            name="tituloTema"
+            required
+          />
+
+          <input
+            class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-purple-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+            placeholder="Descripción opcional"
+            [(ngModel)]="temaForm.descripcion"
+            name="descripcionTema"
+          />
+
+          <button
+            type="submit"
+            class="w-full rounded-xl bg-purple-600 px-5 py-3 text-sm font-black text-white hover:bg-purple-700 disabled:opacity-50 lg:w-auto"
+            [disabled]="savingTema()"
+          >
+            {{ savingTema() ? 'Agregando...' : 'Agregar tema' }}
+          </button>
+        </div>
+      </form>
+
+      <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h4 class="text-xl font-black text-slate-900 dark:text-white">
+          Lista de temas
+        </h4>
+
+        <button
+          type="button"
+          class="w-full rounded-xl bg-slate-100 px-4 py-3 text-sm font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 sm:w-auto"
+          (click)="reiniciarTemas()"
+          [disabled]="loadingTemas() || temas().length === 0"
+        >
+          Reiniciar temas
+        </button>
+      </div>
+
+      @if (loadingTemas()) {
+        <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center font-bold text-slate-500 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-400">
+          Cargando temas...
+        </div>
+      } @else {
+        <div class="mt-5 space-y-3">
+          @for (tema of temas(); track tema.id; let i = $index) {
+            <div class="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
+              <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div class="min-w-0">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="grid h-8 w-8 place-items-center rounded-full bg-slate-100 text-xs font-black text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                      {{ i + 1 }}
+                    </span>
+
+                    <span class="rounded-full px-3 py-1 text-xs font-black" [class]="temaBadgeClass(tema.status)">
+                      {{ temaStatusLabel(tema.status) }}
+                    </span>
+                  </div>
+
+                  <p class="mt-3 break-words text-lg font-black text-slate-900 dark:text-white">
+                    {{ tema.titulo }}
+                  </p>
+
+                  @if (tema.descripcion) {
+                    <p class="mt-1 break-words text-sm text-slate-500 dark:text-slate-400">
+                      {{ tema.descripcion }}
+                    </p>
+                  }
+
+                  @if (tema.completado_at) {
+                    <p class="mt-2 text-xs font-bold text-green-700 dark:text-green-300">
+                      Completado: {{ formatDateTime(tema.completado_at) }}
+                    </p>
+                  }
+                </div>
+
+                <button
+                  type="button"
+                  class="w-full rounded-xl bg-red-100 px-4 py-2 text-xs font-black text-red-700 hover:bg-red-200 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950 sm:w-auto"
+                  (click)="eliminarTema(tema)"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          } @empty {
+            <div class="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-500 dark:border-slate-700 dark:text-slate-400">
+              Esta reunión todavía no tiene temas.
+            </div>
+          }
+        </div>
+      }
+
+      <div class="mt-8 flex justify-end">
+        <button
+          type="button"
+          class="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700 sm:w-auto"
+          (click)="cerrarTemas()"
+        >
+          Cerrar temas
+        </button>
+      </div>
+    </div>
+  </div>
+}
+
+
 </section>

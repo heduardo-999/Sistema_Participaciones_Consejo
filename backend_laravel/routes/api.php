@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\QrAccessController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\MenuRolController;
 use App\Http\Controllers\Api\RolPermisoController;
+use App\Http\Controllers\Api\TemaReunionController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -92,4 +93,16 @@ Route::middleware(['auth:sanctum', 'CheckBaja'])->group(function () {
     Route::apiResource('users', UserController::class);
     Route::apiResource('lugares', LugarController::class);
     Route::apiResource('lugares-asignados', LugarAsignadoController::class);
+
+    Route::get('/temas-reunion', [TemaReunionController::class, 'index']);
+    Route::post('/temas-reunion', [TemaReunionController::class, 'store']);
+    Route::get('/temas-reunion/{id}', [TemaReunionController::class, 'show']);
+    Route::put('/temas-reunion/{id}', [TemaReunionController::class, 'update']);
+    Route::delete('/temas-reunion/{id}', [TemaReunionController::class, 'destroy']);
+
+    Route::get('/reuniones/{id}/tema-actual', [TemaReunionController::class, 'actual']);
+    Route::post('/temas-reunion/{id}/completar', [TemaReunionController::class, 'completar']);
+    Route::post('/reuniones/{id}/temas/reiniciar', [TemaReunionController::class, 'reiniciarTemas']);
+
+    Route::post('/reuniones/{id}/toggle-pausa-intervenciones', [ReunionController::class, 'togglePausaIntervenciones']);
 });

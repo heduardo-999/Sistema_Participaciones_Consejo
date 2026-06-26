@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\Intervencion;
 use App\Models\LugarAsignado;
 use App\Models\Participante;
+use App\Models\TemaReunion;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -25,6 +26,7 @@ class ReunionController extends Controller
 
         return response()->json([
             'success' => true,
+            'server_now' => now()->toISOString(),
             'data' => Reunion::orderBy('id', 'desc')->get()
         ]);
     }
@@ -35,8 +37,15 @@ class ReunionController extends Controller
             ->latest('id')
             ->first();
 
+        if (!$reunion) {
+            $reunion = Reunion::where('status', 'programada')
+                ->latest('id')
+                ->first();
+        }
+
         return response()->json([
             'success' => true,
+            'server_now' => now()->toISOString(),
             'data' => $reunion
         ]);
     }
@@ -53,7 +62,7 @@ class ReunionController extends Controller
         $validator = Validator::make($request->all(), [
             'sesion' => 'required|string|max:100',
             'fecha' => 'required|date',
-            'status' => 'required|in:activa,terminada,cancelada,pospuesta',
+            'status' => 'nullable|in:programada,activa,terminada,cancelada,pospuesta',
             'hora_inicio' => 'nullable',
             'hora_fin' => 'nullable',
         ]);
@@ -65,7 +74,18 @@ class ReunionController extends Controller
             ], 422);
         }
 
-        $reunion = Reunion::create($validator->validated());
+        $data = $validator->validated();
+
+        $data['status'] = $data['status'] ?? 'programada';
+        $data['intervenciones_pausadas'] = false;
+        $data['intervenciones_pausadas_at'] = null;
+
+        if ($data['status'] === 'activa') {
+            $data['inicio_real_at'] = now();
+            $data['fin_real_at'] = null;
+        }
+
+        $reunion = Reunion::create($data);
 
         Historial::create([
             'user_id' => User::mySelf()->id,
@@ -77,6 +97,7 @@ class ReunionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Reunión creada correctamente',
+            'server_now' => now()->toISOString(),
             'data' => $reunion
         ], 201);
     }
@@ -105,6 +126,7 @@ class ReunionController extends Controller
 
         return response()->json([
             'success' => true,
+            'server_now' => now()->toISOString(),
             'data' => $reunion
         ]);
     }
@@ -130,7 +152,7 @@ class ReunionController extends Controller
         $validator = Validator::make($request->all(), [
             'sesion' => 'required|string|max:100',
             'fecha' => 'required|date',
-            'status' => 'required|in:activa,terminada,cancelada,pospuesta',
+            'status' => 'required|in:programada,activa,terminada,cancelada,pospuesta',
             'hora_inicio' => 'nullable',
             'hora_fin' => 'nullable',
         ]);
@@ -143,8 +165,34 @@ class ReunionController extends Controller
         }
 
         $antes = $reunion->toArray();
+        $data = $validator->validated();
 
-        $reunion->update($validator->validated());
+        if ($data['status'] === 'activa' && !$reunion->inicio_real_at) {
+            $data['inicio_real_at'] = now();
+            $data['fin_real_at'] = null;
+            $data['intervenciones_pausadas'] = false;
+            $data['intervenciones_pausadas_at'] = null;
+        }
+
+        if ($data['status'] === 'programada') {
+            $data['inicio_real_at'] = null;
+            $data['fin_real_at'] = null;
+            $data['intervenciones_pausadas'] = false;
+            $data['intervenciones_pausadas_at'] = null;
+        }
+
+        if ($data['status'] === 'terminada' && !$reunion->fin_real_at) {
+            $data['fin_real_at'] = now();
+            $data['intervenciones_pausadas'] = false;
+            $data['intervenciones_pausadas_at'] = null;
+        }
+
+        if (in_array($data['status'], ['cancelada', 'pospuesta'])) {
+            $data['intervenciones_pausadas'] = false;
+            $data['intervenciones_pausadas_at'] = null;
+        }
+
+        $reunion->update($data);
 
         Historial::create([
             'user_id' => User::mySelf()->id,
@@ -159,6 +207,7 @@ class ReunionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Reunión actualizada correctamente',
+            'server_now' => now()->toISOString(),
             'data' => $reunion->fresh()
         ]);
     }
@@ -176,8 +225,10 @@ class ReunionController extends Controller
 
         $reunion->update([
             'status' => 'activa',
-            'hora_inicio' => now()->format('H:i:s'),
-            'hora_fin' => null,
+            'inicio_real_at' => now(),
+            'fin_real_at' => null,
+            'intervenciones_pausadas' => false,
+            'intervenciones_pausadas_at' => null,
         ]);
 
         Historial::create([
@@ -190,6 +241,7 @@ class ReunionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Reunión iniciada correctamente',
+            'server_now' => now()->toISOString(),
             'data' => $reunion->fresh()
         ]);
     }
@@ -204,6 +256,13 @@ class ReunionController extends Controller
                 'message' => 'Reunión no encontrada'
             ], 404);
         }
+
+        TemaReunion::where('reunion_id', $reunion->id)
+            ->where('status', 'en_curso')
+            ->update([
+                'status' => 'pendiente',
+                'completado_at' => null,
+            ]);
 
         $horaFin = now()->format('H:i:s');
 
@@ -223,11 +282,14 @@ class ReunionController extends Controller
             ->update([
                 'status' => 'fin intervencion',
                 'hora_fin' => $horaFin,
+                'fin_real_at' => now(),
             ]);
 
         $reunion->update([
             'status' => 'terminada',
-            'hora_fin' => $horaFin,
+            'fin_real_at' => now(),
+            'intervenciones_pausadas' => false,
+            'intervenciones_pausadas_at' => null,
         ]);
 
         Historial::create([
@@ -244,6 +306,93 @@ class ReunionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Reunión terminada correctamente. Intervenciones finalizadas y lugares liberados.',
+            'server_now' => now()->toISOString(),
+            'data' => $reunion->fresh()
+        ]);
+    }
+
+    public function togglePausaIntervenciones(string $id)
+    {
+        $reunion = Reunion::find($id);
+
+        if (!$reunion) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Reunión no encontrada'
+            ], 404);
+        }
+
+        if ($reunion->status !== 'activa') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo se pueden pausar intervenciones en una reunión activa.'
+            ], 422);
+        }
+
+        $antes = $reunion->toArray();
+
+        if (!$reunion->intervenciones_pausadas) {
+            $reunion->update([
+                'intervenciones_pausadas' => true,
+                'intervenciones_pausadas_at' => now(),
+            ]);
+
+            Historial::create([
+                'user_id' => User::mySelf()->id,
+                'operacion' => 'Pausar intervenciones',
+                'tabla' => 'reuniones',
+                'dato' => [
+                    'antes' => $antes,
+                    'despues' => $reunion->fresh()->toArray(),
+                ],
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Intervenciones pausadas',
+                'server_now' => now()->toISOString(),
+                'data' => $reunion->fresh()
+            ]);
+        }
+
+        $pausadoDesde = $reunion->intervenciones_pausadas_at;
+
+        if ($pausadoDesde) {
+            $segundosPausados = $pausadoDesde->diffInSeconds(now());
+
+            $intervencionActiva = Intervencion::whereHas('participante', function ($query) use ($reunion) {
+                $query->where('reunion_id', $reunion->id);
+            })
+                ->where('status', 'interviniendo')
+                ->latest('id')
+                ->first();
+
+            if ($intervencionActiva && $intervencionActiva->inicio_real_at) {
+                $intervencionActiva->update([
+                    'inicio_real_at' => $intervencionActiva->inicio_real_at->copy()->addSeconds($segundosPausados),
+                ]);
+            }
+        }
+
+        $reunion->update([
+            'intervenciones_pausadas' => false,
+            'intervenciones_pausadas_at' => null,
+        ]);
+
+        Historial::create([
+            'user_id' => User::mySelf()->id,
+            'operacion' => 'Reanudar intervenciones',
+            'tabla' => 'reuniones',
+            'dato' => [
+                'antes' => $antes,
+                'despues' => $reunion->fresh()->toArray(),
+            ],
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Intervenciones reanudadas',
+            'server_now' => now()->toISOString(),
             'data' => $reunion->fresh()
         ]);
     }
@@ -279,7 +428,8 @@ class ReunionController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Reunión eliminada correctamente'
+            'message' => 'Reunión eliminada correctamente',
+            'server_now' => now()->toISOString()
         ]);
     }
 }

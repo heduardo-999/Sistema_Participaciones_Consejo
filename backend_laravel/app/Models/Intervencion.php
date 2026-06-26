@@ -16,7 +16,15 @@ class Intervencion extends Model
         'solicita_intervencion',
         'hora_inicio',
         'hora_fin',
+        'inicio_real_at',
+        'fin_real_at',
         'status',
+    ];
+
+    protected $casts = [
+        'solicita_intervencion' => 'boolean',
+        'inicio_real_at' => 'datetime',
+        'fin_real_at' => 'datetime',
     ];
 
     public function participante()

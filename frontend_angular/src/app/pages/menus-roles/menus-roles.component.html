@@ -1,10 +1,10 @@
-<section class="space-y-6">
-  <div>
+<section class="space-y-6 overflow-x-hidden">
+  <div class="min-w-0">
     <p class="text-sm font-black uppercase tracking-widest text-rose-600 dark:text-rose-400">
       Administración del sistema
     </p>
 
-    <h2 class="text-3xl font-black text-slate-900 dark:text-white">
+    <h2 class="text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
       Menús por Rol
     </h2>
 
@@ -31,25 +31,25 @@
     </div>
   }
 
-  <div class="grid gap-4 md:grid-cols-4">
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
     <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       <p class="text-sm font-bold text-slate-500 dark:text-slate-400">Roles</p>
-      <p class="mt-2 text-4xl font-black text-slate-900 dark:text-white">{{ totalRoles() }}</p>
+      <p class="mt-2 text-3xl font-black text-slate-900 dark:text-white sm:text-4xl">{{ totalRoles() }}</p>
     </div>
 
     <div class="rounded-2xl border border-blue-200 bg-blue-50 p-5 shadow-sm dark:border-blue-900/40 dark:bg-blue-950/20">
       <p class="text-sm font-bold text-blue-700 dark:text-blue-300">Menús</p>
-      <p class="mt-2 text-4xl font-black text-blue-700 dark:text-blue-300">{{ totalMenus() }}</p>
+      <p class="mt-2 text-3xl font-black text-blue-700 dark:text-blue-300 sm:text-4xl">{{ totalMenus() }}</p>
     </div>
 
     <div class="rounded-2xl border border-green-200 bg-green-50 p-5 shadow-sm dark:border-green-900/40 dark:bg-green-950/20">
       <p class="text-sm font-bold text-green-700 dark:text-green-300">Activos</p>
-      <p class="mt-2 text-4xl font-black text-green-700 dark:text-green-300">{{ menusActivos() }}</p>
+      <p class="mt-2 text-3xl font-black text-green-700 dark:text-green-300 sm:text-4xl">{{ menusActivos() }}</p>
     </div>
 
     <div class="rounded-2xl border border-rose-200 bg-rose-50 p-5 shadow-sm dark:border-rose-900/40 dark:bg-rose-950/20">
       <p class="text-sm font-bold text-rose-700 dark:text-rose-300">Asignados</p>
-      <p class="mt-2 text-4xl font-black text-rose-700 dark:text-rose-300">{{ asignados() }}</p>
+      <p class="mt-2 text-3xl font-black text-rose-700 dark:text-rose-300 sm:text-4xl">{{ asignados() }}</p>
     </div>
   </div>
 
@@ -64,12 +64,9 @@
           <button
             type="button"
             class="w-full rounded-xl px-4 py-3 text-left text-sm font-black transition"
-            [class.bg-rose-600]="selectedRole()?.id === role.id"
-            [class.text-white]="selectedRole()?.id === role.id"
-            [class.bg-slate-100]="selectedRole()?.id !== role.id"
-            [class.text-slate-700]="selectedRole()?.id !== role.id"
-            [class.dark\:bg-slate-800]="selectedRole()?.id !== role.id"
-            [class.dark\:text-slate-200]="selectedRole()?.id !== role.id"
+            [ngClass]="selectedRole()?.id === role.id
+              ? 'bg-rose-600 text-white'
+              : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200'"
             (click)="seleccionarRol(role)"
           >
             {{ role.name }}
@@ -79,8 +76,8 @@
     </div>
 
     <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <div class="flex items-center justify-between gap-4">
-        <div>
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div class="min-w-0">
           <h3 class="text-xl font-black text-slate-900 dark:text-white">
             Menús asignados
           </h3>
@@ -92,7 +89,7 @@
 
         <button
           type="button"
-          class="rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-700 disabled:opacity-50"
+          class="w-full rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-700 disabled:opacity-50 sm:w-auto"
           (click)="guardar()"
           [disabled]="saving() || !selectedRole() || esSuperAdminSeleccionado()"
         >
@@ -103,24 +100,24 @@
       <div class="mt-6 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         @for (menu of menusVisibles(); track menu.id) {
           <label
-            class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950"
+            class="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950"
             [class.cursor-pointer]="!esSuperAdminSeleccionado()"
             [class.cursor-not-allowed]="esSuperAdminSeleccionado()"
             [class.opacity-70]="esSuperAdminSeleccionado()"
           >
             <input
               type="checkbox"
-              class="h-5 w-5 accent-rose-600"
+              class="mt-1 h-5 w-5 shrink-0 accent-rose-600"
               [checked]="isChecked(menu.id)"
               [disabled]="esSuperAdminSeleccionado()"
               (change)="toggleMenu(menu.id)"
             />
 
-            <div>
-              <p class="font-black text-slate-900 dark:text-white">
+            <div class="min-w-0">
+              <p class="break-words font-black text-slate-900 dark:text-white">
                 {{ menu.nombre }}
               </p>
-              <p class="text-xs text-slate-500 dark:text-slate-400">
+              <p class="break-words text-xs text-slate-500 dark:text-slate-400">
                 {{ menu.url }} · {{ menu.icono }}
               </p>
             </div>

@@ -1,82 +1,125 @@
-<div class="min-h-screen bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300">
+<div class="min-h-screen bg-slate-100 text-slate-900 transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
+
+  <!-- Fondo oscuro en celular cuando el menú está abierto -->
+  <div
+    *ngIf="sidebarOpen() && !modoPresentacion()"
+    class="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+    (click)="toggleSidebar()"
+  ></div>
+
+  <!-- SIDEBAR -->
   <aside
     *ngIf="!modoPresentacion()"
-    class="fixed inset-y-0 left-0 z-40 bg-white dark:bg-slate-950 text-slate-900 dark:text-white border-r border-slate-200 dark:border-slate-800 transition-all duration-300"
-    [class.w-72]="sidebarOpen()"
-    [class.w-20]="!sidebarOpen()"
+    class="fixed inset-y-0 left-0 z-50 flex flex-col border-r border-slate-200 bg-white text-slate-900 shadow-xl transition-all duration-300 dark:border-slate-800 dark:bg-slate-950 dark:text-white lg:z-40 lg:shadow-none"
+    [ngClass]="{
+      'w-[180px] translate-x-0 lg:w-[180px]': sidebarOpen(),
+      'w-[180px] -translate-x-full lg:w-[72px] lg:translate-x-0': !sidebarOpen()
+    }"
   >
-    <div class="h-16 flex items-center gap-3 px-5 border-b border-slate-200 dark:border-slate-800">
-      <div class="h-10 w-10 rounded-xl bg-rose-600 text-white flex items-center justify-center font-black">
+    <!-- Logo -->
+    <div class="flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 px-2 dark:border-slate-800">
+      <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-600 font-black text-white">
         C
       </div>
 
-      <div *ngIf="sidebarOpen()" class="leading-tight">
-        <p class="font-bold text-slate-900 dark:text-white">Consejo</p>
-        <p class="text-xs text-slate-500 dark:text-slate-400">Participaciones</p>
+      <div
+        *ngIf="sidebarOpen()"
+        class="min-w-0 leading-tight"
+      >
+        <p class="truncate text-sm font-bold text-slate-900 dark:text-white">
+          Consejo
+        </p>
+        <p class="truncate text-xs text-slate-500 dark:text-slate-400">
+          Participaciones
+        </p>
       </div>
+
+      <button
+        type="button"
+        (click)="toggleSidebar()"
+        class="ml-auto flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 lg:hidden"
+        aria-label="Cerrar menú"
+      >
+        ✕
+      </button>
     </div>
 
-    <nav class="p-3 space-y-1">
+    <!-- Menú -->
+    <nav class="flex-1 space-y-1 overflow-y-auto p-3">
       <a
         *ngFor="let item of menu()"
         [routerLink]="item.route"
-        routerLinkActive="bg-rose-600 text-white"
-        class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm text-slate-700 dark:text-slate-300 hover:bg-rose-50 dark:hover:bg-rose-900/30 hover:text-rose-700 dark:hover:text-rose-300 transition"
+        routerLinkActive="bg-rose-600 text-white shadow-md shadow-rose-950/20"
+        class="group flex items-center rounded-xl px-3 py-3 text-sm text-slate-700 transition hover:bg-rose-50 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-rose-900/30 dark:hover:text-rose-300"
+        [ngClass]="{
+          'gap-3 justify-start': sidebarOpen(),
+          'gap-0 justify-center px-2': !sidebarOpen()
+        }"
       >
-        <span class="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold">
+        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-700 transition group-hover:bg-white dark:bg-slate-800 dark:text-slate-100">
           {{ item.icon }}
         </span>
 
-        <span *ngIf="sidebarOpen()" class="font-medium">
+        <span
+          *ngIf="sidebarOpen()"
+          class="min-w-0 truncate font-medium"
+        >
           {{ item.label }}
         </span>
       </a>
     </nav>
   </aside>
 
+  <!-- CONTENIDO PRINCIPAL -->
   <main
-    class="transition-all duration-300"
-    [class.ml-72]="sidebarOpen() && !modoPresentacion()"
-    [class.ml-20]="!sidebarOpen() && !modoPresentacion()"
-    [class.ml-0]="modoPresentacion()"
+    class="min-h-screen transition-all duration-300"
+    [ngClass]="{
+      'lg:ml-[180px]': sidebarOpen() && !modoPresentacion(),
+      'lg:ml-[72px]': !sidebarOpen() && !modoPresentacion(),
+      'ml-0': modoPresentacion()
+    }"
   >
+    <!-- HEADER -->
     <header
       *ngIf="!modoPresentacion()"
-      class="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-6 sticky top-0 z-30"
+      class="sticky top-0 z-30 flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur transition-colors duration-300 dark:border-slate-800 dark:bg-slate-900/95 sm:px-6"
     >
-      <div class="flex items-center gap-4">
+      <div class="flex min-w-0 items-center gap-3">
         <button
           type="button"
           (click)="toggleSidebar()"
-          class="h-10 w-10 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center"
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-800 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-100 dark:hover:bg-slate-700"
+          aria-label="Abrir o cerrar menú"
         >
           ☰
         </button>
 
-        <div>
-          <p class="text-xs font-bold text-slate-400">
+        <div class="min-w-0">
+          <p class="truncate text-[11px] font-bold uppercase tracking-wide text-slate-400 sm:text-xs">
             {{ breadcrumb() }}
           </p>
-          <h1 class="font-black text-slate-900 dark:text-white">
+
+          <h1 class="truncate text-base font-black text-slate-900 dark:text-white sm:text-lg">
             {{ pageTitle() }}
           </h1>
         </div>
       </div>
 
-      <div class="flex items-center gap-4">
+      <div class="hidden items-center gap-4 md:flex">
         <button
           type="button"
           (click)="toggleTheme()"
-          class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-sm font-bold transition"
+          class="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold transition hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700"
         >
           {{ theme() === 'light' ? '🌙 Oscuro' : '☀️ Claro' }}
         </button>
 
-        <div class="text-right">
-          <p class="font-bold text-sm text-slate-900 dark:text-white">
+        <div class="max-w-44 text-right">
+          <p class="truncate text-sm font-bold text-slate-900 dark:text-white">
             {{ user()?.name || 'Usuario' }}
           </p>
-          <p class="text-xs text-slate-500 dark:text-slate-400">
+
+          <p class="truncate text-xs text-slate-500 dark:text-slate-400">
             {{ user()?.roles?.[0] || 'Sin rol' }}
           </p>
         </div>
@@ -84,16 +127,40 @@
         <button
           type="button"
           (click)="logout()"
-          class="px-4 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/30 text-slate-700 dark:text-slate-200 hover:text-red-600 text-sm font-bold transition"
+          class="rounded-xl bg-slate-100 px-4 py-2 text-sm font-bold text-slate-700 transition hover:bg-red-50 hover:text-red-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-red-900/30"
         >
           Salir
         </button>
       </div>
+
+      <div class="flex items-center gap-2 md:hidden">
+        <button
+          type="button"
+          (click)="toggleTheme()"
+          class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-sm font-bold transition hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700"
+          aria-label="Cambiar tema"
+        >
+          {{ theme() === 'light' ? '🌙' : '☀️' }}
+        </button>
+
+        <button
+          type="button"
+          (click)="logout()"
+          class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-100 text-sm font-bold text-slate-700 transition hover:bg-red-50 hover:text-red-600 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-red-900/30"
+          aria-label="Cerrar sesión"
+        >
+          ⏻
+        </button>
+      </div>
     </header>
 
+    <!-- VISTAS -->
     <section
-      [class.p-6]="!modoPresentacion()"
-      [class.p-0]="modoPresentacion()"
+      class="w-full"
+      [ngClass]="{
+        'p-4 sm:p-6': !modoPresentacion(),
+        'p-0': modoPresentacion()
+      }"
     >
       <router-outlet></router-outlet>
     </section>

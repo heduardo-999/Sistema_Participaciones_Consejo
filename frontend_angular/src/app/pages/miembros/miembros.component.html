@@ -1,11 +1,11 @@
-<section class="space-y-6">
+<section class="space-y-6 overflow-x-hidden">
   <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-    <div>
+    <div class="min-w-0">
       <p class="text-sm font-black uppercase tracking-widest text-rose-600 dark:text-rose-400">
         Registro institucional
       </p>
 
-      <h2 class="text-3xl font-black text-slate-900 dark:text-white">
+      <h2 class="text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
         Miembros
       </h2>
 
@@ -16,7 +16,7 @@
 
     <button
       type="button"
-      class="rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white shadow hover:bg-rose-700 transition"
+      class="w-full rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white shadow transition hover:bg-rose-700 sm:w-auto"
       (click)="open()"
     >
       + Nuevo miembro
@@ -29,28 +29,40 @@
     </div>
   }
 
-  <div class="grid gap-4 md:grid-cols-3">
+  <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
     <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <p class="text-sm font-bold text-slate-500 dark:text-slate-400">Total</p>
-      <p class="mt-2 text-4xl font-black text-slate-900 dark:text-white">{{ total() }}</p>
+      <p class="text-sm font-bold text-slate-500 dark:text-slate-400">
+        Total
+      </p>
+      <p class="mt-2 text-3xl font-black text-slate-900 dark:text-white sm:text-4xl">
+        {{ total() }}
+      </p>
     </div>
 
     <div class="rounded-2xl border border-green-200 bg-green-50 p-5 shadow-sm dark:border-green-900/40 dark:bg-green-950/20">
-      <p class="text-sm font-bold text-green-700 dark:text-green-300">Activos</p>
-      <p class="mt-2 text-4xl font-black text-green-700 dark:text-green-300">{{ activos() }}</p>
+      <p class="text-sm font-bold text-green-700 dark:text-green-300">
+        Activos
+      </p>
+      <p class="mt-2 text-3xl font-black text-green-700 dark:text-green-300 sm:text-4xl">
+        {{ activos() }}
+      </p>
     </div>
 
-    <div class="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm dark:border-red-900/40 dark:bg-red-950/20">
-      <p class="text-sm font-bold text-red-700 dark:text-red-300">Bajas</p>
-      <p class="mt-2 text-4xl font-black text-red-700 dark:text-red-300">{{ bajas() }}</p>
+    <div class="rounded-2xl border border-red-200 bg-red-50 p-5 shadow-sm dark:border-red-900/40 dark:bg-red-950/20 sm:col-span-2 xl:col-span-1">
+      <p class="text-sm font-bold text-red-700 dark:text-red-300">
+        Bajas
+      </p>
+      <p class="mt-2 text-3xl font-black text-red-700 dark:text-red-300 sm:text-4xl">
+        {{ bajas() }}
+      </p>
     </div>
   </div>
 
-  <div class="flex flex-wrap gap-3">
+  <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
     <button
       type="button"
       (click)="mostrarActivos()"
-      class="rounded-xl px-5 py-3 text-sm font-black text-white hover:opacity-90"
+      class="w-full rounded-xl px-5 py-3 text-sm font-black text-white transition hover:opacity-90 sm:w-auto"
       [class.bg-green-600]="filtroBaja === '0'"
       [class.bg-slate-700]="filtroBaja !== '0'"
     >
@@ -60,7 +72,7 @@
     <button
       type="button"
       (click)="mostrarBajas()"
-      class="rounded-xl px-5 py-3 text-sm font-black text-white hover:opacity-90"
+      class="w-full rounded-xl px-5 py-3 text-sm font-black text-white transition hover:opacity-90 sm:w-auto"
       [class.bg-red-600]="filtroBaja === '1'"
       [class.bg-slate-700]="filtroBaja !== '1'"
     >
@@ -70,7 +82,7 @@
     <button
       type="button"
       (click)="mostrarTodos()"
-      class="rounded-xl px-5 py-3 text-sm font-black text-white hover:opacity-90"
+      class="w-full rounded-xl px-5 py-3 text-sm font-black text-white transition hover:opacity-90 sm:w-auto"
       [class.bg-rose-600]="filtroBaja === ''"
       [class.bg-slate-700]="filtroBaja !== ''"
     >
@@ -78,17 +90,17 @@
     </button>
   </div>
 
-  <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+  <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
     <div class="grid gap-3 md:grid-cols-[1fr_auto_auto]">
       <input
-        class="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+        class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
         placeholder="Buscar por nombre, RFID, fecha o estado..."
         [(ngModel)]="q"
       />
 
       <button
         type="button"
-        class="rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600"
+        class="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 md:w-auto"
         (click)="load()"
         [disabled]="loading()"
       >
@@ -97,7 +109,7 @@
 
       <button
         type="button"
-        class="rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+        class="w-full rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 md:w-auto"
         (click)="limpiarFiltros()"
       >
         Limpiar
@@ -110,11 +122,21 @@
       <table class="w-full min-w-[900px]">
         <thead class="bg-slate-50 dark:bg-slate-950">
           <tr>
-            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Miembro</th>
-            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Fecha</th>
-            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">RFID</th>
-            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Estado</th>
-            <th class="px-5 py-4 text-right text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Acciones</th>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              Miembro
+            </th>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              Fecha
+            </th>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              RFID
+            </th>
+            <th class="px-5 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              Estado
+            </th>
+            <th class="px-5 py-4 text-right text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              Acciones
+            </th>
           </tr>
         </thead>
 
@@ -158,7 +180,7 @@
                   @if (!esBaja(item)) {
                     <button
                       type="button"
-                      class="rounded-xl bg-red-100 px-4 py-2 text-xs font-black text-red-700 hover:bg-red-200 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950 disabled:opacity-50"
+                      class="rounded-xl bg-red-100 px-4 py-2 text-xs font-black text-red-700 hover:bg-red-200 disabled:opacity-50 dark:bg-red-950/40 dark:text-red-300 dark:hover:bg-red-950"
                       (click)="darBaja(item)"
                       [disabled]="saving()"
                     >
@@ -169,7 +191,7 @@
                   @if (esBaja(item) && puedeReactivar()) {
                     <button
                       type="button"
-                      class="rounded-xl bg-green-100 px-4 py-2 text-xs font-black text-green-700 hover:bg-green-200 dark:bg-green-950/40 dark:text-green-300 dark:hover:bg-green-950 disabled:opacity-50"
+                      class="rounded-xl bg-green-100 px-4 py-2 text-xs font-black text-green-700 hover:bg-green-200 disabled:opacity-50 dark:bg-green-950/40 dark:text-green-300 dark:hover:bg-green-950"
                       (click)="reactivar(item)"
                       [disabled]="saving()"
                     >
@@ -192,14 +214,14 @@
   </div>
 
   @if (modal) {
-    <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-4">
+    <div class="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-950/60 p-4">
       <form
-        class="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
+        class="my-6 w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-6"
         (ngSubmit)="save()"
       >
         <div class="flex items-start justify-between gap-4">
-          <div>
-            <h3 class="text-2xl font-black text-slate-900 dark:text-white">
+          <div class="min-w-0">
+            <h3 class="text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
               {{ editing ? 'Editar miembro' : 'Crear miembro' }}
             </h3>
 
@@ -219,7 +241,10 @@
 
         <div class="mt-6 grid gap-4 md:grid-cols-2">
           <label class="md:col-span-2">
-            <span class="text-sm font-bold text-slate-700 dark:text-slate-300">Nombre completo</span>
+            <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
+              Nombre completo
+            </span>
+
             <input
               class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               [(ngModel)]="form.nombre"
@@ -230,11 +255,14 @@
           </label>
 
           <label>
-            <span class="text-sm font-bold text-slate-700 dark:text-slate-300">Fecha</span>
+            <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
+              Fecha
+            </span>
+
             <input
               #fechaInput
               type="date"
-              class="mt-1 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white no-picker-icon"
+              class="no-picker-icon mt-1 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               [(ngModel)]="form.fecha"
               name="fecha"
               required
@@ -244,7 +272,10 @@
           </label>
 
           <label>
-            <span class="text-sm font-bold text-slate-700 dark:text-slate-300">RFID</span>
+            <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
+              RFID
+            </span>
+
             <input
               class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               [(ngModel)]="form.rfid"
@@ -255,10 +286,10 @@
           </label>
         </div>
 
-        <div class="mt-8 flex justify-end gap-3">
+        <div class="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button
             type="button"
-            class="rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
+            class="w-full rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 sm:w-auto"
             (click)="close()"
           >
             Cancelar
@@ -266,7 +297,7 @@
 
           <button
             type="submit"
-            class="min-w-[150px] rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-700 disabled:opacity-50"
+            class="w-full min-w-[150px] rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white hover:bg-rose-700 disabled:opacity-50 sm:w-auto"
             [disabled]="saving()"
           >
             {{ saving() ? 'Guardando...' : 'Guardar miembro' }}

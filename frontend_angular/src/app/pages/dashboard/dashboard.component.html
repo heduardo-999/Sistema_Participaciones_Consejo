@@ -1,16 +1,19 @@
-<section class="min-h-screen bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-white transition-colors">
-  <div class="space-y-6" [class.p-6]="modoPresentacion()">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-      <div>
-        <p class="text-sm font-black uppercase tracking-widest text-rose-600 dark:text-rose-500">
+<section class="min-h-screen overflow-x-hidden bg-slate-100 text-slate-900 transition-colors dark:bg-slate-950 dark:text-white">
+  <div
+    class="mx-auto w-full max-w-[1600px] space-y-3 px-3 py-3 sm:px-4 lg:px-5"
+    [class.lg:p-4]="modoPresentacion()"
+  >
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div class="min-w-0">
+        <p class="text-[11px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-500 sm:text-xs">
           Reunión en vivo
         </p>
 
-        <h2 class="text-4xl font-black tracking-tight text-slate-900 dark:text-white">
+        <h2 class="mt-1 text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl lg:text-4xl">
           Panel del moderador
         </h2>
 
-        <p class="mt-1 text-lg text-slate-600 dark:text-slate-300">
+        <p class="mt-1 text-sm text-slate-600 dark:text-slate-300 sm:text-base">
           Control visual de intervenciones durante la sesión.
         </p>
       </div>
@@ -18,321 +21,485 @@
       <button
         type="button"
         (click)="pantallaCompleta()"
-        class="rounded-xl bg-rose-600 px-7 py-4 text-lg font-black text-white shadow-lg shadow-rose-950/30 hover:bg-rose-700"
+        class="w-full rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-rose-950/30 transition hover:bg-rose-700 sm:w-auto"
       >
-        {{ modoPresentacion() ? '⛶ Salir de pantalla completa' : '⛶ Pantalla completa' }}
+        <i class="fa-solid fa-expand mr-2"></i>
+        {{ modoPresentacion() ? 'Salir de pantalla completa' : 'Pantalla completa' }}
       </button>
     </div>
 
-    <div class="grid gap-6 xl:grid-cols-[1fr_460px]">
-      <main class="space-y-5">
-        <div class="rounded-3xl border border-rose-200 bg-white p-8 text-center shadow-xl dark:border-rose-500/40 dark:bg-slate-900">
-          <p class="text-sm font-black uppercase tracking-[0.3em] text-rose-600 dark:text-rose-400">
-            {{ reunion()?.estado || reunion()?.status || 'En curso' }}
+    <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <main class="min-w-0 space-y-3">
+        <div class="rounded-2xl border border-rose-200 bg-white p-4 text-center shadow-xl dark:border-rose-500/40 dark:bg-slate-900 sm:p-5">
+          <p class="text-[10px] font-black uppercase tracking-[0.25em] text-rose-600 dark:text-rose-400 sm:text-xs">
+            Horario previsto
           </p>
 
-          <h1 class="mt-4 text-5xl font-black text-slate-900 dark:text-white">
-            {{ reunion()?.titulo || reunion()?.sesion || 'Sesión del Consejo' }}
+          <h1 class="mt-2 break-words text-2xl font-black text-slate-900 dark:text-white sm:text-3xl lg:text-4xl">
+            {{ tituloPrincipal() }}
           </h1>
 
-          <div class="mt-6 grid gap-3 md:grid-cols-2">
-            <div class="rounded-2xl bg-slate-100 p-4 dark:bg-slate-800">
-              <p class="text-sm font-black uppercase text-slate-500">
+          <div class="mt-4 grid gap-3 md:grid-cols-3">
+            <div class="rounded-2xl bg-slate-100 p-3 dark:bg-slate-800">
+              <p class="text-[10px] font-black uppercase text-slate-500">
+                Inicio previsto
+              </p>
+
+              <p class="mt-1 text-xl font-black sm:text-2xl">
+                {{ formatearHora(reunion()?.hora_inicio) }}
+              </p>
+            </div>
+
+            <div class="rounded-2xl bg-slate-100 p-3 dark:bg-slate-800">
+              <p class="text-[10px] font-black uppercase text-slate-500">
+                Fin previsto
+              </p>
+
+              <p class="mt-1 text-xl font-black sm:text-2xl">
+                {{ formatearHora(reunion()?.hora_fin) }}
+              </p>
+            </div>
+
+            <div class="rounded-2xl bg-slate-100 p-3 dark:bg-slate-800">
+              <p class="text-[10px] font-black uppercase text-slate-500">
+                Estado
+              </p>
+
+              <p class="mt-1 break-words text-lg font-black uppercase sm:text-xl">
+                {{ estadoPrincipal() }}
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-3 grid gap-3 md:grid-cols-2">
+            <div class="rounded-2xl bg-slate-100 p-3 dark:bg-slate-800">
+              <p class="text-[10px] font-black uppercase text-slate-500">
                 Hora actual
               </p>
 
-              <p class="mt-2 text-3xl font-black">
-                🕒 {{ horaActual() }}
+              <p class="mt-1 text-xl font-black sm:text-2xl">
+                <i class="fa-solid fa-clock mr-2 text-rose-500"></i>
+                {{ horaActual() }}
               </p>
             </div>
 
-            <div class="rounded-2xl bg-slate-100 p-4 dark:bg-slate-800">
-              <p class="text-sm font-black uppercase text-slate-500">
+            <div class="rounded-2xl bg-slate-100 p-3 dark:bg-slate-800">
+              <p class="text-[10px] font-black uppercase text-slate-500">
                 Fecha actual
               </p>
 
-              <p class="mt-2 text-2xl font-black">
-                📅 {{ fechaActual() }}
+              <p class="mt-1 break-words text-base font-black sm:text-lg">
+                <i class="fa-solid fa-calendar mr-2 text-rose-500"></i>
+                {{ fechaActual() }}
               </p>
             </div>
           </div>
         </div>
 
-        <div class="rounded-3xl border border-orange-300 bg-orange-50 p-8 text-center shadow-xl dark:border-orange-800 dark:bg-orange-950/20">
-        <p class="text-sm font-black uppercase tracking-[0.3em] text-orange-600 dark:text-orange-400">
-            Duración de la reunión
-          </p>
-
-          <h2 class="mt-4 text-7xl font-black text-orange-600 dark:text-orange-400">
-            {{ tiempoReunion() }}
-          </h2>
-
-          <p class="mt-2 text-slate-600 dark:text-slate-300">
-            Cronómetro general de la sesión.
-          </p>
-        </div>
-
-        <div class="rounded-3xl border border-orange-200 bg-white p-8 text-center shadow-xl dark:border-orange-900/40 dark:bg-slate-900/80">
-          <div
-            class="font-black leading-none tabular-nums"
-            [class.text-[13rem]]="!modoPresentacion()"
-            [class.text-[16rem]]="modoPresentacion()"
-            [class.text-green-500]="estadoTiempo() === 'verde'"
-            [class.text-yellow-500]="estadoTiempo() === 'amarillo'"
-            [class.text-red-500]="estadoTiempo() === 'rojo'"
-            [class.animate-pulse]="segundos() <= 60"
-          >
-            {{ tiempo() }}
-          </div>
-
-          <p class="mt-3 text-3xl font-black text-slate-800 dark:text-slate-100">
-            Tiempo asignado: 5 minutos
-          </p>
-
-          <p class="mt-2 text-base text-slate-500 dark:text-slate-400">
-            El cronómetro inicia automáticamente al detectar una intervención activa.
-          </p>
-        </div>
-
-        @if (intervencionesPausadas()) {
-          <div class="rounded-3xl border border-orange-300 bg-orange-50 p-6 text-center shadow-xl dark:border-orange-800 dark:bg-orange-950/20">
-            <p class="text-sm font-black uppercase tracking-[0.3em] text-orange-600 dark:text-orange-300">
-              Intervenciones pausadas
+        @if (!reunionIniciada()) {
+          <div class="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-xl dark:border-slate-800 dark:bg-slate-900">
+            <p class="text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+              {{ reunion()?.id ? 'Reunión programada' : 'Esperando reunión' }}
             </p>
 
-            <h3 class="mt-2 text-3xl font-black text-slate-900 dark:text-white">
-              La reunión sigue activa, pero no se iniciarán nuevas intervenciones.
-            </h3>
-          </div>
-        }
-
-        @if (preparando() && participantePreparando()) {
-          <div class="rounded-3xl border border-yellow-400 bg-yellow-50 p-8 text-center shadow-xl shadow-yellow-200/40 dark:bg-yellow-950/30 dark:shadow-yellow-950/20">
-            <p class="text-sm font-black uppercase tracking-[0.3em] text-yellow-600 dark:text-yellow-300">
-              Prepararse para intervenir
-            </p>
-
-            <h2 class="mt-3 text-6xl font-black text-slate-900 dark:text-white">
-              {{ nombreParticipante(participantePreparando()) }}
+            <h2 class="mt-3 text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
+              Pulsa “Iniciar reunión” desde el control flotante.
             </h2>
 
-            <div class="mx-auto mt-6 grid h-36 w-36 place-items-center rounded-full border-8 border-yellow-400 text-7xl font-black text-yellow-600 dark:text-yellow-300 animate-pulse">
-              {{ preparacionSegundos() }}
-            </div>
-
-            <p class="mt-5 text-xl font-bold text-slate-800 dark:text-slate-100">
-              Tu intervención comenzará en unos segundos.
+            <p class="mx-auto mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-300 sm:text-base">
+              Los cronómetros, intervenciones, cola e historial aparecerán cuando la reunión cambie a estado activa.
             </p>
-
-            <p class="mt-2 text-base text-slate-600 dark:text-slate-300">
-              Si ya no deseas intervenir, pulsa nuevamente el botón del ESP32.
-            </p>
-          </div>
-        } @else {
-          <div class="rounded-3xl border border-rose-200 bg-white p-8 text-center shadow-xl dark:border-rose-500/40 dark:bg-slate-900/80">
-            @if (intervencionActual()) {
-              <p class="text-sm font-black uppercase tracking-[0.3em] text-rose-600 dark:text-rose-400">
-                Intervención actual
-              </p>
-
-              <h2 class="mt-4 text-6xl font-black leading-tight text-slate-900 dark:text-white">
-                {{ nombreParticipante(intervencionActual()) }}
-              </h2>
-
-              <p class="mt-4 text-3xl font-bold text-slate-500 dark:text-slate-300">
-                {{ tipoParticipante(intervencionActual()) }}
-              </p>
-
-              <div class="mt-8 flex flex-wrap justify-center gap-4 text-lg">
-                <span class="rounded-full bg-slate-100 px-7 py-3 font-black text-slate-900 shadow dark:bg-white">
-                  👤 RFID: {{ rfidParticipante(intervencionActual()) }}
-                </span>
-
-                <span class="rounded-full bg-rose-600 px-7 py-3 font-black text-white">
-                  ● Estado: interviniendo
-                </span>
-              </div>
-            } @else {
-              <p class="text-sm font-black uppercase tracking-[0.3em] text-slate-500 dark:text-slate-400">
-                Sin intervención activa
-              </p>
-
-              <h2 class="mt-4 text-4xl font-black text-slate-900 dark:text-white">
-                {{ intervencionesPausadas() ? 'Intervenciones pausadas' : 'Esperando señal del ESP32' }}
-              </h2>
-
-              <p class="mt-3 text-lg text-slate-600 dark:text-slate-300">
-                {{ intervencionesPausadas() ? 'Cuando se reanuden, la cola podrá avanzar nuevamente.' : 'Cuando exista alguien en cola, pasará automáticamente a preparación.' }}
-              </p>
-            }
           </div>
         }
 
-        <div class="grid gap-4 rounded-3xl border border-slate-200 bg-white p-4 shadow-xl dark:border-slate-800 dark:bg-slate-900/80 md:grid-cols-5">
-          <button
-            type="button"
-            (click)="iniciarReunion()"
-            class="rounded-xl bg-green-700 px-6 py-4 text-lg font-black text-white hover:bg-green-800"
-          >
-            ▶ Iniciar reunión
-          </button>
+        @if (reunionIniciada()) {
+          <div class="grid gap-3 lg:grid-cols-[360px_minmax(0,1fr)]">
+            <div class="rounded-2xl border border-orange-300 bg-orange-50 p-4 text-center shadow-xl dark:border-orange-800 dark:bg-orange-950/20">
+              <p class="text-[10px] font-black uppercase tracking-[0.25em] text-orange-600 dark:text-orange-400">
+                Duración de la reunión
+              </p>
 
-          <button
-            type="button"
-            (click)="reiniciarCronometro()"
-            class="rounded-xl bg-slate-800 px-6 py-4 text-lg font-black text-white hover:bg-slate-700"
-          >
-            ↻ Reiniciar cronómetro
-          </button>
+              <h2 class="mt-2 text-4xl font-black text-orange-600 dark:text-orange-400 sm:text-5xl">
+                {{ tiempoReunion() }}
+              </h2>
 
-          <button
-            type="button"
-            (click)="togglePausaIntervenciones()"
-            class="rounded-xl px-6 py-4 text-lg font-black text-white"
-            [class.bg-orange-600]="!intervencionesPausadas()"
-            [class.hover\:bg-orange-700]="!intervencionesPausadas()"
-            [class.bg-green-700]="intervencionesPausadas()"
-            [class.hover\:bg-green-800]="intervencionesPausadas()"
-          >
-            {{ intervencionesPausadas() ? '▶ Reanudar intervenciones' : '⏸ Pausar intervenciones' }}
-          </button>
-
-          <button
-            type="button"
-            (click)="terminarReunion()"
-            class="rounded-xl bg-orange-700 px-6 py-4 text-lg font-black text-white hover:bg-orange-800"
-          >
-            ■ Terminar reunión
-          </button>
-
-          <button
-            type="button"
-            (click)="finalizarIntervencion()"
-            [disabled]="!intervencionActual()"
-            class="rounded-xl bg-red-700 px-6 py-4 text-lg font-black text-white hover:bg-red-800 disabled:opacity-40"
-          >
-            ■ Finalizar intervención
-          </button>
-        </div>
-      </main>
-
-      <aside class="space-y-5">
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-900/80">
-          <div class="flex items-center justify-between">
-            <div>
-              <h3 class="text-2xl font-black text-slate-900 dark:text-white">
-                Cola de intervenciones
-              </h3>
-
-              <p class="text-slate-500 dark:text-slate-400">
-                {{ intervencionesPausadas() ? 'Las intervenciones están pausadas.' : 'Se actualiza automáticamente.' }}
+              <p class="mt-1 text-xs text-slate-600 dark:text-slate-300">
+                Sincronizado con servidor.
               </p>
             </div>
 
-            <span class="rounded-full bg-rose-600 px-4 py-2 font-black text-white">
-              {{ cola().length }}
-            </span>
+            @if (temaActual()) {
+              <div class="rounded-2xl border border-purple-300 bg-purple-50 p-4 shadow-xl dark:border-purple-800 dark:bg-purple-950/20">
+                <div class="flex h-full flex-col justify-center text-center lg:text-left">
+                  <p class="text-[10px] font-black uppercase tracking-[0.25em] text-purple-700 dark:text-purple-300">
+                    Tema actual
+                  </p>
+
+                  <h2 class="mt-2 break-words text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
+                    {{ temaActual()?.titulo }}
+                  </h2>
+
+                  @if (temaActual()?.descripcion) {
+                    <p class="mt-2 break-words text-sm font-semibold text-slate-600 dark:text-slate-300">
+                      {{ temaActual()?.descripcion }}
+                    </p>
+                  }
+
+                  <p class="mt-3 text-xs font-bold text-purple-700 dark:text-purple-300">
+                    <i class="fa-solid fa-list-check mr-2"></i>
+                    Para completar este tema usa el control flotante.
+                  </p>
+                </div>
+              </div>
+            } @else {
+              <div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-xl dark:border-slate-800 dark:bg-slate-900">
+                <p class="text-[10px] font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+                  Tema actual
+                </p>
+
+                <h2 class="mt-2 text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
+                  No hay temas pendientes para esta reunión.
+                </h2>
+
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400 sm:text-sm">
+                  Puedes capturar temas desde la interfaz de Reuniones.
+                </p>
+              </div>
+            }
           </div>
 
-          <div class="mt-5 space-y-3">
-            @for (item of cola(); track item.id; let i = $index) {
-              <div
-                class="rounded-2xl border p-4 transition"
-                [class.border-yellow-400]="i === 0 && !intervencionesPausadas()"
-                [class.bg-yellow-50]="i === 0 && !intervencionesPausadas()"
-                [class.dark:bg-yellow-950]="i === 0 && !intervencionesPausadas()"
-                [class.shadow-lg]="i === 0 && !intervencionesPausadas()"
-                [class.shadow-yellow-200]="i === 0 && !intervencionesPausadas()"
-                [class.dark:shadow-yellow-950]="i === 0 && !intervencionesPausadas()"
-                [class.border-orange-300]="intervencionesPausadas()"
-                [class.bg-orange-50]="intervencionesPausadas()"
-                [class.dark:border-orange-900]="intervencionesPausadas()"
-                [class.dark:bg-orange-950]="intervencionesPausadas()"
-                [class.border-slate-200]="i !== 0 && !intervencionesPausadas()"
-                [class.bg-slate-50]="i !== 0 && !intervencionesPausadas()"
-                [class.dark:border-slate-800]="i !== 0 && !intervencionesPausadas()"
-                [class.dark:bg-slate-950]="i !== 0 && !intervencionesPausadas()"
-              >
-                <div class="flex items-start justify-between gap-3">
-                  <div>
-                    <p
-                      class="font-black text-slate-900 dark:text-white"
-                      [class.text-3xl]="i === 0"
-                      [class.text-xl]="i !== 0"
-                    >
-                      {{ nombreParticipante(item) }}
-                    </p>
+          <div class="rounded-2xl border border-orange-200 bg-white p-4 text-center shadow-xl dark:border-orange-900/40 dark:bg-slate-900/80">
+            <div
+              class="text-[clamp(4rem,15vw,9rem)] font-black leading-none tabular-nums"
+              [class.text-green-500]="estadoTiempo() === 'verde'"
+              [class.text-yellow-500]="estadoTiempo() === 'amarillo'"
+              [class.text-red-500]="estadoTiempo() === 'rojo'"
+              [class.animate-pulse]="segundos() <= 60"
+            >
+              {{ tiempo() }}
+            </div>
 
-                    <p class="mt-1 text-slate-600 dark:text-slate-300">
-                      {{ tipoParticipante(item) }} • RFID: {{ rfidParticipante(item) }}
-                    </p>
+            <p class="mt-1 text-xl font-black text-slate-800 dark:text-slate-100 sm:text-2xl">
+              Tiempo asignado: 5 minutos
+            </p>
 
-                    <p class="mt-2 text-sm font-bold text-slate-500 dark:text-slate-400">
-                      🕘 {{ formatearFechaHora(item.created_at) }}
-                    </p>
-                  </div>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400 sm:text-sm">
+              Cronómetro sincronizado con el inicio real de la intervención.
+            </p>
+          </div>
+
+          @if (intervencionesPausadas()) {
+            <div class="rounded-2xl border border-orange-300 bg-orange-50 p-4 text-center shadow-xl dark:border-orange-800 dark:bg-orange-950/20">
+              <p class="text-xs font-black uppercase tracking-[0.22em] text-orange-600 dark:text-orange-300">
+                Intervenciones pausadas
+              </p>
+
+              <h3 class="mt-2 text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
+                La reunión sigue activa, pero no se iniciarán nuevas intervenciones.
+              </h3>
+            </div>
+          }
+
+          @if (preparando() && participantePreparando()) {
+            <div class="rounded-2xl border border-yellow-400 bg-yellow-50 p-4 text-center shadow-xl shadow-yellow-200/40 dark:bg-yellow-950/30 dark:shadow-yellow-950/20">
+              <p class="text-xs font-black uppercase tracking-[0.22em] text-yellow-600 dark:text-yellow-300">
+                Prepararse para intervenir
+              </p>
+
+              <h2 class="mt-2 break-words text-3xl font-black text-slate-900 dark:text-white sm:text-4xl">
+                {{ nombreParticipante(participantePreparando()) }}
+              </h2>
+
+              <div class="mx-auto mt-4 grid h-24 w-24 place-items-center rounded-full border-8 border-yellow-400 text-5xl font-black text-yellow-600 animate-pulse dark:text-yellow-300">
+                {{ segundosPreparacion() }}
+              </div>
+
+              <p class="mt-4 text-base font-bold text-slate-800 dark:text-slate-100">
+                Tu intervención comenzará en unos segundos.
+              </p>
+            </div>
+          } @else {
+            <div class="rounded-2xl border border-rose-200 bg-white p-4 text-center shadow-xl dark:border-rose-500/40 dark:bg-slate-900/80">
+              @if (intervencionActual()) {
+                <p class="text-xs font-black uppercase tracking-[0.22em] text-rose-600 dark:text-rose-400">
+                  Intervención actual
+                </p>
+
+                <h2 class="mt-3 break-words text-3xl font-black leading-tight text-slate-900 dark:text-white sm:text-4xl lg:text-5xl">
+                  {{ nombreParticipante(intervencionActual()) }}
+                </h2>
+
+                <p class="mt-2 text-lg font-bold text-slate-500 dark:text-slate-300 sm:text-xl">
+                  {{ tipoParticipante(intervencionActual()) }}
+                </p>
+
+                <div class="mt-4 flex flex-col justify-center gap-2 text-sm sm:flex-row sm:flex-wrap">
+                  <span class="rounded-full bg-slate-100 px-5 py-2 font-black text-slate-900 shadow dark:bg-white">
+                    <i class="fa-solid fa-id-card mr-2"></i>
+                    RFID: {{ rfidParticipante(intervencionActual()) }}
+                  </span>
+
+                  <span class="rounded-full bg-rose-600 px-5 py-2 font-black text-white">
+                    <i class="fa-solid fa-microphone fa-beat-fade mr-2"></i>
+                    Estado: interviniendo
+                  </span>
+                </div>
+              } @else {
+                <p class="text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+                  Sin intervención activa
+                </p>
+
+                <h2 class="mt-3 text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
+                  {{ intervencionesPausadas() ? 'Intervenciones pausadas' : 'Esperando señal del ESP32' }}
+                </h2>
+
+                <p class="mt-2 text-sm text-slate-600 dark:text-slate-300 sm:text-base">
+                  {{ intervencionesPausadas() ? 'Cuando se reanuden, la cola podrá avanzar nuevamente.' : 'Cuando exista alguien en cola, pasará automáticamente a preparación.' }}
+                </p>
+              }
+            </div>
+          }
+        }
+      </main>
+
+      @if (reunionIniciada()) {
+        <aside class="min-w-0 space-y-3">
+          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-xl dark:border-slate-800 dark:bg-slate-900/80">
+            <div class="flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <h3 class="text-lg font-black text-slate-900 dark:text-white">
+                  Cola de intervenciones
+                </h3>
+
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                  {{ intervencionesPausadas() ? 'Las intervenciones están pausadas.' : 'Se actualiza automáticamente.' }}
+                </p>
+              </div>
+
+              <span class="inline-flex w-fit rounded-full bg-rose-600 px-4 py-2 text-sm font-black text-white">
+                {{ cola().length }}
+              </span>
+            </div>
+
+            <div class="mt-4 max-h-[360px] space-y-3 overflow-y-auto pr-1">
+              @for (item of cola(); track item.id; let i = $index) {
+                <div
+                  class="rounded-2xl border p-3 transition dark:border-slate-800 dark:bg-slate-950"
+                  [class.border-yellow-400]="i === 0 && !intervencionesPausadas()"
+                  [class.bg-yellow-50]="i === 0 && !intervencionesPausadas()"
+                  [class.border-orange-300]="intervencionesPausadas()"
+                  [class.bg-orange-50]="intervencionesPausadas()"
+                  [class.border-slate-200]="i !== 0 && !intervencionesPausadas()"
+                  [class.bg-slate-50]="i !== 0 && !intervencionesPausadas()"
+                >
+                  <p class="break-words text-base font-black text-slate-900 dark:text-white">
+                    {{ nombreParticipante(item) }}
+                  </p>
+
+                  <p class="mt-1 break-words text-xs text-slate-600 dark:text-slate-300">
+                    {{ tipoParticipante(item) }} • RFID: {{ rfidParticipante(item) }}
+                  </p>
 
                   @if (intervencionesPausadas()) {
-                    <span class="rounded-full bg-orange-500 px-4 py-2 text-xs font-black text-white shadow">
+                    <span class="mt-2 inline-flex rounded-full bg-orange-500 px-3 py-1 text-[10px] font-black text-white">
                       PAUSADO
                     </span>
                   } @else if (i === 0) {
-                    <span class="rounded-full bg-yellow-400 px-4 py-2 text-xs font-black text-slate-900 shadow">
+                    <span class="mt-2 inline-flex rounded-full bg-yellow-400 px-3 py-1 text-[10px] font-black text-slate-900">
                       PRÓXIMO
                     </span>
                   } @else {
-                    <span class="rounded-full bg-slate-200 px-4 py-2 text-xs font-black text-slate-700 dark:bg-slate-700 dark:text-white">
+                    <span class="mt-2 inline-flex rounded-full bg-slate-200 px-3 py-1 text-[10px] font-black text-slate-700 dark:bg-slate-700 dark:text-white">
                       PENDIENTE
                     </span>
                   }
                 </div>
-              </div>
-            } @empty {
-              <div class="rounded-2xl border border-dashed border-slate-300 p-5 text-center text-slate-500 dark:border-slate-700 dark:text-slate-400">
-                No hay participantes en cola.
-              </div>
-            }
-          </div>
-        </div>
-
-        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-xl dark:border-slate-800 dark:bg-slate-900/80">
-          <h3 class="text-2xl font-black text-slate-900 dark:text-white">
-            Historial de intervenciones
-          </h3>
-
-          <p class="text-slate-500 dark:text-slate-400">
-            Últimas acciones realizadas en intervenciones.
-          </p>
-
-          <div class="mt-5 space-y-3">
-            @for (item of historial(); track item.id) {
-              <div class="flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
-                <div class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-green-500 text-slate-950 font-black">
-                  ✓
+              } @empty {
+                <div class="rounded-2xl border border-dashed border-slate-300 p-5 text-center text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                  No hay participantes en cola.
                 </div>
+              }
+            </div>
+          </div>
 
-                <div class="min-w-0 flex-1">
-                  <p class="truncate text-lg font-black text-slate-900 dark:text-white">
+          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-xl dark:border-slate-800 dark:bg-slate-900/80">
+            <h3 class="text-lg font-black text-slate-900 dark:text-white">
+              Historial de intervenciones
+            </h3>
+
+            <p class="text-xs text-slate-500 dark:text-slate-400">
+              Últimas acciones realizadas.
+            </p>
+
+            <div class="mt-4 max-h-[320px] space-y-3 overflow-y-auto pr-1">
+              @for (item of historial(); track item.id) {
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950">
+                  <p class="truncate text-sm font-black text-slate-900 dark:text-white">
+                    <i class="fa-solid fa-check mr-2 text-green-500"></i>
                     {{ nombreHistorialIntervencion(item) }}
                   </p>
 
-                  <p class="font-black text-green-600 dark:text-green-400">
+                  <p class="mt-1 text-xs font-black text-green-600 dark:text-green-400">
                     {{ item.operacion }}
                   </p>
-                </div>
 
-                <p class="text-right text-sm text-slate-500 dark:text-slate-400">
-                  {{ formatearFechaHora(item.created_at) }}
-                </p>
-              </div>
-            } @empty {
-              <div class="rounded-2xl bg-slate-50 p-5 text-center text-slate-500 dark:bg-slate-950 dark:text-slate-400">
-                Aún no hay acciones de intervención.
-              </div>
-            }
+                  <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {{ formatearFechaHora(item.created_at) }}
+                  </p>
+                </div>
+              } @empty {
+                <div class="rounded-2xl bg-slate-50 p-5 text-center text-xs text-slate-500 dark:bg-slate-950 dark:text-slate-400">
+                  Aún no hay acciones de intervención.
+                </div>
+              }
+            </div>
           </div>
-        </div>
-      </aside>
+        </aside>
+      }
     </div>
   </div>
+
+  <div class="fixed bottom-5 right-5 z-50 sm:bottom-6 sm:right-6">
+    <button
+      type="button"
+      (click)="toggleMenuControl()"
+      class="group relative grid h-20 w-20 place-items-center rounded-[1.75rem] border border-slate-600/70 bg-slate-950 text-white shadow-[0_18px_45px_rgba(0,0,0,0.55)] transition duration-300 hover:-translate-y-1 hover:scale-105 hover:border-rose-400/80 hover:shadow-[0_0_35px_rgba(244,63,94,0.35)] active:scale-95"
+      [class.border-rose-400]="menuControlAbierto()"
+      aria-label="Abrir control flotante"
+      [attr.aria-expanded]="menuControlAbierto()"
+    >
+      <span class="absolute -inset-1 rounded-[1.9rem] bg-rose-500/25 blur-lg opacity-70 transition group-hover:opacity-100"></span>
+      <span class="absolute inset-0 rounded-[1.75rem] bg-slate-950"></span>
+
+      <span class="relative grid h-10 w-12 place-items-center rounded-2xl bg-gradient-to-br from-rose-400 to-pink-600 text-slate-950 shadow-[0_0_22px_rgba(244,63,94,0.55)]">
+        <i
+          class="fa-solid fa-gamepad text-xl"
+          [class.fa-bounce]="!menuControlAbierto()"
+          [class.fa-beat]="menuControlAbierto()"
+        ></i>
+      </span>
+
+      <span class="relative -mt-1 text-[9px] font-black uppercase tracking-widest text-slate-200">
+        Control
+      </span>
+    </button>
+  </div>
+
+  @if (menuControlAbierto()) {
+    <div
+      class="fixed inset-0 z-[55] bg-slate-950/40 backdrop-blur-[2px]"
+      (click)="cerrarMenuControl()"
+    ></div>
+  }
+
+  @if (menuControlAbierto()) {
+    <div class="fixed inset-x-3 bottom-28 z-[60] mx-auto w-auto max-w-md sm:inset-x-auto sm:right-6 sm:w-[390px]">
+      <div class="relative overflow-hidden rounded-[2rem] border border-slate-700/80 bg-slate-950 p-4 text-white shadow-[0_25px_70px_rgba(0,0,0,0.65)]">
+        <div class="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-rose-400 to-transparent"></div>
+
+        <div class="mb-4 flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <p class="text-[10px] font-black uppercase tracking-[0.25em] text-rose-400">
+              Control de reunión
+            </p>
+
+            <h3 class="mt-1 truncate text-lg font-black text-white">
+              {{ reunionIniciada() ? 'Menú en sesión' : 'Menú de espera' }}
+            </h3>
+          </div>
+
+          <button
+            type="button"
+            (click)="cerrarMenuControl()"
+            class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-slate-800 text-slate-200 transition hover:bg-slate-700"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="grid gap-3">
+          @if (!reunionIniciada()) {
+            <button
+              type="button"
+              (click)="iniciarReunion()"
+              class="rounded-2xl bg-green-600 px-4 py-4 text-sm font-black text-white shadow-lg shadow-green-950/30 transition hover:-translate-y-0.5 hover:bg-green-700"
+            >
+              <i class="fa-solid fa-play mr-2"></i>
+              Iniciar reunión
+            </button>
+          }
+
+          @if (reunionIniciada()) {
+            @if (temaActual()) {
+              <button
+                type="button"
+                (click)="completarTemaActual()"
+                [disabled]="completandoTemaActual()"
+                class="rounded-2xl bg-purple-700 px-4 py-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-purple-800 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <i class="fa-solid fa-list-check mr-2"></i>
+                {{ completandoTemaActual() ? 'Completando tema...' : 'Completar tema actual' }}
+              </button>
+            }
+
+            <button
+              type="button"
+              (click)="reiniciarCronometro()"
+              [disabled]="!intervencionActual()"
+              class="rounded-2xl bg-slate-800 px-4 py-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <i class="fa-solid fa-rotate-right mr-2"></i>
+              Reiniciar cronómetro
+            </button>
+
+            <button
+              type="button"
+              (click)="togglePausaIntervenciones()"
+              class="rounded-2xl px-4 py-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:brightness-110"
+              [class.bg-orange-600]="!intervencionesPausadas()"
+              [class.bg-green-700]="intervencionesPausadas()"
+            >
+              <i
+                class="fa-solid"
+                [class.fa-pause]="!intervencionesPausadas()"
+                [class.fa-play]="intervencionesPausadas()"
+              ></i>
+
+              <span class="ml-2">
+                {{ intervencionesPausadas() ? 'Reanudar intervenciones' : 'Pausar intervenciones' }}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              (click)="finalizarIntervencion()"
+              [disabled]="!intervencionActual()"
+              class="rounded-2xl bg-red-700 px-4 py-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <i class="fa-solid fa-stop mr-2"></i>
+              Finalizar intervención
+            </button>
+
+            <button
+              type="button"
+              (click)="terminarReunion()"
+              class="rounded-2xl bg-orange-700 px-4 py-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-orange-800"
+            >
+              <i class="fa-solid fa-square mr-2"></i>
+              Terminar reunión
+            </button>
+          }
+
+          <a
+            routerLink="/reuniones"
+            (click)="cerrarMenuControl()"
+            class="rounded-2xl bg-slate-700 px-4 py-4 text-center text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-slate-600"
+          >
+            <i class="fa-solid fa-calendar-days mr-2"></i>
+            Ir a reuniones
+          </a>
+        </div>
+      </div>
+    </div>
+  }
 </section>

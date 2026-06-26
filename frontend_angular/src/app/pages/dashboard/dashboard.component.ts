@@ -1,44 +1,63 @@
-import { Component, OnDestroy, OnInit, signal, computed } from '@angular/core';
+import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './dashboard.component.html',
 })
 export class DashboardComponent implements OnInit, OnDestroy {
   reunion = signal<any>({
-    titulo: 'Sesión Ordinaria del Consejo',
+    id: null,
+    titulo: null,
+    sesion: null,
     fecha: new Date().toISOString().slice(0, 10),
-    estado: 'en curso',
+    status: null,
+    hora_inicio: null,
+    hora_fin: null,
+    inicio_real_at: null,
+    fin_real_at: null,
+    intervenciones_pausadas: false,
+    intervenciones_pausadas_at: null,
   });
 
   intervencionActual = signal<any>(null);
   cola = signal<any[]>([]);
   historial = signal<any[]>([]);
 
-  segundos = signal(300);
+  temaActual = signal<any>(null);
+  loadingTemaActual = signal(false);
+  completandoTemaActual = signal(false);
+
   preparacionSegundos = signal(10);
+  preparacionIniciaAt = signal<number | null>(null);
   preparando = signal(false);
   participantePreparando = signal<any>(null);
-  corriendo = signal(false);
 
   horaActual = signal('');
   fechaActual = signal('');
-  segundosReunion = signal(0);
-  reunionCorriendo = signal(false);
   modoPresentacion = signal(false);
   intervencionesPausadas = signal(false);
+  menuControlAbierto = signal(false);
 
-  private intervalId: any = null;
+  serverOffsetMs = signal(0);
+  serverNowMs = signal(Date.now());
+
+  pausaIntervencionIniciaAt = signal<number | null>(null);
+
   private refreshId: any = null;
   private preparacionId: any = null;
   private relojId: any = null;
-  private reunionId: any = null;
+
   private iniciandoAutomatico = false;
+  private finalizandoAutomatico = false;
+  private intervencionPausadaId: number | null = null;
+
   private historialLocalItems: any[] = [];
+  private readonly LIMITE_HISTORIAL_DASHBOARD = 10;
 
   private ocultarHistorialDashboard =
     sessionStorage.getItem('ocultarHistorialDashboard') === '1';
@@ -46,6 +65,120 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private historialInicioId = Number(
     sessionStorage.getItem('historialInicioId') || 0
   );
+
+  reunionIniciada = computed(() => {
+    const status = String(
+      this.reunion()?.status || this.reunion()?.estado || ''
+    ).toLowerCase();
+
+    return status === 'activa';
+  });
+
+  tituloPrincipal = computed(() => {
+    const reunion = this.reunion();
+
+    if (!reunion?.id) {
+      return 'Esperando Reunión';
+    }
+
+    return reunion?.titulo || reunion?.sesion || 'Esperando Reunión';
+  });
+
+  estadoPrincipal = computed(() => {
+    const reunion = this.reunion();
+
+    if (!reunion?.id) {
+      return 'Sin reunión';
+    }
+
+    return reunion?.status || reunion?.estado || 'Programada';
+  });
+
+  tiempoReunion = computed(() => {
+    const reunion = this.reunion();
+
+    if (!this.reunionIniciada() || !reunion?.inicio_real_at) {
+      return '00:00:00';
+    }
+
+    const inicio = new Date(reunion.inicio_real_at).getTime();
+
+    const fin = reunion.fin_real_at
+      ? new Date(reunion.fin_real_at).getTime()
+      : this.serverNowMs();
+
+    const transcurrido = Math.max(0, fin - inicio);
+
+    return this.formatearDuracion(transcurrido);
+  });
+
+  segundos = computed(() => {
+    const actual = this.intervencionActual();
+
+    if (!this.reunionIniciada() || !actual?.inicio_real_at) {
+      return 300;
+    }
+
+    const inicio = new Date(actual.inicio_real_at).getTime();
+
+    const fin = actual.fin_real_at
+      ? new Date(actual.fin_real_at).getTime()
+      : this.serverNowMs();
+
+    let pausaMs = 0;
+    const pausaInicio = this.pausaIntervencionIniciaAt();
+
+    if (this.intervencionesPausadas() && pausaInicio) {
+      pausaMs = Math.max(0, this.serverNowMs() - pausaInicio);
+    }
+
+    const transcurrido = Math.floor((fin - inicio - pausaMs) / 1000);
+    const restante = 300 - transcurrido;
+
+    return Math.max(0, restante);
+  });
+
+  segundosPreparacion = computed(() => {
+    const inicio = this.preparacionIniciaAt();
+
+    if (!this.preparando() || !inicio || this.intervencionesPausadas()) {
+      return 10;
+    }
+
+    const transcurrido = Math.floor((this.serverNowMs() - inicio) / 1000);
+    const restante = 10 - transcurrido;
+
+    return Math.max(0, restante);
+  });
+
+  tiempo = computed(() => {
+    const total = this.segundos();
+    const min = Math.floor(total / 60);
+    const sec = total % 60;
+
+    return `${min}:${sec.toString().padStart(2, '0')}`;
+  });
+
+  estadoTiempo = computed(() => {
+    const segundos = this.segundos();
+
+    if (segundos > 180) return 'verde';
+    if (segundos > 60) return 'amarillo';
+    return 'rojo';
+  });
+
+  fechaReunion = computed(() => this.formatearFecha(this.reunion()?.fecha));
+
+  horarioPrevisto = computed(() => {
+    const inicio = this.formatearHora(this.reunion()?.hora_inicio);
+    const fin = this.formatearHora(this.reunion()?.hora_fin);
+
+    if (inicio === 'Sin hora' && fin === 'Sin hora') {
+      return 'Horario previsto no registrado';
+    }
+
+    return `${inicio} - ${fin}`;
+  });
 
   private fullscreenHandler = () => {
     if (!document.fullscreenElement && this.modoPresentacion()) {
@@ -55,70 +188,225 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   };
 
-  tiempo = computed(() => {
-    const min = Math.floor(this.segundos() / 60).toString().padStart(2, '0');
-    const sec = (this.segundos() % 60).toString().padStart(2, '0');
-    return `${min}:${sec}`;
-  });
-
-  tiempoReunion = computed(() => {
-    const horas = Math.floor(this.segundosReunion() / 3600).toString().padStart(2, '0');
-    const minutos = Math.floor((this.segundosReunion() % 3600) / 60).toString().padStart(2, '0');
-    const segundos = (this.segundosReunion() % 60).toString().padStart(2, '0');
-    return `${horas}:${minutos}:${segundos}`;
-  });
-
-  estadoTiempo = computed(() => {
-    if (this.segundos() <= 60) return 'rojo';
-    if (this.segundos() <= 180) return 'amarillo';
-    return 'verde';
-  });
-
-  fechaReunion = computed(() => this.formatearFecha(this.reunion()?.fecha));
-
   constructor(private api: ApiService) {}
 
   ngOnInit(): void {
+    this.detenerTimers();
+
     this.loadData();
     this.actualizarReloj();
 
-    this.relojId = setInterval(() => this.actualizarReloj(), 1000);
-    this.refreshId = setInterval(() => this.loadData(false), 3000);
+    this.relojId = setInterval(() => {
+      this.actualizarReloj();
+      this.serverNowMs.set(Date.now() + this.serverOffsetMs());
+      this.revisarFinAutomaticoIntervencion();
+    }, 1000);
+
+    this.refreshId = setInterval(() => {
+      this.loadData(false);
+    }, 5000);
 
     document.addEventListener('fullscreenchange', this.fullscreenHandler);
   }
 
   ngOnDestroy(): void {
-    clearInterval(this.intervalId);
-    clearInterval(this.refreshId);
-    clearInterval(this.preparacionId);
-    clearInterval(this.relojId);
-    clearInterval(this.reunionId);
+    this.detenerTimers();
 
     document.removeEventListener('fullscreenchange', this.fullscreenHandler);
     document.body.classList.remove('modo-presentacion');
     window.dispatchEvent(new Event('modo-presentacion-change'));
   }
 
+  private detenerTimers(): void {
+    if (this.refreshId) {
+      clearInterval(this.refreshId);
+      this.refreshId = null;
+    }
+
+    if (this.preparacionId) {
+      clearInterval(this.preparacionId);
+      this.preparacionId = null;
+    }
+
+    if (this.relojId) {
+      clearInterval(this.relojId);
+      this.relojId = null;
+    }
+  }
+
+  toggleMenuControl(): void {
+    this.menuControlAbierto.update(v => !v);
+  }
+
+  cerrarMenuControl(): void {
+    this.menuControlAbierto.set(false);
+  }
+
   async loadData(showLoading = true): Promise<void> {
     await this.cargarReunionActiva();
-    await this.cargarIntervenciones();
-    await this.cargarHistorial();
+
+    if (this.reunionIniciada()) {
+      await this.cargarTemaActual();
+      await this.cargarIntervenciones();
+      await this.cargarHistorial();
+    } else {
+      this.temaActual.set(null);
+      this.intervencionActual.set(null);
+      this.cola.set([]);
+      this.historial.set([]);
+      this.limpiarPreparacion();
+      this.limpiarPausaIntervencion();
+      this.iniciandoAutomatico = false;
+      this.finalizandoAutomatico = false;
+    }
+  }
+
+  private placeholderReunion(): any {
+    return {
+      id: null,
+      titulo: null,
+      sesion: null,
+      fecha: new Date().toISOString().slice(0, 10),
+      status: null,
+      hora_inicio: null,
+      hora_fin: null,
+      inicio_real_at: null,
+      fin_real_at: null,
+      intervenciones_pausadas: false,
+      intervenciones_pausadas_at: null,
+    };
+  }
+
+  private obtenerPayload(res: any): any {
+    return res?.data?.data ?? res?.data ?? res ?? null;
+  }
+
+  private obtenerServerNow(res: any): string | null {
+    return res?.server_now ?? res?.data?.server_now ?? null;
+  }
+
+  private sincronizarHoraServidor(serverNow: string | null | undefined): void {
+    if (!serverNow) return;
+
+    const serverMs = new Date(serverNow).getTime();
+
+    if (Number.isNaN(serverMs)) return;
+
+    const nuevoOffset = serverMs - Date.now();
+    const offsetActual = this.serverOffsetMs();
+
+    if (Math.abs(nuevoOffset - offsetActual) < 2000) {
+      return;
+    }
+
+    this.serverOffsetMs.set(nuevoOffset);
+    this.serverNowMs.set(Date.now() + nuevoOffset);
+  }
+
+  private aplicarEstadoPausaDesdeReunion(reunion: any): void {
+    const pausadas = Boolean(reunion?.intervenciones_pausadas);
+
+    this.intervencionesPausadas.set(pausadas);
+
+    if (pausadas) {
+      this.limpiarPreparacion();
+      this.iniciandoAutomatico = false;
+      this.finalizandoAutomatico = false;
+
+      const pausaMs = reunion?.intervenciones_pausadas_at
+        ? new Date(reunion.intervenciones_pausadas_at).getTime()
+        : this.serverNowMs();
+
+      this.pausaIntervencionIniciaAt.set(
+        Number.isNaN(pausaMs) ? this.serverNowMs() : pausaMs
+      );
+
+      return;
+    }
+
+    this.limpiarPausaIntervencion();
   }
 
   private async cargarReunionActiva(): Promise<void> {
     try {
       const res: any = await this.api.get('/reuniones-activa');
-      const reunion = res?.data ?? res;
+
+      this.sincronizarHoraServidor(this.obtenerServerNow(res));
+
+      const reunion = this.obtenerPayload(res);
 
       if (reunion?.id) {
-        this.reunion.set(reunion);
+        this.reunion.set({
+          ...this.placeholderReunion(),
+          ...reunion,
+        });
+
+        this.aplicarEstadoPausaDesdeReunion(reunion);
       } else {
+        this.reunion.set(this.placeholderReunion());
+        this.temaActual.set(null);
         this.historialLocalItems = [];
         this.historial.set([]);
+        this.limpiarPreparacion();
+        this.limpiarPausaIntervencion();
+        this.intervencionesPausadas.set(false);
       }
     } catch (error) {
       console.error('Error cargando reunión activa:', error);
+      this.reunion.set(this.placeholderReunion());
+      this.temaActual.set(null);
+    }
+  }
+
+  private async cargarTemaActual(): Promise<void> {
+    const reunion = this.reunion();
+
+    if (!reunion?.id || !this.reunionIniciada()) {
+      this.temaActual.set(null);
+      return;
+    }
+
+    this.loadingTemaActual.set(true);
+
+    try {
+      const res: any = await this.api.get(`/reuniones/${reunion.id}/tema-actual`);
+      const tema = this.obtenerPayload(res);
+
+      this.temaActual.set(tema?.id ? tema : null);
+    } catch (error) {
+      console.error('Error cargando tema actual:', error);
+      this.temaActual.set(null);
+    } finally {
+      this.loadingTemaActual.set(false);
+    }
+  }
+
+  async completarTemaActual(): Promise<void> {
+    const tema = this.temaActual();
+
+    if (!tema?.id) return;
+
+    this.completandoTemaActual.set(true);
+
+    try {
+      const res: any = await this.api.post(`/temas-reunion/${tema.id}/completar`, {});
+      const data = this.obtenerPayload(res);
+
+      const siguienteTema =
+        data?.siguiente_tema ??
+        data?.data?.siguiente_tema ??
+        null;
+
+      this.temaActual.set(siguienteTema?.id ? siguienteTema : null);
+
+      await this.cargarTemaActual();
+
+      this.cerrarMenuControl();
+    } catch (error) {
+      console.error('Error completando tema actual:', error);
+      alert('No se pudo completar el tema actual.');
+    } finally {
+      this.completandoTemaActual.set(false);
     }
   }
 
@@ -139,9 +427,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private async cargarIntervenciones(): Promise<void> {
+    if (!this.reunionIniciada()) {
+      this.intervencionActual.set(null);
+      this.cola.set([]);
+      this.limpiarPreparacion();
+      this.limpiarPausaIntervencion();
+      return;
+    }
+
     try {
       const res: any = await this.api.get('/intervenciones');
-      const data = res?.data ?? res ?? [];
+
+      this.sincronizarHoraServidor(this.obtenerServerNow(res));
+
+      const data = this.obtenerPayload(res) ?? [];
       const lista = Array.isArray(data) ? data : data.data ?? [];
 
       const visibles = lista.filter((item: any) =>
@@ -158,6 +457,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
             new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
 
+      this.sincronizarPausaConIntervencion(actual);
+
       this.intervencionActual.set(actual);
       this.cola.set(pendientes);
 
@@ -165,12 +466,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
         actual?.participante?.reunion ?? pendientes[0]?.participante?.reunion;
 
       if (reunion) {
-        this.reunion.set(reunion);
+        this.reunion.set({
+          ...this.reunion(),
+          ...reunion,
+        });
+
+        this.aplicarEstadoPausaDesdeReunion({
+          ...this.reunion(),
+          ...reunion,
+        });
       }
 
-      if (actual && !this.corriendo()) {
-        this.segundos.set(300);
-        this.iniciarCronometro();
+      if (this.intervencionesPausadas()) {
+        this.limpiarPreparacion();
         return;
       }
 
@@ -178,19 +486,50 @@ export class DashboardComponent implements OnInit, OnDestroy {
         !actual &&
         pendientes.length > 0 &&
         !this.preparando() &&
-        !this.intervencionesPausadas()
+        !this.iniciandoAutomatico &&
+        !this.finalizandoAutomatico
       ) {
         await this.prepararSiguiente(pendientes[0]);
         return;
       }
 
       if (!actual && pendientes.length === 0 && !this.preparando()) {
-        this.detenerCronometro();
-        this.segundos.set(300);
+        this.participantePreparando.set(null);
+        this.preparacionIniciaAt.set(null);
       }
     } catch (error) {
       console.error('Error cargando intervenciones:', error);
     }
+  }
+
+  private sincronizarPausaConIntervencion(actual: any): void {
+    const actualId = actual?.id ? Number(actual.id) : null;
+
+    if (!actualId) {
+      this.limpiarPausaIntervencion();
+      return;
+    }
+
+    if (this.intervencionPausadaId !== actualId) {
+      this.intervencionPausadaId = actualId;
+
+      if (this.intervencionesPausadas() && !this.pausaIntervencionIniciaAt()) {
+        const reunion = this.reunion();
+
+        const pausaMs = reunion?.intervenciones_pausadas_at
+          ? new Date(reunion.intervenciones_pausadas_at).getTime()
+          : this.serverNowMs();
+
+        this.pausaIntervencionIniciaAt.set(
+          Number.isNaN(pausaMs) ? this.serverNowMs() : pausaMs
+        );
+      }
+    }
+  }
+
+  private limpiarPausaIntervencion(): void {
+    this.intervencionPausadaId = null;
+    this.pausaIntervencionIniciaAt.set(null);
   }
 
   private async prepararSiguiente(siguiente: any): Promise<void> {
@@ -198,63 +537,147 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     this.iniciandoAutomatico = true;
     this.participantePreparando.set(siguiente);
+    this.preparacionIniciaAt.set(this.serverNowMs());
     this.preparacionSegundos.set(10);
     this.preparando.set(true);
 
-    clearInterval(this.preparacionId);
+    if (this.preparacionId) {
+      clearInterval(this.preparacionId);
+      this.preparacionId = null;
+    }
 
     this.preparacionId = setInterval(async () => {
       if (this.intervencionesPausadas()) {
+        this.limpiarPreparacion();
+        return;
+      }
+
+      const restante = this.segundosPreparacion();
+
+      this.preparacionSegundos.set(restante);
+
+      if (restante > 0) {
+        return;
+      }
+
+      if (this.preparacionId) {
         clearInterval(this.preparacionId);
-        this.preparando.set(false);
-        this.participantePreparando.set(null);
-        this.iniciandoAutomatico = false;
-        return;
+        this.preparacionId = null;
       }
 
-      if (this.preparacionSegundos() > 1) {
-        this.preparacionSegundos.update(v => v - 1);
-        return;
-      }
-
-      clearInterval(this.preparacionId);
       await this.iniciarIntervencionReal(siguiente);
-    }, 1000);
+    }, 250);
   }
 
   private async iniciarIntervencionReal(item: any): Promise<void> {
     if (this.intervencionesPausadas()) return;
 
     try {
-      await this.api.put(`/intervenciones/${item.id}`, {
+      const res: any = await this.api.put(`/intervenciones/${item.id}`, {
         status: 'interviniendo',
-        hora_inicio: new Date().toTimeString().slice(0, 8),
       });
 
-      this.preparando.set(false);
-      this.participantePreparando.set(null);
+      this.sincronizarHoraServidor(this.obtenerServerNow(res));
+
+      this.limpiarPreparacion();
+      this.limpiarPausaIntervencion();
+
       this.iniciandoAutomatico = false;
-      this.segundos.set(300);
 
       await this.cargarIntervenciones();
-      this.iniciarCronometro();
+      await this.cargarHistorial();
     } catch (error) {
       console.error('Error iniciando intervención:', error);
-      this.preparando.set(false);
+
+      this.limpiarPreparacion();
       this.iniciandoAutomatico = false;
     }
   }
 
-  togglePausaIntervenciones(): void {
-    this.intervencionesPausadas.update(v => !v);
+  private async revisarFinAutomaticoIntervencion(): Promise<void> {
+    const actual = this.intervencionActual();
 
-    if (this.intervencionesPausadas()) {
+    if (!this.reunionIniciada()) return;
+    if (!actual?.id) return;
+    if (this.finalizandoAutomatico) return;
+    if (this.intervencionesPausadas()) return;
+    if (this.preparando()) return;
+    if (this.iniciandoAutomatico) return;
+    if (this.segundos() > 0) return;
+
+    this.finalizandoAutomatico = true;
+
+    const nombre = this.nombreParticipante(actual);
+
+    try {
+      const res: any = await this.api.put(`/intervenciones/${actual.id}`, {
+        status: 'fin intervencion',
+      });
+
+      this.sincronizarHoraServidor(this.obtenerServerNow(res));
+
+      this.agregarHistorialLocal('Intervención finalizada', nombre);
+
+      this.intervencionActual.set(null);
+      this.limpiarPausaIntervencion();
+
+      await this.cargarIntervenciones();
+      await this.cargarHistorial();
+    } catch (error) {
+      console.error('Error finalizando intervención automáticamente:', error);
+    } finally {
+      this.finalizandoAutomatico = false;
+    }
+  }
+
+  private limpiarPreparacion(): void {
+    if (this.preparacionId) {
       clearInterval(this.preparacionId);
-      this.preparando.set(false);
-      this.participantePreparando.set(null);
-      this.iniciandoAutomatico = false;
-    } else {
-      this.cargarIntervenciones();
+      this.preparacionId = null;
+    }
+
+    this.preparando.set(false);
+    this.participantePreparando.set(null);
+    this.preparacionIniciaAt.set(null);
+    this.preparacionSegundos.set(10);
+    this.iniciandoAutomatico = false;
+  }
+
+  async togglePausaIntervenciones(): Promise<void> {
+    const reunion = this.reunion();
+
+    if (!reunion?.id || !this.reunionIniciada()) {
+      alert('No hay reunión activa.');
+      return;
+    }
+
+    try {
+      const res: any = await this.api.post(
+        `/reuniones/${reunion.id}/toggle-pausa-intervenciones`,
+        {}
+      );
+
+      this.sincronizarHoraServidor(this.obtenerServerNow(res));
+
+      const reunionActualizada = this.obtenerPayload(res);
+
+      if (reunionActualizada?.id) {
+        this.reunion.set({
+          ...this.reunion(),
+          ...reunionActualizada,
+        });
+
+        this.aplicarEstadoPausaDesdeReunion(reunionActualizada);
+
+        if (!Boolean(reunionActualizada.intervenciones_pausadas)) {
+          await this.cargarIntervenciones();
+        }
+      }
+    } catch (error) {
+      console.error('Error cambiando pausa de intervenciones:', error);
+      alert('No se pudo cambiar el estado de pausa de intervenciones.');
+    } finally {
+      this.cerrarMenuControl();
     }
   }
 
@@ -275,20 +698,28 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
 
     const siguiente = this.cola()[0];
-    if (siguiente) await this.prepararSiguiente(siguiente);
+
+    if (siguiente) {
+      await this.prepararSiguiente(siguiente);
+    }
   }
 
   async cancelarPreparacion(): Promise<void> {
     const participante = this.participantePreparando();
+
     if (!participante) return;
 
-    clearInterval(this.preparacionId);
+    if (this.preparacionId) {
+      clearInterval(this.preparacionId);
+      this.preparacionId = null;
+    }
 
     try {
-      await this.api.put(`/intervenciones/${participante.id}`, {
+      const res: any = await this.api.put(`/intervenciones/${participante.id}`, {
         status: 'fin intervencion',
-        hora_fin: new Date().toTimeString().slice(0, 8),
       });
+
+      this.sincronizarHoraServidor(this.obtenerServerNow(res));
     } catch (error) {
       console.error('Error cancelando preparación:', error);
     }
@@ -298,40 +729,41 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.nombreParticipante(participante)
     );
 
-    this.preparando.set(false);
-    this.participantePreparando.set(null);
-    this.iniciandoAutomatico = false;
+    this.limpiarPreparacion();
   }
 
   async finalizarIntervencion(): Promise<void> {
     const actual = this.intervencionActual();
+
     if (!actual) return;
 
     const nombre = this.nombreParticipante(actual);
 
     try {
-      await this.api.put(`/intervenciones/${actual.id}`, {
+      const res: any = await this.api.put(`/intervenciones/${actual.id}`, {
         status: 'fin intervencion',
-        hora_fin: new Date().toTimeString().slice(0, 8),
       });
+
+      this.sincronizarHoraServidor(this.obtenerServerNow(res));
 
       this.agregarHistorialLocal('Intervención finalizada', nombre);
 
-      this.detenerCronometro();
-      this.segundos.set(300);
+      this.intervencionActual.set(null);
+      this.limpiarPausaIntervencion();
+
       await this.cargarIntervenciones();
+      await this.cargarHistorial();
     } catch (error) {
       console.error('Error finalizando intervención:', error);
+    } finally {
+      this.cerrarMenuControl();
     }
   }
 
   private async cargarHistorial(): Promise<void> {
-    const reunionActual = this.reunion();
-    const status = reunionActual?.status || reunionActual?.estado;
-
     if (
+      !this.reunionIniciada() ||
       this.ocultarHistorialDashboard ||
-      status !== 'activa' ||
       !this.historialInicioId
     ) {
       this.historialLocalItems = [];
@@ -359,10 +791,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
         }));
 
       this.historial.set(
-        [...this.historialLocalItems, ...soloIntervenciones].slice(0, 8)
+        [...this.historialLocalItems, ...soloIntervenciones]
+          .slice(0, this.LIMITE_HISTORIAL_DASHBOARD)
       );
     } catch {
-      this.historial.set(this.historialLocalItems.slice(0, 8));
+      this.historial.set(
+        this.historialLocalItems.slice(0, this.LIMITE_HISTORIAL_DASHBOARD)
+      );
     }
   }
 
@@ -394,7 +829,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
       created_at: new Date().toISOString(),
     });
 
-    this.historial.set(this.historialLocalItems.slice(0, 8));
+    this.historialLocalItems = this.historialLocalItems.slice(
+      0,
+      this.LIMITE_HISTORIAL_DASHBOARD
+    );
+
+    this.historial.set(
+      this.historialLocalItems.slice(0, this.LIMITE_HISTORIAL_DASHBOARD)
+    );
   }
 
   private extraerNombreHistorial(item: any): string {
@@ -415,27 +857,27 @@ export class DashboardComponent implements OnInit, OnDestroy {
     );
   }
 
-  iniciarCronometro(): void {
-    clearInterval(this.intervalId);
-    this.corriendo.set(true);
+  async reiniciarCronometro(): Promise<void> {
+    const actual = this.intervencionActual();
 
-    this.intervalId = setInterval(() => {
-      if (this.segundos() > 0) {
-        this.segundos.update(v => v - 1);
-      } else {
-        this.detenerCronometro();
-      }
-    }, 1000);
-  }
+    if (!actual) return;
 
-  detenerCronometro(): void {
-    this.corriendo.set(false);
-    clearInterval(this.intervalId);
-  }
+    try {
+      this.limpiarPausaIntervencion();
 
-  reiniciarCronometro(): void {
-    this.segundos.set(300);
-    if (this.intervencionActual()) this.iniciarCronometro();
+      const res: any = await this.api.put(`/intervenciones/${actual.id}`, {
+        status: 'interviniendo',
+        hora_inicio: new Date().toTimeString().slice(0, 8),
+      });
+
+      this.sincronizarHoraServidor(this.obtenerServerNow(res));
+
+      await this.cargarIntervenciones();
+    } catch (error) {
+      console.error('Error reiniciando cronómetro:', error);
+    } finally {
+      this.cerrarMenuControl();
+    }
   }
 
   async iniciarReunion(): Promise<void> {
@@ -444,15 +886,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
     try {
       if (!reunion?.id) {
         const res: any = await this.api.get('/reuniones-activa');
-        reunion = res?.data ?? res;
+
+        this.sincronizarHoraServidor(this.obtenerServerNow(res));
+
+        reunion = this.obtenerPayload(res);
 
         if (reunion?.id) {
-          this.reunion.set(reunion);
+          this.reunion.set({
+            ...this.placeholderReunion(),
+            ...reunion,
+          });
         }
       }
 
       if (!reunion?.id) {
-        alert('No hay reunión registrada para iniciar.');
+        alert('No hay reunión programada para iniciar.');
         return;
       }
 
@@ -465,17 +913,34 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.historialInicioId = await this.obtenerUltimoHistorialId();
       sessionStorage.setItem('historialInicioId', String(this.historialInicioId));
 
-      await this.api.post(`/reuniones/${reunion.id}/iniciar`, {});
+      const res: any = await this.api.post(`/reuniones/${reunion.id}/iniciar`, {});
+
+      this.sincronizarHoraServidor(this.obtenerServerNow(res));
+
+      const reunionActualizada = this.obtenerPayload(res);
+
+      if (reunionActualizada?.id) {
+        this.reunion.set({
+          ...this.placeholderReunion(),
+          ...reunionActualizada,
+        });
+
+        this.aplicarEstadoPausaDesdeReunion(reunionActualizada);
+      }
 
       this.intervencionesPausadas.set(false);
-      this.segundosReunion.set(0);
-      this.iniciarCronometroReunion();
+      this.limpiarPreparacion();
+      this.limpiarPausaIntervencion();
+      this.finalizandoAutomatico = false;
 
-      await this.cargarReunionActiva();
+      await this.cargarTemaActual();
+      await this.cargarIntervenciones();
       await this.cargarHistorial();
     } catch (error) {
       console.error(error);
       alert('No se pudo iniciar la reunión.');
+    } finally {
+      this.cerrarMenuControl();
     }
   }
 
@@ -488,20 +953,19 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
 
     try {
-      await this.api.post(`/reuniones/${reunion.id}/terminar`, {});
+      const res: any = await this.api.post(`/reuniones/${reunion.id}/terminar`, {});
+
+      this.sincronizarHoraServidor(this.obtenerServerNow(res));
 
       this.intervencionActual.set(null);
       this.cola.set([]);
+      this.temaActual.set(null);
 
-      this.detenerCronometroReunion();
-      this.segundosReunion.set(0);
-      this.detenerCronometro();
-      this.segundos.set(300);
+      this.limpiarPreparacion();
+      this.limpiarPausaIntervencion();
 
-      clearInterval(this.preparacionId);
-      this.preparando.set(false);
-      this.participantePreparando.set(null);
       this.iniciandoAutomatico = false;
+      this.finalizandoAutomatico = false;
       this.intervencionesPausadas.set(false);
 
       this.historialLocalItems = [];
@@ -513,26 +977,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.historialInicioId = 0;
       sessionStorage.removeItem('historialInicioId');
 
-      await this.cargarReunionActiva();
+      const reunionActualizada = this.obtenerPayload(res);
+
+      if (reunionActualizada?.id) {
+        this.reunion.set({
+          ...this.placeholderReunion(),
+          ...reunionActualizada,
+        });
+      } else {
+        await this.cargarReunionActiva();
+      }
     } catch (error) {
       console.error(error);
       alert('No se pudo terminar la reunión.');
+    } finally {
+      this.cerrarMenuControl();
     }
-  }
-
-  iniciarCronometroReunion(): void {
-    clearInterval(this.reunionId);
-
-    this.reunionCorriendo.set(true);
-
-    this.reunionId = setInterval(() => {
-      this.segundosReunion.update(v => v + 1);
-    }, 1000);
-  }
-
-  detenerCronometroReunion(): void {
-    clearInterval(this.reunionId);
-    this.reunionCorriendo.set(false);
   }
 
   actualizarReloj(): void {
@@ -597,13 +1057,29 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (!fecha) return 'Fecha no disponible';
 
     const partes = fecha.toString().split('T')[0].split('-');
-    return partes.length === 3 ? `${partes[2]}/${partes[1]}/${partes[0]}` : fecha;
+
+    return partes.length === 3
+      ? `${partes[2]}/${partes[1]}/${partes[0]}`
+      : fecha;
+  }
+
+  formatearHora(hora: string | null | undefined): string {
+    if (!hora) return 'Sin hora';
+
+    const partes = hora.toString().split(':');
+
+    if (partes.length >= 2) {
+      return `${partes[0]}:${partes[1]}`;
+    }
+
+    return hora;
   }
 
   formatearFechaHora(fecha: string | null | undefined): string {
     if (!fecha) return 'Sin fecha';
 
     const date = new Date(fecha);
+
     if (isNaN(date.getTime())) return fecha;
 
     return date.toLocaleString('es-MX', {
@@ -613,5 +1089,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
       hour: '2-digit',
       minute: '2-digit',
     });
+  }
+
+  formatearDuracion(ms: number): string {
+    const totalSegundos = Math.floor(ms / 1000);
+    const horas = Math.floor(totalSegundos / 3600);
+    const minutos = Math.floor((totalSegundos % 3600) / 60);
+    const segundos = totalSegundos % 60;
+
+    return [
+      horas.toString().padStart(2, '0'),
+      minutos.toString().padStart(2, '0'),
+      segundos.toString().padStart(2, '0'),
+    ].join(':');
   }
 }
