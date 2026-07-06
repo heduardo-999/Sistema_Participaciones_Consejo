@@ -18,7 +18,6 @@ class RoleMenuSeeder extends Seeder
                 '/miembros',
                 '/invitados',
                 '/reuniones',
-                '/participantes',
                 '/intervenciones',
                 '/historial',
                 '/lugares',
@@ -32,7 +31,6 @@ class RoleMenuSeeder extends Seeder
                 '/miembros',
                 '/invitados',
                 '/reuniones',
-                '/participantes',
                 '/intervenciones',
                 '/historial',
                 '/lugares',
@@ -43,11 +41,13 @@ class RoleMenuSeeder extends Seeder
                 '/miembros',
                 '/invitados',
                 '/reuniones',
-                '/participantes',
                 '/intervenciones',
                 '/historial',
                 '/lugares',
                 '/lugares-asignados',
+            ],
+            'visualizador' => [
+                '/dashboard',
             ],
         ];
 
@@ -58,21 +58,21 @@ class RoleMenuSeeder extends Seeder
                 continue;
             }
 
+            DB::table('role_menus')
+                ->where('role_id', $rol->id)
+                ->delete();
+
             $menus = Menu::whereIn('url', $urls)
                 ->where('baja', 0)
                 ->get();
 
             foreach ($menus as $menu) {
-                DB::table('role_menus')->updateOrInsert(
-                    [
-                        'role_id' => $rol->id,
-                        'menu_id' => $menu->id,
-                    ],
-                    [
-                        'updated_at' => now(),
-                        'created_at' => DB::raw('COALESCE(created_at, NOW())'),
-                    ]
-                );
+                DB::table('role_menus')->insert([
+                    'role_id' => $rol->id,
+                    'menu_id' => $menu->id,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
             }
         }
     }

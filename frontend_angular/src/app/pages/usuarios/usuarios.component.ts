@@ -3,6 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CrudService } from '../../core/services/crud.service';
 
+type RolOption = {
+  value: string;
+  label: string;
+};
+
 @Component({
   selector: 'app-usuarios',
   standalone: true,
@@ -23,13 +28,13 @@ export class UsuariosComponent implements OnInit {
   modal = false;
   editing: any = null;
 
-  form: any = this.emptyForm();
-
-  roles = [
+  roles: RolOption[] = [
     { value: 'super admin', label: 'Super Admin' },
     { value: 'admin', label: 'Admin' },
     { value: 'moderador', label: 'Moderador' },
   ];
+
+  form: any = this.emptyForm();
 
   items = computed(() => {
     const search = this.q().trim().toLowerCase();
@@ -63,7 +68,26 @@ export class UsuariosComponent implements OnInit {
   constructor(private crud: CrudService) {}
 
   async ngOnInit(): Promise<void> {
+    await this.loadRoles();
     await this.load();
+  }
+
+  async loadRoles(): Promise<void> {
+    try {
+      const res: any = await this.crud.list('/users/roles', {});
+      const roles = this.normalizarRoles(res);
+
+      if (roles.length > 0) {
+        this.roles = roles;
+      }
+    } catch (error) {
+      console.error('Error cargando roles:', error);
+      // Si la ruta falla, dejamos los roles base para que la interfaz no quede en blanco.
+    }
+
+    if (!this.form?.role) {
+      this.form = this.emptyForm();
+    }
   }
 
   async load(): Promise<void> {
@@ -101,7 +125,7 @@ export class UsuariosComponent implements OnInit {
       this.form = {
         name: item.name || item.nombre || '',
         email: item.email || '',
-        role: this.primerRol(item),
+        role: this.primerRol(item) || this.defaultRoleValue(),
         password: '',
         baja: Number(item.baja || 0),
       };
@@ -152,6 +176,7 @@ export class UsuariosComponent implements OnInit {
       }
 
       this.close();
+      await this.loadRoles();
       await this.load();
     } catch (error: any) {
       console.error('Error guardando usuario:', error);
@@ -188,7 +213,7 @@ export class UsuariosComponent implements OnInit {
       await this.crud.update('/users', item.id, {
         name: item.name || item.nombre,
         email: item.email,
-        role: this.primerRol(item),
+        role: this.primerRol(item) || this.defaultRoleValue(),
         baja: 0,
       });
 
@@ -254,15 +279,66 @@ export class UsuariosComponent implements OnInit {
     return {
       name: '',
       email: '',
-      role: 'moderador',
+      role: this.defaultRoleValue(),
       password: '',
       baja: 0,
     };
   }
 
+  private defaultRoleValue(): string {
+    const moderador = this.roles.find(r => r.value === 'moderador');
+
+    return moderador?.value || this.roles[0]?.value || '';
+  }
+
   private normalizarRespuesta(res: any): any[] {
     const data = res?.data?.data ?? res?.data ?? res ?? [];
+
     return Array.isArray(data) ? data : [];
+  }
+
+  private normalizarRoles(res: any): RolOption[] {
+    const data = res?.data?.data ?? res?.data ?? res ?? [];
+
+    if (!Array.isArray(data)) {
+      return [];
+    }
+
+    return data
+      .map((rol: any): RolOption | null => {
+        const value = String(
+          rol?.value ||
+          rol?.name ||
+          rol?.nombre ||
+          rol ||
+          ''
+        ).trim();
+
+        if (!value) return null;
+
+        const label = String(
+          rol?.label ||
+          rol?.display_name ||
+          rol?.name ||
+          rol?.nombre ||
+          value
+        ).trim();
+
+        return {
+          value,
+          label: this.formatearRol(label),
+        };
+      })
+      .filter((rol): rol is RolOption => !!rol?.value);
+  }
+
+  private formatearRol(value: string): string {
+    return value
+      .replace(/_/g, ' ')
+      .split(' ')
+      .filter(Boolean)
+      .map(palabra => palabra.charAt(0).toUpperCase() + palabra.slice(1))
+      .join(' ');
   }
 
   private extractError(error: any): string {

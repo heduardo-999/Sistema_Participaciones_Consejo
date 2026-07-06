@@ -66,6 +66,7 @@ class ReunionController extends Controller
             'status' => 'nullable|in:programada,activa,terminada,cancelada,pospuesta',
             'hora_inicio' => 'nullable',
             'hora_fin' => 'nullable',
+            'intervenciones_automaticas' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -80,6 +81,7 @@ class ReunionController extends Controller
         $data['status'] = $data['status'] ?? 'programada';
         $data['intervenciones_pausadas'] = false;
         $data['intervenciones_pausadas_at'] = null;
+        $data['intervenciones_automaticas'] = $data['intervenciones_automaticas'] ?? false;
 
         if ($data['status'] === 'activa') {
             $data['inicio_real_at'] = now();
@@ -166,6 +168,7 @@ class ReunionController extends Controller
             'status' => 'required|in:programada,activa,terminada,cancelada,pospuesta',
             'hora_inicio' => 'nullable',
             'hora_fin' => 'nullable',
+            'intervenciones_automaticas' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -250,6 +253,7 @@ class ReunionController extends Controller
             'fin_real_at' => null,
             'intervenciones_pausadas' => false,
             'intervenciones_pausadas_at' => null,
+            'intervenciones_automaticas' => false,
         ]);
 
         Historial::create([
@@ -313,6 +317,7 @@ class ReunionController extends Controller
         })
             ->whereIn('status', [
                 'aun no intervino',
+                'preparando',
                 'interviniendo'
             ])
             ->update([
@@ -326,6 +331,7 @@ class ReunionController extends Controller
             'fin_real_at' => now(),
             'intervenciones_pausadas' => false,
             'intervenciones_pausadas_at' => null,
+            'intervenciones_automaticas' => false,
         ]);
 
         Historial::create([
@@ -367,6 +373,68 @@ class ReunionController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Reunión terminada correctamente. Intervenciones finalizadas y lugares liberados.',
+            'server_now' => now()->toISOString(),
+            'data' => $reunion->fresh()
+        ]);
+    }
+
+
+    public function toggleIntervencionesAutomaticas(string $id)
+    {
+        $reunion = Reunion::find($id);
+
+        if (!$reunion) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Reunión no encontrada'
+            ], 404);
+        }
+
+        if ($reunion->status !== 'activa') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo se pueden cambiar las intervenciones automáticas en una reunión activa.'
+            ], 422);
+        }
+
+        $antes = $reunion->toArray();
+
+        $reunion->update([
+            'intervenciones_automaticas' => !$reunion->intervenciones_automaticas,
+        ]);
+
+        Historial::create([
+            'user_id' => User::mySelf()->id,
+            'operacion' => $reunion->fresh()->intervenciones_automaticas
+                ? 'Activar intervenciones automáticas'
+                : 'Desactivar intervenciones automáticas',
+            'tabla' => 'reuniones',
+            'dato' => [
+                'antes' => $antes,
+                'despues' => $reunion->fresh()->toArray(),
+            ],
+        ]);
+
+        SocketService::emit('reunion:updated', [
+            'accion' => 'toggle_intervenciones_automaticas',
+            'reunion_id' => $reunion->id,
+        ]);
+
+        SocketService::emit('intervenciones:updated', [
+            'accion' => 'toggle_intervenciones_automaticas',
+            'reunion_id' => $reunion->id,
+        ]);
+
+        SocketService::emit('dashboard:updated', [
+            'accion' => 'toggle_intervenciones_automaticas',
+            'reunion_id' => $reunion->id,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => $reunion->fresh()->intervenciones_automaticas
+                ? 'Intervenciones automáticas activadas'
+                : 'Intervenciones automáticas desactivadas',
             'server_now' => now()->toISOString(),
             'data' => $reunion->fresh()
         ]);

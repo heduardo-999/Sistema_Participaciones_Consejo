@@ -8,6 +8,7 @@ use App\Models\Historial;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
@@ -38,6 +39,42 @@ class UserController extends Controller
         return response()->json([
             'success' => true,
             'data' => $users
+        ]);
+    }
+
+
+    public function roles(Request $request)
+    {
+        $authUser = User::mySelf();
+
+        if (!$authUser || !$authUser->can('users.view')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autorizado'
+            ], 403);
+        }
+
+        $query = Role::query()->orderBy('name');
+
+        if ($authUser->hasRole('admin') && !$authUser->hasRole('super admin')) {
+            $query->where('name', 'moderador');
+        }
+
+        $roles = $query->get()
+            ->map(function ($role) {
+                return [
+                    'value' => $role->name,
+                    'label' => collect(explode(' ', str_replace('_', ' ', $role->name)))
+                        ->filter()
+                        ->map(fn ($word) => mb_convert_case($word, MB_CASE_TITLE, 'UTF-8'))
+                        ->implode(' '),
+                ];
+            })
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => $roles,
         ]);
     }
 

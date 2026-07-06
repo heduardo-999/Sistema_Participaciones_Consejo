@@ -22,6 +22,7 @@ class Reunion extends Model
         'fin_real_at',
         'intervenciones_pausadas',
         'intervenciones_pausadas_at',
+        'intervenciones_automaticas',
     ];
 
     protected $casts = [
@@ -30,6 +31,7 @@ class Reunion extends Model
         'fin_real_at' => 'datetime',
         'intervenciones_pausadas' => 'boolean',
         'intervenciones_pausadas_at' => 'datetime',
+        'intervenciones_automaticas' => 'boolean',
     ];
 
     public function participantes()

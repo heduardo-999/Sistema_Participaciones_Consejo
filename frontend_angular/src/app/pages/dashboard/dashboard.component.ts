@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { RealtimeService } from '../../core/services/realtime.service';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -23,6 +24,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     fin_real_at: null,
     intervenciones_pausadas: false,
     intervenciones_pausadas_at: null,
+    intervenciones_automaticas: false,
   });
 
   intervencionActual = signal<any>(null);
@@ -41,6 +43,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   horaActual = signal('');
   fechaActual = signal('');
   modoPresentacion = signal(false);
+
+  esVisualizador = computed(() => {
+    const roles = this.auth.user()?.roles ?? [];
+    return roles.some(role => String(role).toLowerCase() === 'visualizador');
+  });
   intervencionesPausadas = signal(false);
   menuControlAbierto = signal(false);
 
@@ -60,8 +67,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private historialLocalItems: any[] = [];
   private readonly LIMITE_HISTORIAL_DASHBOARD = 10;
 
-  private ocultarHistorialDashboard =
-    sessionStorage.getItem('ocultarHistorialDashboard') === '1';
+  mostrarHistorialIntervenciones = signal(
+    sessionStorage.getItem('mostrarHistorialDashboard') === '1'
+  );
+
+  intervencionesAutomaticas = computed(() =>
+    Boolean(this.reunion()?.intervenciones_automaticas)
+  );
 
   private historialInicioId = Number(
     sessionStorage.getItem('historialInicioId') || 0
@@ -191,7 +203,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   constructor(
     private api: ApiService,
-    private realtime: RealtimeService
+    private realtime: RealtimeService,
+    private auth: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -209,7 +222,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     this.refreshId = setInterval(() => {
       this.loadData(false);
-    }, 15000);
+    }, 60000);
 
     document.addEventListener('fullscreenchange', this.fullscreenHandler);
 
@@ -317,6 +330,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       fin_real_at: null,
       intervenciones_pausadas: false,
       intervenciones_pausadas_at: null,
+      intervenciones_automaticas: false,
     };
   }
 
@@ -425,6 +439,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   async completarTemaActual(): Promise<void> {
+    if (this.esVisualizador()) return;
+
     const tema = this.temaActual();
 
     if (!tema?.id) return;
@@ -546,6 +562,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       }
 
       if (
+        this.intervencionesAutomaticas() &&
         !actual &&
         !preparando &&
         pendientes.length > 0 &&
@@ -721,6 +738,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   async togglePausaIntervenciones(): Promise<void> {
+    if (this.esVisualizador()) return;
+
     const reunion = this.reunion();
 
     if (!reunion?.id || !this.reunionIniciada()) {
@@ -807,6 +826,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   async finalizarIntervencion(): Promise<void> {
+    if (this.esVisualizador()) return;
+
     const actual = this.intervencionActual();
 
     if (!actual) return;
@@ -837,7 +858,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private async cargarHistorial(): Promise<void> {
     if (
       !this.reunionIniciada() ||
-      this.ocultarHistorialDashboard ||
+      !this.mostrarHistorialIntervenciones() ||
       !this.historialInicioId
     ) {
       this.historialLocalItems = [];
@@ -932,6 +953,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   async reiniciarCronometro(): Promise<void> {
+    if (this.esVisualizador()) return;
+
     const actual = this.intervencionActual();
 
     if (!actual) return;
@@ -955,6 +978,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   async iniciarReunion(): Promise<void> {
+    if (this.esVisualizador()) return;
+
     let reunion = this.reunion();
 
     try {
@@ -981,8 +1006,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.historialLocalItems = [];
       this.historial.set([]);
 
-      this.ocultarHistorialDashboard = false;
-      sessionStorage.removeItem('ocultarHistorialDashboard');
+      this.mostrarHistorialIntervenciones.set(false);
+      sessionStorage.removeItem('mostrarHistorialDashboard');
 
       this.historialInicioId = await this.obtenerUltimoHistorialId();
       sessionStorage.setItem('historialInicioId', String(this.historialInicioId));
@@ -1019,6 +1044,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   async terminarReunion(): Promise<void> {
+    if (this.esVisualizador()) return;
+
     const reunion = this.reunion();
 
     if (!reunion?.id) {
@@ -1045,8 +1072,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.historialLocalItems = [];
       this.historial.set([]);
 
-      this.ocultarHistorialDashboard = true;
-      sessionStorage.setItem('ocultarHistorialDashboard', '1');
+      this.mostrarHistorialIntervenciones.set(false);
+      sessionStorage.removeItem('mostrarHistorialDashboard');
 
       this.historialInicioId = 0;
       sessionStorage.removeItem('historialInicioId');
@@ -1067,6 +1094,80 @@ export class DashboardComponent implements OnInit, OnDestroy {
     } finally {
       this.cerrarMenuControl();
     }
+  }
+
+
+  async toggleIntervencionesAutomaticas(): Promise<void> {
+    if (this.esVisualizador()) return;
+
+    const reunion = this.reunion();
+
+    if (!reunion?.id || !this.reunionIniciada()) {
+      alert('No hay reunión activa.');
+      return;
+    }
+
+    try {
+      const res: any = await this.api.post(
+        `/reuniones/${reunion.id}/toggle-intervenciones-automaticas`,
+        {}
+      );
+
+      this.sincronizarHoraServidor(this.obtenerServerNow(res));
+
+      const reunionActualizada = this.obtenerPayload(res);
+
+      if (reunionActualizada?.id) {
+        this.reunion.set({
+          ...this.reunion(),
+          ...reunionActualizada,
+        });
+
+        this.aplicarEstadoPausaDesdeReunion(reunionActualizada);
+      }
+
+      await this.cargarIntervenciones();
+    } catch (error) {
+      console.error('Error cambiando intervenciones automáticas:', error);
+      alert('No se pudo cambiar el estado de intervenciones automáticas.');
+    }
+  }
+
+  async iniciarIntervencionManual(item: any): Promise<void> {
+    if (this.esVisualizador()) return;
+
+    if (!item?.id) return;
+
+    if (this.intervencionesPausadas()) {
+      alert('Las intervenciones están pausadas.');
+      return;
+    }
+
+    if (this.intervencionActual()) {
+      alert('Ya existe una intervención activa.');
+      return;
+    }
+
+    if (this.preparando()) {
+      alert('Ya hay una intervención en preparación.');
+      return;
+    }
+
+    await this.prepararSiguiente(item);
+  }
+
+  toggleHistorialIntervenciones(): void {
+    this.mostrarHistorialIntervenciones.update(valor => !valor);
+
+    if (this.mostrarHistorialIntervenciones()) {
+      sessionStorage.setItem('mostrarHistorialDashboard', '1');
+      this.cargarHistorial();
+      return;
+    }
+
+    sessionStorage.removeItem('mostrarHistorialDashboard');
+    this.historialLocalItems = [];
+    this.historial.set([]);
   }
 
   actualizarReloj(): void {

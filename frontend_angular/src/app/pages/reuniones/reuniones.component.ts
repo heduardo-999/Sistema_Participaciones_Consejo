@@ -34,6 +34,16 @@ export class ReunionesComponent implements OnInit {
   savingTema = signal(false);
   temaForm: any = this.emptyTemaForm();
 
+  participantesModal = false;
+  reunionParticipantes: any = null;
+  participantesVersion = signal(0);
+  miembros = signal<any[]>([]);
+  invitados = signal<any[]>([]);
+  loadingParticipantes = signal(false);
+  savingParticipante = signal(false);
+  savingTodosMiembros = signal(false);
+  participanteForm: any = this.emptyParticipanteForm();
+
   estados = [
     { value: '', label: 'Todos' },
     { value: 'programada', label: 'Programada' },
@@ -89,6 +99,31 @@ export class ReunionesComponent implements OnInit {
   temasCompletados = computed(() =>
     this.temas().filter(tema => tema.status === 'completado')
   );
+
+  participantesReunion = computed(() => {
+    this.participantesVersion();
+    return this.reunionParticipantes?.participantes ?? [];
+  });
+
+  miembrosDisponibles = computed(() => {
+    const usados = new Set(
+      this.participantesReunion()
+        .map((participante: any) => Number(participante?.miembro_id || participante?.miembro?.id || 0))
+        .filter((id: number) => id > 0)
+    );
+
+    return this.miembros().filter((miembro: any) => !usados.has(Number(miembro.id)));
+  });
+
+  invitadosDisponibles = computed(() => {
+    const usados = new Set(
+      this.participantesReunion()
+        .map((participante: any) => Number(participante?.invitado_id || participante?.invitado?.id || 0))
+        .filter((id: number) => id > 0)
+    );
+
+    return this.invitados().filter((invitado: any) => !usados.has(Number(invitado.id)));
+  });
 
   constructor(private api: ApiService) {}
 
@@ -218,6 +253,168 @@ export class ReunionesComponent implements OnInit {
   cerrarDetalle(): void {
     this.detalleModal = false;
     this.detalleReunion = null;
+  }
+
+  async abrirParticipantes(item: any): Promise<void> {
+    this.error.set('');
+    this.reunionParticipantes = null;
+    this.participantesVersion.update(v => v + 1);
+    this.participanteForm = this.emptyParticipanteForm();
+    this.participantesModal = true;
+
+    await Promise.all([
+      this.cargarCatalogosParticipantes(),
+      this.cargarDetalleParticipantes(item.id),
+    ]);
+  }
+
+  cerrarParticipantes(): void {
+    this.participantesModal = false;
+    this.reunionParticipantes = null;
+    this.participantesVersion.update(v => v + 1);
+    this.participanteForm = this.emptyParticipanteForm();
+    this.error.set('');
+  }
+
+  async cargarCatalogosParticipantes(): Promise<void> {
+    try {
+      const [miembrosRes, invitadosRes]: any[] = await Promise.all([
+        this.api.get('/miembros'),
+        this.api.get('/invitados'),
+      ]);
+
+      this.miembros.set(this.normalizarRespuesta(miembrosRes));
+      this.invitados.set(this.normalizarRespuesta(invitadosRes));
+    } catch (error: any) {
+      console.error(error);
+      this.error.set(this.extractError(error) || 'No se pudieron cargar miembros e invitados.');
+      this.miembros.set([]);
+      this.invitados.set([]);
+    }
+  }
+
+  async cargarDetalleParticipantes(reunionId: number): Promise<void> {
+    this.loadingParticipantes.set(true);
+    this.error.set('');
+
+    try {
+      const res: any = await this.api.get(`/reuniones/${reunionId}`);
+
+      this.reunionParticipantes =
+        res?.data?.data ??
+        res?.data ??
+        res;
+
+      this.participantesVersion.update(v => v + 1);
+
+      if (this.detalleReunion?.id === this.reunionParticipantes?.id) {
+        this.detalleReunion = this.reunionParticipantes;
+      }
+    } catch (error: any) {
+      console.error(error);
+      this.error.set(this.extractError(error) || 'No se pudieron cargar los participantes de la reunión.');
+      this.reunionParticipantes = null;
+      this.participantesVersion.update(v => v + 1);
+    } finally {
+      this.loadingParticipantes.set(false);
+    }
+  }
+
+  async agregarParticipanteReunion(): Promise<void> {
+    if (!this.reunionParticipantes?.id) {
+      this.error.set('No hay una reunión seleccionada.');
+      return;
+    }
+
+    const tipo = this.participanteForm.tipo;
+    const miembroId = Number(this.participanteForm.miembro_id || 0);
+    const invitadoId = Number(this.participanteForm.invitado_id || 0);
+
+    if (tipo === 'miembro' && !miembroId) {
+      this.error.set('Selecciona un miembro.');
+      return;
+    }
+
+    if (tipo === 'invitado' && !invitadoId) {
+      this.error.set('Selecciona un invitado.');
+      return;
+    }
+
+    this.savingParticipante.set(true);
+    this.error.set('');
+
+    const payload: any = {
+      reunion_id: this.reunionParticipantes.id,
+      status: 'presente',
+      miembro_id: tipo === 'miembro' ? miembroId : null,
+      invitado_id: tipo === 'invitado' ? invitadoId : null,
+    };
+
+    try {
+      await this.api.post('/participantes', payload);
+      this.participanteForm = this.emptyParticipanteForm();
+      await this.cargarDetalleParticipantes(this.reunionParticipantes.id);
+      await this.load();
+    } catch (error: any) {
+      console.error(error);
+      this.error.set(this.extractError(error) || 'No se pudo agregar el participante.');
+    } finally {
+      this.savingParticipante.set(false);
+    }
+  }
+
+  async agregarTodosMiembros(): Promise<void> {
+    if (!this.reunionParticipantes?.id) {
+      this.error.set('No hay una reunión seleccionada.');
+      return;
+    }
+
+    if (!confirm('¿Seguro que deseas agregar todos los miembros disponibles a esta reunión? No se agregarán invitados.')) {
+      return;
+    }
+
+    this.savingTodosMiembros.set(true);
+    this.error.set('');
+
+    try {
+      await this.api.post(`/reuniones/${this.reunionParticipantes.id}/participantes/agregar-miembros`, {});
+      await this.cargarDetalleParticipantes(this.reunionParticipantes.id);
+      await this.load();
+    } catch (error: any) {
+      console.error(error);
+      this.error.set(this.extractError(error) || 'No se pudieron agregar todos los miembros.');
+    } finally {
+      this.savingTodosMiembros.set(false);
+    }
+  }
+
+  async eliminarParticipanteReunion(participante: any): Promise<void> {
+    if (!confirm(`¿Seguro que deseas quitar a "${this.nombreParticipante(participante)}" de esta reunión?`)) {
+      return;
+    }
+
+    this.loadingParticipantes.set(true);
+    this.error.set('');
+
+    try {
+      await this.api.delete(`/participantes/${participante.id}`);
+
+      if (this.reunionParticipantes?.id) {
+        await this.cargarDetalleParticipantes(this.reunionParticipantes.id);
+      }
+
+      if (this.detalleReunion?.id) {
+        const res: any = await this.api.get(`/reuniones/${this.detalleReunion.id}`);
+        this.detalleReunion = res?.data?.data ?? res?.data ?? res;
+      }
+
+      await this.load();
+    } catch (error: any) {
+      console.error(error);
+      this.error.set(this.extractError(error) || 'No se pudo quitar el participante.');
+    } finally {
+      this.loadingParticipantes.set(false);
+    }
   }
 
   async abrirTemas(item: any): Promise<void> {
@@ -505,6 +702,14 @@ export class ReunionesComponent implements OnInit {
     return {
       titulo: '',
       descripcion: '',
+    };
+  }
+
+  private emptyParticipanteForm(): any {
+    return {
+      tipo: 'miembro',
+      miembro_id: '',
+      invitado_id: '',
     };
   }
 

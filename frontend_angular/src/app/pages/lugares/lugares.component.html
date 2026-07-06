@@ -516,33 +516,36 @@
           </label>
 
           @if (puedeCambiarEstado()) {
-            <label class="md:col-span-2">
+            <div class="md:col-span-2">
               <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
                 Cambiar estado del ESP32
               </span>
 
-              <select
-                class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-                [(ngModel)]="nuevoStatus"
-              >
-                <option value="funcional">Funcional</option>
-                <option value="mantenimiento">Mantenimiento</option>
-                <option value="dañada">Dañada</option>
-                <option value="denegado">Denegado</option>
-              </select>
-            </label>
+              <div class="mt-1 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                <select
+                  class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                  [(ngModel)]="nuevoStatus"
+                >
+                  <option value="funcional">Funcional</option>
+                  <option value="mantenimiento">Mantenimiento</option>
+                  <option value="dañada">Dañada</option>
+                  <option value="denegado">Denegado</option>
+                </select>
+
+                <button
+                  type="button"
+                  class="w-full rounded-xl bg-yellow-500 px-5 py-3 text-sm font-black text-slate-950 hover:bg-yellow-400 disabled:opacity-50 sm:w-auto"
+                  (click)="cambiarEstado()"
+                  [disabled]="saving()"
+                >
+                  Guardar estado
+                </button>
+              </div>
+            </div>
           }
         </div>
 
         <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
-          <button
-            type="button"
-            class="w-full rounded-xl bg-slate-100 px-5 py-3 text-sm font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 sm:w-auto"
-            (click)="cerrarModal()"
-          >
-            Cerrar
-          </button>
-
           <button
             type="button"
             class="w-full rounded-xl bg-slate-700 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 sm:w-auto"
@@ -551,17 +554,6 @@
           >
             Reiniciar temporizador
           </button>
-
-          @if (puedeCambiarEstado()) {
-            <button
-              type="button"
-              class="w-full rounded-xl bg-yellow-500 px-5 py-3 text-sm font-black text-slate-950 hover:bg-yellow-400 sm:w-auto"
-              (click)="cambiarEstado()"
-              [disabled]="saving()"
-            >
-              Guardar estado
-            </button>
-          }
 
           @if (participanteAsignado(selected())) {
             <button

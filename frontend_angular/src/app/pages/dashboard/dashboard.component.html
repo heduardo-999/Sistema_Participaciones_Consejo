@@ -168,24 +168,52 @@
             }
           </div>
 
-          <div class="rounded-2xl border border-orange-200 bg-white p-4 text-center shadow-xl dark:border-orange-900/40 dark:bg-slate-900/80">
-            <div
-              class="text-[clamp(4rem,15vw,9rem)] font-black leading-none tabular-nums"
-              [class.text-green-500]="estadoTiempo() === 'verde'"
-              [class.text-yellow-500]="estadoTiempo() === 'amarillo'"
-              [class.text-red-500]="estadoTiempo() === 'rojo'"
-              [class.animate-pulse]="segundos() <= 60"
-            >
-              {{ tiempo() }}
+          <div class="rounded-2xl border border-orange-200 bg-white p-4 shadow-xl dark:border-orange-900/40 dark:bg-slate-900/80">
+            <div class="grid items-center gap-4 lg:grid-cols-[minmax(260px,0.65fr)_minmax(0,1fr)]">
+              <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center dark:border-slate-800 dark:bg-slate-950">
+                <p class="text-[10px] font-black uppercase tracking-[0.22em] text-rose-600 dark:text-rose-400">
+                  Intervención actual
+                </p>
+
+                @if (intervencionActual()) {
+                  <h3 class="mt-3 break-words text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
+                    {{ nombreParticipante(intervencionActual()) }}
+                  </h3>
+
+                  <p class="mt-2 text-sm font-bold text-slate-500 dark:text-slate-300">
+                    {{ tipoParticipante(intervencionActual()) }}
+                  </p>
+                } @else {
+                  <h3 class="mt-3 text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
+                    Sin intervención activa
+                  </h3>
+
+                  <p class="mt-2 text-sm font-bold text-slate-500 dark:text-slate-300">
+                    {{ esVisualizador() ? 'Esperando intervención del moderador.' : 'Selecciona “Iniciar intervención” en la cola.' }}
+                  </p>
+                }
+              </div>
+
+              <div class="text-center">
+                <div
+                  class="text-[clamp(4rem,15vw,9rem)] font-black leading-none tabular-nums"
+                  [class.text-green-500]="estadoTiempo() === 'verde'"
+                  [class.text-yellow-500]="estadoTiempo() === 'amarillo'"
+                  [class.text-red-500]="estadoTiempo() === 'rojo'"
+                  [class.animate-pulse]="segundos() <= 60"
+                >
+                  {{ tiempo() }}
+                </div>
+
+                <p class="mt-1 text-xl font-black text-slate-800 dark:text-slate-100 sm:text-2xl">
+                  Tiempo asignado: 5 minutos
+                </p>
+
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400 sm:text-sm">
+                  Cronómetro sincronizado con el inicio real de la intervención.
+                </p>
+              </div>
             </div>
-
-            <p class="mt-1 text-xl font-black text-slate-800 dark:text-slate-100 sm:text-2xl">
-              Tiempo asignado: 5 minutos
-            </p>
-
-            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400 sm:text-sm">
-              Cronómetro sincronizado con el inicio real de la intervención.
-            </p>
           </div>
 
           @if (intervencionesPausadas()) {
@@ -254,7 +282,7 @@
                 </h2>
 
                 <p class="mt-2 text-sm text-slate-600 dark:text-slate-300 sm:text-base">
-                  {{ intervencionesPausadas() ? 'Cuando se reanuden, la cola podrá avanzar nuevamente.' : 'Cuando exista alguien en cola, pasará automáticamente a preparación.' }}
+                  {{ intervencionesPausadas() ? 'Cuando se reanuden, la cola podrá avanzar nuevamente.' : 'Cuando exista alguien en cola, usa “Iniciar intervención” o activa las intervenciones automáticas.' }}
                 </p>
               }
             </div>
@@ -272,7 +300,7 @@
                 </h3>
 
                 <p class="text-xs text-slate-500 dark:text-slate-400">
-                  {{ intervencionesPausadas() ? 'Las intervenciones están pausadas.' : 'Se actualiza automáticamente.' }}
+                  {{ intervencionesPausadas() ? 'Las intervenciones están pausadas.' : (intervencionesAutomaticas() ? 'Modo automático activo.' : 'Modo manual activo.') }}
                 </p>
               </div>
 
@@ -313,6 +341,18 @@
                       PENDIENTE
                     </span>
                   }
+
+                  @if (!intervencionesAutomaticas() && !esVisualizador()) {
+                    <button
+                      type="button"
+                      class="mt-3 w-full rounded-xl bg-green-600 px-3 py-2 text-xs font-black text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
+                      (click)="iniciarIntervencionManual(item)"
+                      [disabled]="intervencionesPausadas() || !!intervencionActual() || preparando()"
+                    >
+                      <i class="fa-solid fa-play mr-2"></i>
+                      Iniciar intervención
+                    </button>
+                  }
                 </div>
               } @empty {
                 <div class="rounded-2xl border border-dashed border-slate-300 p-5 text-center text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
@@ -323,16 +363,34 @@
           </div>
 
           <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-xl dark:border-slate-800 dark:bg-slate-900/80">
-            <h3 class="text-lg font-black text-slate-900 dark:text-white">
-              Historial de intervenciones
-            </h3>
+            <div class="flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <h3 class="text-lg font-black text-slate-900 dark:text-white">
+                  Historial de intervenciones
+                </h3>
 
-            <p class="text-xs text-slate-500 dark:text-slate-400">
-              Últimas acciones realizadas.
-            </p>
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                  Oculto por defecto para mejorar el rendimiento visual.
+                </p>
+              </div>
 
-            <div class="mt-4 max-h-[320px] space-y-3 overflow-y-auto pr-1">
-              @for (item of historial(); track item.id) {
+              <button
+                type="button"
+                class="shrink-0 rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                (click)="toggleHistorialIntervenciones()"
+              >
+                <i
+                  class="fa-solid mr-2"
+                  [class.fa-eye]="!mostrarHistorialIntervenciones()"
+                  [class.fa-eye-slash]="mostrarHistorialIntervenciones()"
+                ></i>
+                {{ mostrarHistorialIntervenciones() ? 'Ocultar' : 'Mostrar' }}
+              </button>
+            </div>
+
+            @if (mostrarHistorialIntervenciones()) {
+              <div class="mt-4 max-h-[320px] space-y-3 overflow-y-auto pr-1">
+                @for (item of historial(); track item.id) {
                 <div class="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950">
                   <p class="truncate text-sm font-black text-slate-900 dark:text-white">
                     <i class="fa-solid fa-check mr-2 text-green-500"></i>
@@ -347,18 +405,24 @@
                     {{ formatearFechaHora(item.created_at) }}
                   </p>
                 </div>
-              } @empty {
-                <div class="rounded-2xl bg-slate-50 p-5 text-center text-xs text-slate-500 dark:bg-slate-950 dark:text-slate-400">
-                  Aún no hay acciones de intervención.
-                </div>
-              }
-            </div>
+                } @empty {
+                  <div class="rounded-2xl bg-slate-50 p-5 text-center text-xs text-slate-500 dark:bg-slate-950 dark:text-slate-400">
+                    Aún no hay acciones de intervención.
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-xs font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400">
+                El historial está oculto. Presiona “Mostrar” para consultarlo.
+              </div>
+            }
           </div>
         </aside>
       }
     </div>
   </div>
 
+  @if (!esVisualizador()) {
   <div class="fixed bottom-5 right-5 z-50 sm:bottom-6 sm:right-6">
     <button
       type="button"
@@ -444,6 +508,24 @@
 
             <button
               type="button"
+              (click)="toggleIntervencionesAutomaticas()"
+              class="rounded-2xl px-4 py-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:brightness-110"
+              [class.bg-green-700]="intervencionesAutomaticas()"
+              [class.bg-slate-800]="!intervencionesAutomaticas()"
+            >
+              <i
+                class="fa-solid"
+                [class.fa-toggle-on]="intervencionesAutomaticas()"
+                [class.fa-toggle-off]="!intervencionesAutomaticas()"
+              ></i>
+
+              <span class="ml-2">
+                {{ intervencionesAutomaticas() ? 'Intervenciones automáticas: activas' : 'Intervenciones automáticas: inactivas' }}
+              </span>
+            </button>
+
+            <button
+              type="button"
               (click)="reiniciarCronometro()"
               [disabled]="!intervencionActual()"
               class="rounded-2xl bg-slate-800 px-4 py-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
@@ -501,5 +583,6 @@
         </div>
       </div>
     </div>
+  }
   }
 </section>

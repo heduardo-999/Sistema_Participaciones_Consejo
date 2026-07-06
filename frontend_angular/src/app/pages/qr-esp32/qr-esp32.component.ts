@@ -13,6 +13,8 @@ import { RealtimeService } from '../../core/services/realtime.service';
 export class QrEsp32Component implements OnInit, OnDestroy {
   token = '';
   refreshInterval: any = null;
+  private validandoToken = false;
+  private readonly REFRESH_RESPALDO_MS = 60000;
 
   loading = signal(false);
   refreshing = signal(false);
@@ -40,9 +42,10 @@ export class QrEsp32Component implements OnInit, OnDestroy {
 
     this.iniciarSocketQr();
 
+    // Respaldo ligero: Socket.IO actualiza en tiempo real; este intervalo solo revalida cada minuto.
     this.refreshInterval = setInterval(() => {
       this.validarToken(true);
-    }, 15000);
+    }, this.REFRESH_RESPALDO_MS);
   }
 
   ngOnDestroy(): void {
@@ -77,6 +80,10 @@ export class QrEsp32Component implements OnInit, OnDestroy {
   }
 
   async validarToken(silent = false): Promise<void> {
+    if (this.validandoToken) return;
+
+    this.validandoToken = true;
+
     if (silent) {
       this.refreshing.set(true);
     } else {
@@ -100,6 +107,7 @@ export class QrEsp32Component implements OnInit, OnDestroy {
         clearInterval(this.refreshInterval);
       }
     } finally {
+      this.validandoToken = false;
       this.loading.set(false);
       this.refreshing.set(false);
     }

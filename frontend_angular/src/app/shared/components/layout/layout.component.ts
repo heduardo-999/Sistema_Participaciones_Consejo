@@ -26,6 +26,8 @@ export class LayoutComponent implements OnDestroy {
 
   user = computed(() => this.auth.user());
 
+  esVisualizador = computed(() => this.auth.isVisualizador());
+
   private modoPresentacionHandler = () => {
     this.modoPresentacion.set(document.body.classList.contains('modo-presentacion'));
   };
@@ -34,9 +36,10 @@ export class LayoutComponent implements OnDestroy {
     const user = this.auth.user();
 
     const rawMenus: any = user?.menus ?? [];
-    const roles: string[] = user?.roles ?? [];
+    const normalizedRoles = this.auth.normalizedRoles();
 
-    const isSuperAdmin = roles.includes('super admin');
+    const isSuperAdmin = normalizedRoles.includes('super admin');
+    const isVisualizador = this.auth.isVisualizador();
 
     const menus: any[] = Array.isArray(rawMenus)
       ? rawMenus
@@ -49,9 +52,12 @@ export class LayoutComponent implements OnDestroy {
 
     const rutasOcultas = [
       '/lugares-asignados',
+
+      // Los participantes ahora se administran desde Reuniones.
+      '/participantes',
     ];
 
-    return menus
+    const menusFiltrados = menus
       .filter((item: any) => Number(item.baja || 0) === 0)
       .filter((item: any) => !rutasOcultas.includes(item.url))
       .filter((item: any) => {
@@ -63,6 +69,16 @@ export class LayoutComponent implements OnDestroy {
         route: item.url ?? item.route,
         icon: item.icono ?? '•',
       }));
+
+    if (isVisualizador) {
+      const dashboard = menusFiltrados.find((item: any) => item.route === '/dashboard');
+
+      return dashboard
+        ? [dashboard]
+        : [{ label: 'Dashboard', route: '/dashboard', icon: '📊' }];
+    }
+
+    return menusFiltrados;
   });
 
   constructor(

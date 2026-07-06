@@ -85,11 +85,13 @@ Route::middleware(['auth:sanctum', 'CheckBaja'])->group(function () {
     Route::get('/reuniones-activa', [ReunionController::class, 'activa']);
     Route::post('/reuniones/{id}/iniciar', [ReunionController::class, 'iniciar']);
     Route::post('/reuniones/{id}/terminar', [ReunionController::class, 'terminar']);
+    Route::post('/reuniones/{id}/participantes/agregar-miembros', [ParticipanteController::class, 'agregarTodosMiembros']);
     Route::apiResource('reuniones', ReunionController::class);
 
     Route::apiResource('participantes', ParticipanteController::class);
     Route::apiResource('intervenciones', IntervencionController::class);
     Route::apiResource('historial', HistorialController::class);
+    Route::get('/users/roles', [UserController::class, 'roles']);
     Route::apiResource('users', UserController::class);
     Route::apiResource('lugares', LugarController::class);
     Route::apiResource('lugares-asignados', LugarAsignadoController::class);
@@ -105,4 +107,5 @@ Route::middleware(['auth:sanctum', 'CheckBaja'])->group(function () {
     Route::post('/reuniones/{id}/temas/reiniciar', [TemaReunionController::class, 'reiniciarTemas']);
 
     Route::post('/reuniones/{id}/toggle-pausa-intervenciones', [ReunionController::class, 'togglePausaIntervenciones']);
+    Route::post('/reuniones/{id}/toggle-intervenciones-automaticas', [ReunionController::class, 'toggleIntervencionesAutomaticas']);
 });

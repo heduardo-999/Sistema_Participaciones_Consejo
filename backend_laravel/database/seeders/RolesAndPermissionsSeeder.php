@@ -16,8 +16,10 @@ class RolesAndPermissionsSeeder extends Seeder
         $superAdmin = Role::firstOrCreate(['name' => 'super admin']);
         $admin = Role::firstOrCreate(['name' => 'admin']);
         $moderador = Role::firstOrCreate(['name' => 'moderador']);
+        $visualizador = Role::firstOrCreate(['name' => 'visualizador']);
 
         $modulos = [
+            'dashboard',
             'users',
             'miembros',
             'invitados',
@@ -47,6 +49,8 @@ class RolesAndPermissionsSeeder extends Seeder
         $superAdmin->syncPermissions(Permission::all());
 
         $admin->syncPermissions([
+            'dashboard.view',
+
             'users.view',
             'users.create',
             'users.edit',
@@ -91,6 +95,8 @@ class RolesAndPermissionsSeeder extends Seeder
         ]);
 
         $moderador->syncPermissions([
+            'dashboard.view',
+
             'miembros.view',
             'miembros.create',
             'miembros.edit',
@@ -126,5 +132,11 @@ class RolesAndPermissionsSeeder extends Seeder
 
             'users.view',
         ]);
+
+        $visualizador->syncPermissions([
+            'dashboard.view',
+        ]);
+
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
     }
 }

@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './core/guards/auth.guard';
+import { authGuard, visualizadorDashboardOnlyGuard } from './core/guards/auth.guard';
 
 import { LayoutComponent } from './shared/components/layout/layout.component';
 
@@ -33,6 +33,7 @@ export const routes: Routes = [
     path: '',
     component: LayoutComponent,
     canActivate: [authGuard],
+    canActivateChild: [visualizadorDashboardOnlyGuard],
     children: [
       {
         path: '',
@@ -101,4 +102,4 @@ export const routes: Routes = [
     path: '**',
     redirectTo: 'dashboard',
   },
-];  
+];
