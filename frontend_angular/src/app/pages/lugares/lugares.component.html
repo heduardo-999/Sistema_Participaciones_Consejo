@@ -470,6 +470,25 @@
         </div>
       </div>
 
+      <div class="rounded-3xl border border-blue-200 bg-blue-50 p-5 text-sm text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/20 dark:text-blue-300 sm:p-6">
+        <p class="font-black">
+          QR rezagados
+        </p>
+
+        <p class="mt-2">
+          Genera un solo QR para que los lugares 27 al 40 se asignen automáticamente en orden.
+        </p>
+
+        <button
+          type="button"
+          class="mt-4 w-full rounded-xl bg-blue-600 px-5 py-3 text-sm font-black text-white hover:bg-blue-700"
+          (click)="generarQrRezagados()"
+        >
+          <i class="fa-solid fa-qrcode mr-2"></i>
+          Ver QR rezagados 27-40
+        </button>
+      </div>
+
       <div class="rounded-3xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300 sm:p-6">
         <p class="font-black">
           Regla del sistema
@@ -607,6 +626,16 @@
             Reiniciar temporizador
           </button>
 
+          <button
+            type="button"
+            class="w-full rounded-xl bg-indigo-600 px-5 py-3 text-sm font-black text-white hover:bg-indigo-700 sm:w-auto"
+            (click)="generarQrAccesoLugar(selected())"
+            [disabled]="saving()"
+          >
+            <i class="fa-solid fa-qrcode mr-2"></i>
+            {{ selected()?.id >= 27 ? 'QR rezagados' : 'QR estático lugar' }}
+          </button>
+
           @if (participanteAsignado(selected())) {
             <button
               type="button"
@@ -614,7 +643,7 @@
               (click)="generarQrLugar()"
               [disabled]="saving()"
             >
-              Generar QR
+              QR temporal ESP32
             </button>
           }
 
@@ -634,6 +663,90 @@
             [disabled]="saving()"
           >
             Liberar
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+
+  @if (accesoQrModal) {
+    <div class="fixed inset-0 z-[65] grid place-items-center overflow-y-auto bg-slate-950/70 p-4">
+      <div class="my-6 w-full max-w-xl rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-6">
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0">
+            <p class="text-sm font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">
+              QR estático de acceso
+            </p>
+
+            <h3 class="break-words text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
+              {{ accesoQrData?.titulo }}
+            </h3>
+
+            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+              {{ accesoQrData?.descripcion }}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            (click)="cerrarQrAcceso()"
+            class="shrink-0 rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+          >
+            ✕
+          </button>
+        </div>
+
+        @if (accesoQrImage) {
+          <div class="mt-6 flex justify-center">
+            <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 sm:p-5">
+              <img
+                [src]="accesoQrImage"
+                alt="QR estático de acceso"
+                class="h-56 w-56 object-contain sm:h-72 sm:w-72"
+              />
+            </div>
+          </div>
+        }
+
+        <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
+          <p class="text-xs font-bold text-slate-500 dark:text-slate-400">
+            URL fija
+          </p>
+
+          <p class="mt-2 break-all font-mono text-xs text-indigo-600 dark:text-indigo-300">
+            {{ accesoQrData?.url }}
+          </p>
+        </div>
+
+        <div class="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-bold text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300">
+          <i class="fa-solid fa-circle-info mr-2"></i>
+          Este QR no se vence. Después del login, el sistema genera un acceso temporal a la ESP32 virtual.
+        </div>
+
+        <div class="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
+          <button
+            type="button"
+            class="w-full rounded-xl bg-indigo-600 px-5 py-3 text-sm font-black text-white hover:bg-indigo-700 sm:w-auto"
+            (click)="copiarQrAcceso()"
+          >
+            Copiar URL
+          </button>
+
+          <a
+            [href]="accesoQrData?.url"
+            target="_blank"
+            class="w-full rounded-xl bg-green-600 px-5 py-3 text-center text-sm font-black text-white hover:bg-green-700 sm:w-auto"
+          >
+            Abrir acceso
+          </a>
+
+          <button
+            type="button"
+            class="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700 sm:w-auto"
+            (click)="cerrarQrAcceso()"
+          >
+            Cerrar
           </button>
         </div>
       </div>

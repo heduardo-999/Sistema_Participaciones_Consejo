@@ -20,6 +20,7 @@ use App\Http\Controllers\Api\MenuRolController;
 use App\Http\Controllers\Api\RolPermisoController;
 use App\Http\Controllers\Api\TemaReunionController;
 use App\Http\Controllers\Api\VotacionController;
+use App\Http\Controllers\Api\AccesoLugarController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -27,6 +28,14 @@ Route::post('/qr/validar', [QrAccessController::class, 'validar']);
 Route::post('/qr/interaccion', [QrAccessController::class, 'interaccion']);
 Route::post('/qr/votacion/activa', [VotacionController::class, 'activaQr']);
 Route::post('/qr/votacion/votar', [VotacionController::class, 'votarQr']);
+
+Route::get('/acceso-lugar/{lugarId}', [AccesoLugarController::class, 'infoLugar']);
+Route::post('/acceso-lugar/{lugarId}/miembro', [AccesoLugarController::class, 'registrarMiembroLugar']);
+Route::post('/acceso-lugar/{lugarId}/invitado', [AccesoLugarController::class, 'registrarInvitadoLugar']);
+Route::get('/acceso-rezagados', [AccesoLugarController::class, 'infoRezagados']);
+Route::post('/acceso-rezagados/miembro', [AccesoLugarController::class, 'registrarMiembroRezagado']);
+Route::post('/acceso-rezagados/invitado', [AccesoLugarController::class, 'registrarInvitadoRezagado']);
+
 
 Route::middleware(['auth:sanctum', 'CheckBaja'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);

@@ -17,6 +17,7 @@ import { MenusRolesComponent } from './pages/menus-roles/menus-roles.component';
 import { RolesPermisosComponent } from './pages/roles-permisos/roles-permisos.component';
 
 import { QrEsp32Component } from './pages/qr-esp32/qr-esp32.component';
+import { AccesoLugarComponent } from './pages/acceso-lugar/acceso-lugar.component';
 
 export const routes: Routes = [
   {
@@ -27,6 +28,17 @@ export const routes: Routes = [
   {
     path: 'qr/esp32/:token',
     component: QrEsp32Component,
+  },
+
+
+  {
+    path: 'acceso-lugar/:lugarId',
+    component: AccesoLugarComponent,
+  },
+
+  {
+    path: 'acceso-rezagados',
+    component: AccesoLugarComponent,
   },
 
   {

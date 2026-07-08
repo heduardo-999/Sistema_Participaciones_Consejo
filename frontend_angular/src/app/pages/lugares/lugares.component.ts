@@ -30,6 +30,10 @@ export class LugaresComponent implements OnInit, OnDestroy {
   qrData: any = null;
   qrImage = '';
 
+  accesoQrModal = false;
+  accesoQrData: any = null;
+  accesoQrImage = '';
+
   constructor(
     private api: ApiService,
     private auth: AuthService,
@@ -97,12 +101,13 @@ export class LugaresComponent implements OnInit, OnDestroy {
   }
 
   // Distribución responsiva de 40 lugares:
-  // - 14 lugares en la parte superior externa.
-  // - 26 lugares formando la C: 10 arriba, 6 al lado izquierdo y 10 abajo.
-  superiorSeats = computed(() => this.lugares().slice(0, 14));
-  cTopSeats = computed(() => this.lugares().slice(14, 24));
-  cLeftSeats = computed(() => this.lugares().slice(24, 30));
-  cBottomSeats = computed(() => this.lugares().slice(30, 40));
+  // - La mesa principal en forma de C usa los lugares 1 al 26.
+  // - La parte superior externa usa los lugares 27 al 40.
+  // - La C se divide en 10 arriba, 6 al lado izquierdo y 10 abajo.
+  cTopSeats = computed(() => this.lugares().slice(0, 10));
+  cLeftSeats = computed(() => this.lugares().slice(10, 16));
+  cBottomSeats = computed(() => this.lugares().slice(16, 26));
+  superiorSeats = computed(() => this.lugares().slice(26, 40));
 
   // Compatibilidad con nombres anteriores por si alguna vista o prueba todavía los usa.
   topSeats = computed(() => this.superiorSeats());
@@ -320,6 +325,95 @@ export class LugaresComponent implements OnInit, OnDestroy {
     } finally {
       this.saving.set(false);
     }
+  }
+
+
+  async generarQrAccesoLugar(lugar: any): Promise<void> {
+    if (!lugar?.id) return;
+
+    const id = Number(lugar.id);
+
+    if (id >= 27 && id <= 40) {
+      await this.generarQrRezagados();
+      return;
+    }
+
+    if (id < 1 || id > 26) {
+      this.error.set('Solo los lugares 1 al 26 tienen QR individual.');
+      return;
+    }
+
+    const url = `${this.frontendBaseUrl()}/acceso-lugar/${id}`;
+
+    this.accesoQrData = {
+      tipo: 'lugar',
+      titulo: `QR estático lugar ${id}`,
+      descripcion: 'Este QR asigna automáticamente este lugar físico.',
+      url,
+    };
+
+    this.accesoQrImage = await QRCode.toDataURL(url, {
+      width: 320,
+      margin: 2,
+    });
+
+    this.accesoQrModal = true;
+  }
+
+  async generarQrRezagados(): Promise<void> {
+    const url = `${this.frontendBaseUrl()}/acceso-rezagados`;
+
+    this.accesoQrData = {
+      tipo: 'rezagados',
+      titulo: 'QR rezagados 27 al 40',
+      descripcion: 'Este QR asigna automáticamente el primer lugar libre del 27 al 40.',
+      url,
+    };
+
+    this.accesoQrImage = await QRCode.toDataURL(url, {
+      width: 320,
+      margin: 2,
+    });
+
+    this.accesoQrModal = true;
+  }
+
+  async copiarQrAcceso(): Promise<void> {
+    const url = this.accesoQrData?.url;
+
+    if (!url) return;
+
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.value = url;
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '-9999px';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+      }
+
+      alert('URL copiada.');
+    } catch (error) {
+      console.error(error);
+      alert('No se pudo copiar la URL. Cópiala manualmente.');
+    }
+  }
+
+  cerrarQrAcceso(): void {
+    this.accesoQrModal = false;
+    this.accesoQrData = null;
+    this.accesoQrImage = '';
+  }
+
+  private frontendBaseUrl(): string {
+    return window.location.origin;
   }
 
   async generarQrLugar(): Promise<void> {
