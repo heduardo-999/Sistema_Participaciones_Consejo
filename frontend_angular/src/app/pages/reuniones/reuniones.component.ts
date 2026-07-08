@@ -44,6 +44,11 @@ export class ReunionesComponent implements OnInit {
   savingTodosMiembros = signal(false);
   participanteForm: any = this.emptyParticipanteForm();
 
+  votacionesModal = false;
+  reunionVotaciones: any = null;
+  votacionesReunion = signal<any[]>([]);
+  loadingVotaciones = signal(false);
+
   estados = [
     { value: '', label: 'Todos' },
     { value: 'programada', label: 'Programada' },
@@ -415,6 +420,80 @@ export class ReunionesComponent implements OnInit {
     } finally {
       this.loadingParticipantes.set(false);
     }
+  }
+
+  async abrirVotaciones(item: any): Promise<void> {
+    this.error.set('');
+    this.reunionVotaciones = item;
+    this.votacionesReunion.set([]);
+    this.votacionesModal = true;
+
+    await this.cargarVotaciones(item.id);
+  }
+
+  cerrarVotaciones(): void {
+    this.votacionesModal = false;
+    this.reunionVotaciones = null;
+    this.votacionesReunion.set([]);
+    this.error.set('');
+  }
+
+  async cargarVotaciones(reunionId: number): Promise<void> {
+    this.loadingVotaciones.set(true);
+    this.error.set('');
+
+    try {
+      const res: any = await this.api.get(`/reuniones/${reunionId}/votaciones`);
+      const data = res?.data?.data ?? res?.data ?? res ?? {};
+      const votaciones = data?.votaciones ?? data;
+      this.votacionesReunion.set(Array.isArray(votaciones) ? votaciones : []);
+    } catch (error: any) {
+      console.error(error);
+      this.error.set(this.extractError(error) || 'No se pudieron cargar las votaciones de la reunión.');
+      this.votacionesReunion.set([]);
+    } finally {
+      this.loadingVotaciones.set(false);
+    }
+  }
+
+  totalVotos(votacion: any): number {
+    return Number(votacion?.resultados?.total || 0);
+  }
+
+  votosSi(votacion: any): number {
+    return Number(votacion?.resultados?.si || 0);
+  }
+
+  votosNo(votacion: any): number {
+    return Number(votacion?.resultados?.no || 0);
+  }
+
+  votosAbstencion(votacion: any): number {
+    return Number(votacion?.resultados?.abstencion || 0);
+  }
+
+  porcentajeVoto(votacion: any, tipo: 'si' | 'no' | 'abstencion'): number {
+    const total = this.totalVotos(votacion);
+    if (!total) return 0;
+    return Math.round((Number(votacion?.resultados?.[tipo] || 0) / total) * 100);
+  }
+
+  graficaVotacionStyle(votacion: any): any {
+    const total = this.totalVotos(votacion);
+
+    if (!total) {
+      return {
+        background: 'conic-gradient(#cbd5e1 0deg 360deg)',
+      };
+    }
+
+    const si = (this.votosSi(votacion) / total) * 360;
+    const no = (this.votosNo(votacion) / total) * 360;
+    const abstencion = 360 - si - no;
+
+    return {
+      background: `conic-gradient(#22c55e 0deg ${si}deg, #ef4444 ${si}deg ${si + no}deg, #f59e0b ${si + no}deg ${si + no + abstencion}deg)`,
+    };
   }
 
   async abrirTemas(item: any): Promise<void> {

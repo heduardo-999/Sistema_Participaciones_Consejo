@@ -12,6 +12,50 @@ use Illuminate\Support\Facades\Validator;
 
 class IntervencionController extends Controller
 {
+
+    public function dashboardIntervenciones()
+    {
+        $reunion = \App\Models\Reunion::where('status', 'activa')
+            ->latest('id')
+            ->first();
+
+        $query = Intervencion::with([
+            'participante:id,miembro_id,invitado_id,reunion_id,fecha,status',
+            'participante.miembro:id,nombre,rfid,baja',
+            'participante.invitado:id,nombre,fecha_participacion',
+            'participante.reunion:id,sesion,fecha,status,hora_inicio,hora_fin,inicio_real_at,fin_real_at,intervenciones_pausadas,intervenciones_pausadas_at,intervenciones_automaticas',
+        ])
+            ->where('solicita_intervencion', true)
+            ->whereIn('status', ['aun no intervino', 'preparando', 'interviniendo']);
+
+        if ($reunion) {
+            $query->whereHas('participante', function ($q) use ($reunion) {
+                $q->where('reunion_id', $reunion->id);
+            });
+        }
+
+        return response()->json([
+            'success' => true,
+            'server_now' => now()->toISOString(),
+            'data' => $query
+                ->orderByRaw("FIELD(status, 'interviniendo', 'preparando', 'aun no intervino')")
+                ->orderBy('created_at', 'asc')
+                ->get()
+        ]);
+    }
+
+    public function dashboardHistorial()
+    {
+        return response()->json([
+            'success' => true,
+            'server_now' => now()->toISOString(),
+            'data' => Historial::orderBy('id', 'desc')
+                ->limit(30)
+                ->get()
+        ]);
+    }
+
+
     public function index()
     {
         if (!User::mySelf()->can('intervenciones.view')) {

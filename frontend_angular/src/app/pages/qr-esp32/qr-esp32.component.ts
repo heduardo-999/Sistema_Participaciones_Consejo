@@ -23,6 +23,8 @@ export class QrEsp32Component implements OnInit, OnDestroy {
   message = signal('');
 
   data = signal<any>(null);
+  voteSending = signal(false);
+  voteMessage = signal('');
 
   constructor(
     private route: ActivatedRoute,
@@ -57,6 +59,7 @@ export class QrEsp32Component implements OnInit, OnDestroy {
     this.realtime.off('intervenciones:updated');
     this.realtime.off('participantes:updated');
     this.realtime.off('lugares:updated');
+    this.realtime.off('votacion:updated');
   }
 
   private iniciarSocketQr(): void {
@@ -75,6 +78,10 @@ export class QrEsp32Component implements OnInit, OnDestroy {
     });
 
     this.realtime.on('lugares:updated', async () => {
+      await this.validarToken(true);
+    });
+
+    this.realtime.on('votacion:updated', async () => {
       await this.validarToken(true);
     });
   }
@@ -98,6 +105,7 @@ export class QrEsp32Component implements OnInit, OnDestroy {
       });
 
       this.data.set(res?.data?.data ?? res?.data ?? res);
+      await this.cargarVotacionQr();
     } catch (error: any) {
       console.error('Error validando QR:', error);
       this.error.set(this.extractError(error) || 'QR inválido, expirado o reunión no activa.');
@@ -140,6 +148,91 @@ export class QrEsp32Component implements OnInit, OnDestroy {
     } finally {
       this.sending.set(false);
     }
+  }
+
+
+  async cargarVotacionQr(): Promise<void> {
+    if (!this.token || !this.data()) return;
+
+    try {
+      const res: any = await this.api.post('/qr/votacion/activa', {
+        token: this.token,
+      });
+
+      const body = res?.data?.data ?? res?.data ?? res;
+      this.data.set({
+        ...this.data(),
+        votacion: body?.votacion ?? null,
+        voto: body?.voto ?? null,
+        puede_votar: Boolean(body?.puede_votar),
+        motivo_votacion: body?.motivo ?? '',
+      });
+    } catch {
+      this.data.set({
+        ...this.data(),
+        votacion: null,
+        voto: null,
+        puede_votar: false,
+        motivo_votacion: '',
+      });
+    }
+  }
+
+  async votar(valor: 'si' | 'no' | 'abstencion'): Promise<void> {
+    if (!this.token || this.voteSending()) return;
+
+    this.voteSending.set(true);
+    this.voteMessage.set('');
+    this.error.set('');
+
+    try {
+      const res: any = await this.api.post('/qr/votacion/votar', {
+        token: this.token,
+        voto: valor,
+      });
+
+      const body = res?.data?.data ?? res?.data ?? res;
+
+      this.voteMessage.set(body?.message || res?.data?.message || 'Voto registrado correctamente.');
+
+      this.data.set({
+        ...this.data(),
+        votacion: body?.votacion ?? this.votacion(),
+        voto: body?.voto ?? { voto: valor },
+        puede_votar: false,
+      });
+
+      setTimeout(() => {
+        this.voteMessage.set('');
+      }, 3500);
+    } catch (error: any) {
+      console.error('Error registrando voto:', error);
+      this.error.set(this.extractError(error) || 'No se pudo registrar tu voto.');
+    } finally {
+      this.voteSending.set(false);
+    }
+  }
+
+  votacion(): any {
+    return this.data()?.votacion || null;
+  }
+
+  votoRegistrado(): any {
+    return this.data()?.voto || null;
+  }
+
+  puedeVotar(): boolean {
+    return Boolean(this.data()?.puede_votar);
+  }
+
+  textoVotoRegistrado(): string {
+    const voto = String(this.votoRegistrado()?.voto || '').toLowerCase();
+
+    if (voto === 'si') return 'Sí';
+    if (voto === 'no') return 'No';
+    if (voto === 'abstencion') return 'Abstención';
+
+    return '';
   }
 
   participante(): any {

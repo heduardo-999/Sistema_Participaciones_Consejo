@@ -22,7 +22,7 @@ class LugarController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => Lugar::where('baja', 0)->get()
+            'data' => Lugar::where('baja', 0)->orderBy('id')->get()
         ]);
     }
 
@@ -258,6 +258,7 @@ public function resumen()
         }
 
         $lugares = Lugar::where('baja', 0)
+            ->orderBy('id')
             ->with([
                 'asignaciones.participante.miembro',
                 'asignaciones.participante.invitado',

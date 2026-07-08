@@ -112,12 +112,12 @@
     </div>
   </div>
 
-  <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+  <div class="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_340px]">
     <div class="min-w-0 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-6">
       <div class="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div class="min-w-0">
           <h3 class="text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
-            Mesa rectangular
+            Distribución en C
           </h3>
 
           <p class="text-sm text-slate-500 dark:text-slate-400">
@@ -152,148 +152,161 @@
         </div>
       </div>
 
-      <!-- Vista móvil -->
-      <div class="md:hidden">
-        <div class="rounded-3xl bg-slate-50 p-3 dark:bg-slate-950">
-          <div class="mb-4 rounded-2xl border border-slate-200 bg-white p-4 text-center dark:border-slate-800 dark:bg-slate-900">
+      <!-- Vista móvil y tablet: secciones apiladas para evitar desbordamientos -->
+      <div class="lg:hidden">
+        <div class="space-y-4 rounded-3xl bg-slate-50 p-3 dark:bg-slate-950">
+          <div class="rounded-2xl border border-slate-200 bg-white p-4 text-center dark:border-slate-800 dark:bg-slate-900">
             <p class="text-xs font-black uppercase tracking-[0.25em] text-rose-600 dark:text-rose-400">
-              Vista móvil
+              Vista de la sala de consejo
             </p>
 
             <h4 class="mt-2 text-2xl font-black text-slate-900 dark:text-white">
-              30 lugares
+              40 lugares
             </h4>
 
             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Toca un lugar para ver detalle o asignar participante.
+              Los 14 lugares superiores se muestran aparte y la mesa principal conserva la forma de C.
             </p>
           </div>
 
-          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
-            @for (lugar of topSeats(); track lugar.id) {
-              <button
-                type="button"
-                class="min-h-24 rounded-2xl border-2 p-2 text-center text-xs font-bold shadow-sm transition active:scale-95"
-                [class]="seatClass(lugar)"
-                (click)="seleccionar(lugar)"
-              >
-                <span class="block text-xl font-black">
-                  {{ numeroLugar(lugar) }}
-                </span>
+          <div class="rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+            <p class="mb-3 text-center text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+              Parte superior · 14 lugares
+            </p>
 
-                <span class="block truncate">
-                  {{ lugar.esp_id }}
-                </span>
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-4 md:grid-cols-7">
+              @for (lugar of superiorSeats(); track lugar.id) {
+                <button
+                  type="button"
+                  class="min-h-20 rounded-2xl border-2 p-2 text-center text-[11px] font-bold shadow-sm transition active:scale-95"
+                  [class]="seatClass(lugar)"
+                  (click)="seleccionar(lugar)"
+                >
+                  <span class="block text-lg font-black">
+                    {{ numeroLugar(lugar) }}
+                  </span>
 
-                <span class="block truncate">
-                  {{ nombreParticipantePorLugar(lugar) }}
-                </span>
-              </button>
-            }
+                  <span class="block truncate">
+                    {{ lugar.esp_id }}
+                  </span>
 
-            @for (lugar of rightSeats(); track lugar.id) {
-              <button
-                type="button"
-                class="min-h-24 rounded-2xl border-2 p-2 text-center text-xs font-bold shadow-sm transition active:scale-95"
-                [class]="seatClass(lugar)"
-                (click)="seleccionar(lugar)"
-              >
-                <span class="block text-xl font-black">
-                  {{ numeroLugar(lugar) }}
-                </span>
+                  <span class="block truncate">
+                    {{ nombreParticipantePorLugar(lugar) }}
+                  </span>
+                </button>
+              }
+            </div>
+          </div>
 
-                <span class="block truncate">
-                  {{ lugar.esp_id }}
-                </span>
+          <div class="rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+            <p class="mb-3 text-center text-xs font-black uppercase tracking-[0.22em] text-rose-600 dark:text-rose-400">
+              Mesa de consejo en C · 26 lugares
+            </p>
 
-                <span class="block truncate">
-                  {{ nombreParticipantePorLugar(lugar) }}
-                </span>
-              </button>
-            }
+            <div class="space-y-3">
+              <div class="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                @for (lugar of cTopSeats(); track lugar.id) {
+                  <button
+                    type="button"
+                    class="min-h-20 rounded-2xl border-2 p-2 text-center text-[11px] font-bold shadow-sm transition active:scale-95"
+                    [class]="seatClass(lugar)"
+                    (click)="seleccionar(lugar)"
+                  >
+                    <span class="block text-lg font-black">
+                      {{ numeroLugar(lugar) }}
+                    </span>
 
-            @for (lugar of bottomSeats(); track lugar.id) {
-              <button
-                type="button"
-                class="min-h-24 rounded-2xl border-2 p-2 text-center text-xs font-bold shadow-sm transition active:scale-95"
-                [class]="seatClass(lugar)"
-                (click)="seleccionar(lugar)"
-              >
-                <span class="block text-xl font-black">
-                  {{ numeroLugar(lugar) }}
-                </span>
+                    <span class="block truncate">
+                      {{ lugar.esp_id }}
+                    </span>
 
-                <span class="block truncate">
-                  {{ lugar.esp_id }}
-                </span>
+                    <span class="block truncate">
+                      {{ nombreParticipantePorLugar(lugar) }}
+                    </span>
+                  </button>
+                }
+              </div>
 
-                <span class="block truncate">
-                  {{ nombreParticipantePorLugar(lugar) }}
-                </span>
-              </button>
-            }
+              <div class="grid grid-cols-[86px_minmax(0,1fr)] gap-3 sm:grid-cols-[96px_minmax(0,1fr)]">
+                <div class="grid gap-2">
+                  @for (lugar of cLeftSeats(); track lugar.id) {
+                    <button
+                      type="button"
+                      class="min-h-20 rounded-2xl border-2 p-2 text-center text-[11px] font-bold shadow-sm transition active:scale-95"
+                      [class]="seatClass(lugar)"
+                      (click)="seleccionar(lugar)"
+                    >
+                      <span class="block text-lg font-black">
+                        {{ numeroLugar(lugar) }}
+                      </span>
 
-            @for (lugar of leftSeats(); track lugar.id) {
-              <button
-                type="button"
-                class="min-h-24 rounded-2xl border-2 p-2 text-center text-xs font-bold shadow-sm transition active:scale-95"
-                [class]="seatClass(lugar)"
-                (click)="seleccionar(lugar)"
-              >
-                <span class="block text-xl font-black">
-                  {{ numeroLugar(lugar) }}
-                </span>
+                      <span class="block truncate">
+                        {{ lugar.esp_id }}
+                      </span>
 
-                <span class="block truncate">
-                  {{ lugar.esp_id }}
-                </span>
+                      <span class="block truncate">
+                        {{ nombreParticipantePorLugar(lugar) }}
+                      </span>
+                    </button>
+                  }
+                </div>
 
-                <span class="block truncate">
-                  {{ nombreParticipantePorLugar(lugar) }}
-                </span>
-              </button>
-            }
+                <div class="grid min-h-[360px] place-items-center rounded-[2rem] border-4 border-dashed border-slate-300 bg-slate-50 p-4 text-center dark:border-slate-700 dark:bg-slate-950">
+                  <div>
+
+                    <h4 class="mt-2 text-2xl font-black text-slate-900 dark:text-white">
+                      Area central
+                    </h4>
+
+                  </div>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                @for (lugar of cBottomSeats(); track lugar.id) {
+                  <button
+                    type="button"
+                    class="min-h-20 rounded-2xl border-2 p-2 text-center text-[11px] font-bold shadow-sm transition active:scale-95"
+                    [class]="seatClass(lugar)"
+                    (click)="seleccionar(lugar)"
+                  >
+                    <span class="block text-lg font-black">
+                      {{ numeroLugar(lugar) }}
+                    </span>
+
+                    <span class="block truncate">
+                      {{ lugar.esp_id }}
+                    </span>
+
+                    <span class="block truncate">
+                      {{ nombreParticipantePorLugar(lugar) }}
+                    </span>
+                  </button>
+                }
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Vista tablet / escritorio -->
-      <div class="hidden md:block">
-        <div class="overflow-x-auto rounded-[2rem] bg-slate-50 p-4 dark:bg-slate-950 sm:p-5">
-          <div class="mx-auto min-w-[760px] max-w-6xl space-y-4">
-            <div class="grid grid-cols-10 gap-3">
-              @for (lugar of topSeats(); track lugar.id) {
-                <button
-                  type="button"
-                  class="min-h-24 rounded-2xl border-2 p-2 text-center text-xs font-bold shadow-sm transition hover:scale-105"
-                  [class]="seatClass(lugar)"
-                  (click)="seleccionar(lugar)"
-                >
-                  <span class="block text-xl font-black">
-                    {{ numeroLugar(lugar) }}
-                  </span>
+      <!-- Vista escritorio grande: mantiene la forma de C sin forzar scroll horizontal -->
+      <div class="hidden lg:block">
+        <div class="rounded-[2rem] bg-slate-50 p-4 dark:bg-slate-950 sm:p-5">
+          <div class="mx-auto w-full max-w-7xl space-y-5">
+            <div class="rounded-[2rem] border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+              <p class="mb-3 text-center text-sm font-black uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
+                Parte superior · 14 lugares
+              </p>
 
-                  <span class="block truncate">
-                    {{ lugar.esp_id }}
-                  </span>
-
-                  <span class="block truncate">
-                    {{ nombreParticipantePorLugar(lugar) }}
-                  </span>
-                </button>
-              }
-            </div>
-
-            <div class="grid grid-cols-[100px_1fr_100px] gap-4">
-              <div class="grid gap-3">
-                @for (lugar of leftSeats(); track lugar.id) {
+              <div class="grid grid-cols-7 gap-2 xl:grid-cols-14">
+                @for (lugar of superiorSeats(); track lugar.id) {
                   <button
                     type="button"
-                    class="min-h-24 rounded-2xl border-2 p-2 text-center text-xs font-bold shadow-sm transition hover:scale-105"
+                    class="min-h-[78px] rounded-2xl border-2 p-2 text-center text-[10px] font-bold shadow-sm transition hover:scale-[1.03]"
                     [class]="seatClass(lugar)"
                     (click)="seleccionar(lugar)"
                   >
-                    <span class="block text-xl font-black">
+                    <span class="block text-lg font-black xl:text-xl">
                       {{ numeroLugar(lugar) }}
                     </span>
 
@@ -307,74 +320,113 @@
                   </button>
                 }
               </div>
+            </div>
 
-              <div class="grid place-items-center rounded-[2rem] border-4 border-slate-300 bg-white p-8 text-center shadow-inner dark:border-slate-700 dark:bg-slate-900">
-                <div>
-                  <p class="text-sm font-black uppercase tracking-[0.3em] text-rose-600 dark:text-rose-400">
-                    Mesa de consejo
-                  </p>
+            <div class="rounded-[2rem] border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+              <div class="mb-4 text-center">
+                <p class="text-sm font-black uppercase tracking-[0.3em] text-rose-600 dark:text-rose-400">
+                  Mesa de consejo en C
+                </p>
 
-                  <h4 class="mt-3 text-3xl font-black text-slate-900 dark:text-white lg:text-4xl">
-                    30 lugares
-                  </h4>
+                <h4 class="mt-2 text-2xl font-black text-slate-900 dark:text-white xl:text-3xl">
+                  26 lugares
+                </h4>
+              </div>
 
-                  <p class="mt-2 text-slate-500 dark:text-slate-400">
-                    Vista superior del acomodo institucional.
-                  </p>
+              <div class="space-y-3">
+                <div class="grid grid-cols-5 gap-2 xl:grid-cols-10">
+                  @for (lugar of cTopSeats(); track lugar.id) {
+                    <button
+                      type="button"
+                      class="min-h-[82px] rounded-2xl border-2 p-2 text-center text-[10px] font-bold shadow-sm transition hover:scale-[1.03]"
+                      [class]="seatClass(lugar)"
+                      (click)="seleccionar(lugar)"
+                    >
+                      <span class="block text-lg font-black xl:text-xl">
+                        {{ numeroLugar(lugar) }}
+                      </span>
+
+                      <span class="block truncate">
+                        {{ lugar.esp_id }}
+                      </span>
+
+                      <span class="block truncate">
+                        {{ nombreParticipantePorLugar(lugar) }}
+                      </span>
+                    </button>
+                  }
+                </div>
+
+                <div class="grid grid-cols-[86px_minmax(0,1fr)] gap-3 xl:grid-cols-[108px_minmax(0,1fr)]">
+                  <div class="grid gap-2">
+                    @for (lugar of cLeftSeats(); track lugar.id) {
+                      <button
+                        type="button"
+                        class="min-h-[82px] rounded-2xl border-2 p-2 text-center text-[10px] font-bold shadow-sm transition hover:scale-[1.03]"
+                        [class]="seatClass(lugar)"
+                        (click)="seleccionar(lugar)"
+                      >
+                        <span class="block text-lg font-black xl:text-xl">
+                          {{ numeroLugar(lugar) }}
+                        </span>
+
+                        <span class="block truncate">
+                          {{ lugar.esp_id }}
+                        </span>
+
+                        <span class="block truncate">
+                          {{ nombreParticipantePorLugar(lugar) }}
+                        </span>
+                      </button>
+                    }
+                  </div>
+
+                  <div class="grid min-h-[520px] place-items-center rounded-[2rem] border-4 border-dashed border-slate-300 bg-slate-50 p-5 text-center shadow-inner dark:border-slate-700 dark:bg-slate-950">
+                    <div>
+                      <p class="text-sm font-black uppercase tracking-[0.3em] text-rose-600 dark:text-rose-400">
+                        Área central
+                      </p>
+
+                      <h4 class="mt-3 text-3xl font-black text-slate-900 dark:text-white xl:text-4xl">
+                        Distribución en C
+                      </h4>
+
+                      <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
+                        La apertura de la C queda hacia el lado derecho.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-5 gap-2 xl:grid-cols-10">
+                  @for (lugar of cBottomSeats(); track lugar.id) {
+                    <button
+                      type="button"
+                      class="min-h-[82px] rounded-2xl border-2 p-2 text-center text-[10px] font-bold shadow-sm transition hover:scale-[1.03]"
+                      [class]="seatClass(lugar)"
+                      (click)="seleccionar(lugar)"
+                    >
+                      <span class="block text-lg font-black xl:text-xl">
+                        {{ numeroLugar(lugar) }}
+                      </span>
+
+                      <span class="block truncate">
+                        {{ lugar.esp_id }}
+                      </span>
+
+                      <span class="block truncate">
+                        {{ nombreParticipantePorLugar(lugar) }}
+                      </span>
+                    </button>
+                  }
                 </div>
               </div>
-
-              <div class="grid gap-3">
-                @for (lugar of rightSeats(); track lugar.id) {
-                  <button
-                    type="button"
-                    class="min-h-24 rounded-2xl border-2 p-2 text-center text-xs font-bold shadow-sm transition hover:scale-105"
-                    [class]="seatClass(lugar)"
-                    (click)="seleccionar(lugar)"
-                  >
-                    <span class="block text-xl font-black">
-                      {{ numeroLugar(lugar) }}
-                    </span>
-
-                    <span class="block truncate">
-                      {{ lugar.esp_id }}
-                    </span>
-
-                    <span class="block truncate">
-                      {{ nombreParticipantePorLugar(lugar) }}
-                    </span>
-                  </button>
-                }
-              </div>
-            </div>
-
-            <div class="grid grid-cols-10 gap-3">
-              @for (lugar of bottomSeats(); track lugar.id) {
-                <button
-                  type="button"
-                  class="min-h-24 rounded-2xl border-2 p-2 text-center text-xs font-bold shadow-sm transition hover:scale-105"
-                  [class]="seatClass(lugar)"
-                  (click)="seleccionar(lugar)"
-                >
-                  <span class="block text-xl font-black">
-                    {{ numeroLugar(lugar) }}
-                  </span>
-
-                  <span class="block truncate">
-                    {{ lugar.esp_id }}
-                  </span>
-
-                  <span class="block truncate">
-                    {{ nombreParticipantePorLugar(lugar) }}
-                  </span>
-                </button>
-              }
             </div>
           </div>
         </div>
 
         <p class="mt-3 text-xs font-bold text-slate-400 dark:text-slate-500">
-          En pantallas medianas puedes deslizar horizontalmente si la mesa no cabe completa.
+          La distribución se adapta al ancho disponible para evitar cortes y scroll horizontal innecesario.
         </p>
       </div>
     </div>

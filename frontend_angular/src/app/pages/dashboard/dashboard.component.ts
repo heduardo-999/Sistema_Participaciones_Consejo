@@ -1,5 +1,6 @@
 import { Component, OnDestroy, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/services/api.service';
 import { RealtimeService } from '../../core/services/realtime.service';
@@ -8,7 +9,7 @@ import { AuthService } from '../../core/services/auth.service';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, FormsModule],
   templateUrl: './dashboard.component.html',
 })
 export class DashboardComponent implements OnInit, OnDestroy {
@@ -31,6 +32,21 @@ export class DashboardComponent implements OnInit, OnDestroy {
   cola = signal<any[]>([]);
   historial = signal<any[]>([]);
 
+  votacion = signal<any>(null);
+  resultadosVotacion = signal<any>({
+    si: 0,
+    no: 0,
+    abstencion: 0,
+    total: 0,
+  });
+  mostrarModalVotacion = signal(false);
+  incluirInvitadosVotacion = signal(false);
+  nombreVotacionGuardar = signal('');
+  iniciandoVotacion = signal(false);
+  terminandoVotacion = signal(false);
+  guardandoVotacion = signal(false);
+  mostrarResultadoVotacionVisualizador = signal(true);
+
   temaActual = signal<any>(null);
   loadingTemaActual = signal(false);
   completandoTemaActual = signal(false);
@@ -43,10 +59,52 @@ export class DashboardComponent implements OnInit, OnDestroy {
   horaActual = signal('');
   fechaActual = signal('');
   modoPresentacion = signal(false);
+  sonidoHabilitado = signal(sessionStorage.getItem('sonidoDashboard') === '1');
+
+  private audioContext: AudioContext | null = null;
+  private sonidoMarcadoresInicializados = false;
+  private ultimoActualSonidoId: string | null = null;
+  private ultimoPreparandoSonidoId: string | null = null;
+  private ultimosColaSonidoIds = new Set<string>();
+
+  private normalizarRolUsuario(role: any): string {
+    if (!role) return '';
+
+    if (typeof role === 'string') {
+      return role.trim().toLowerCase();
+    }
+
+    return String(
+      role?.name ??
+      role?.nombre ??
+      role?.role ??
+      role?.rol ??
+      role?.guard_name ??
+      ''
+    ).trim().toLowerCase();
+  }
 
   esVisualizador = computed(() => {
-    const roles = this.auth.user()?.roles ?? [];
-    return roles.some(role => String(role).toLowerCase() === 'visualizador');
+    const roles = (this.auth.user()?.roles ?? [])
+      .map((role: any) => this.normalizarRolUsuario(role))
+      .filter(Boolean);
+
+    const tieneRolOperativo = roles.some((role: string) =>
+      [
+        'super admin',
+        'super-admin',
+        'super_admin',
+        'admin',
+        'administrador',
+        'moderador',
+      ].includes(role)
+    );
+
+    if (tieneRolOperativo) {
+      return false;
+    }
+
+    return roles.includes('visualizador');
   });
   intervencionesPausadas = signal(false);
   menuControlAbierto = signal(false);
@@ -59,6 +117,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private refreshId: any = null;
   private preparacionId: any = null;
   private relojId: any = null;
+  private votacionVisualizadorTimer: any = null;
+  private ultimaVotacionFinalizadaVisualizadorKey = '';
 
   private iniciandoAutomatico = false;
   private finalizandoAutomatico = false;
@@ -70,6 +130,58 @@ export class DashboardComponent implements OnInit, OnDestroy {
   mostrarHistorialIntervenciones = signal(
     sessionStorage.getItem('mostrarHistorialDashboard') === '1'
   );
+
+  historialVisible = computed(() =>
+    this.mostrarHistorialIntervenciones()
+  );
+
+  votacionActiva = computed(() =>
+    String(this.votacion()?.status || '').trim().toLowerCase() === 'activa'
+  );
+
+  votacionFinalizada = computed(() =>
+    ['finalizada', 'guardada'].includes(String(this.votacion()?.status || '').trim().toLowerCase())
+  );
+
+  mostrarBloqueVotacionDashboard = computed(() => {
+    if (!this.votacion()) return false;
+    if (!this.esVisualizador()) return true;
+    if (this.votacionActiva()) return true;
+    return this.mostrarResultadoVotacionVisualizador();
+  });
+
+  porcentajeVotacionSi = computed(() => {
+    const total = Number(this.resultadosVotacion()?.total || 0);
+    return total ? Math.round((Number(this.resultadosVotacion()?.si || 0) / total) * 100) : 0;
+  });
+
+  porcentajeVotacionNo = computed(() => {
+    const total = Number(this.resultadosVotacion()?.total || 0);
+    return total ? Math.round((Number(this.resultadosVotacion()?.no || 0) / total) * 100) : 0;
+  });
+
+  porcentajeVotacionAbstencion = computed(() => {
+    const total = Number(this.resultadosVotacion()?.total || 0);
+    return total ? Math.round((Number(this.resultadosVotacion()?.abstencion || 0) / total) * 100) : 0;
+  });
+
+  graficaVotacionStyle = computed(() => {
+    const total = Number(this.resultadosVotacion()?.total || 0);
+
+    if (!total) {
+      return {
+        background: 'conic-gradient(#cbd5e1 0deg 360deg)',
+      };
+    }
+
+    const si = (Number(this.resultadosVotacion()?.si || 0) / total) * 360;
+    const no = (Number(this.resultadosVotacion()?.no || 0) / total) * 360;
+    const abstencion = 360 - si - no;
+
+    return {
+      background: `conic-gradient(#22c55e 0deg ${si}deg, #ef4444 ${si}deg ${si + no}deg, #f59e0b ${si + no}deg ${si + no + abstencion}deg)`,
+    };
+  });
 
   intervencionesAutomaticas = computed(() =>
     Boolean(this.reunion()?.intervenciones_automaticas)
@@ -238,6 +350,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.realtime.off('tema:updated');
     this.realtime.off('participantes:updated');
     this.realtime.off('lugares:updated');
+    this.realtime.off('votacion:updated');
 
     document.removeEventListener('fullscreenchange', this.fullscreenHandler);
     document.body.classList.remove('modo-presentacion');
@@ -271,6 +384,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.realtime.on('lugares:updated', async () => {
       await this.loadData(false);
     });
+
+    this.realtime.on('votacion:updated', async () => {
+      await this.cargarVotacion();
+      await this.loadData(false);
+    });
   }
 
   private detenerTimers(): void {
@@ -288,6 +406,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
       clearInterval(this.relojId);
       this.relojId = null;
     }
+
+    if (this.votacionVisualizadorTimer) {
+      clearTimeout(this.votacionVisualizadorTimer);
+      this.votacionVisualizadorTimer = null;
+    }
   }
 
   toggleMenuControl(): void {
@@ -298,6 +421,133 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.menuControlAbierto.set(false);
   }
 
+  async toggleSonido(): Promise<void> {
+    const nuevoEstado = !this.sonidoHabilitado();
+
+    this.sonidoHabilitado.set(nuevoEstado);
+    sessionStorage.setItem('sonidoDashboard', nuevoEstado ? '1' : '0');
+
+    if (nuevoEstado) {
+      await this.prepararAudioDashboard();
+      this.reproducirSonidoIntervencion(true);
+    }
+  }
+
+  private async prepararAudioDashboard(): Promise<void> {
+    try {
+      const AudioContextClass =
+        window.AudioContext || (window as any).webkitAudioContext;
+
+      if (!AudioContextClass) return;
+
+      if (!this.audioContext) {
+        this.audioContext = new AudioContextClass();
+      }
+
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
+    } catch (error) {
+      console.warn('No se pudo activar el sonido del Dashboard:', error);
+    }
+  }
+
+  private reproducirSonidoIntervencion(forzar = false): void {
+    if (!forzar && !this.sonidoHabilitado()) return;
+
+    try {
+      const AudioContextClass =
+        window.AudioContext || (window as any).webkitAudioContext;
+
+      if (!AudioContextClass) return;
+
+      if (!this.audioContext) {
+        this.audioContext = new AudioContextClass();
+      }
+
+      if (this.audioContext.state === 'suspended') {
+        this.audioContext.resume();
+      }
+
+      const ctx = this.audioContext;
+      const ahora = ctx.currentTime;
+
+      const crearNota = (inicio: number, frecuencia: number, duracion: number) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(frecuencia, inicio);
+
+        gain.gain.setValueAtTime(0.0001, inicio);
+        gain.gain.exponentialRampToValueAtTime(0.28, inicio + 0.025);
+        gain.gain.exponentialRampToValueAtTime(0.0001, inicio + duracion);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(inicio);
+        osc.stop(inicio + duracion + 0.03);
+      };
+
+      crearNota(ahora, 740, 0.18);
+      crearNota(ahora + 0.16, 988, 0.22);
+    } catch (error) {
+      console.warn('No se pudo reproducir el sonido de intervención:', error);
+    }
+  }
+
+  private obtenerIdSonido(item: any): string | null {
+    const id = item?.id ?? item?.intervencion_id ?? null;
+    return id === null || id === undefined ? null : String(id);
+  }
+
+  private revisarSonidoIntervencion(actual: any, preparando: any, pendientes: any[]): void {
+    const actualId = this.obtenerIdSonido(actual);
+    const preparandoId = this.obtenerIdSonido(preparando);
+    const colaIds = new Set(
+      (pendientes || [])
+        .map((item: any) => this.obtenerIdSonido(item))
+        .filter((id: string | null): id is string => Boolean(id))
+    );
+
+    if (!this.sonidoMarcadoresInicializados) {
+      this.ultimoActualSonidoId = actualId;
+      this.ultimoPreparandoSonidoId = preparandoId;
+      this.ultimosColaSonidoIds = colaIds;
+      this.sonidoMarcadoresInicializados = true;
+      return;
+    }
+
+    const hayNuevaIntervencionActual =
+      Boolean(actualId) && actualId !== this.ultimoActualSonidoId;
+
+    const hayNuevaPreparacion =
+      Boolean(preparandoId) && preparandoId !== this.ultimoPreparandoSonidoId;
+
+    const hayNuevaSolicitudEnCola = [...colaIds].some(
+      id => !this.ultimosColaSonidoIds.has(id)
+    );
+
+    this.ultimoActualSonidoId = actualId;
+    this.ultimoPreparandoSonidoId = preparandoId;
+    this.ultimosColaSonidoIds = colaIds;
+
+    if (
+      this.sonidoHabilitado() &&
+      (hayNuevaIntervencionActual || hayNuevaSolicitudEnCola)
+    ) {
+      this.reproducirSonidoIntervencion();
+    }
+  }
+
+  private reiniciarMarcadoresSonido(): void {
+    this.sonidoMarcadoresInicializados = false;
+    this.ultimoActualSonidoId = null;
+    this.ultimoPreparandoSonidoId = null;
+    this.ultimosColaSonidoIds = new Set<string>();
+  }
+
   async loadData(showLoading = true): Promise<void> {
     await this.cargarReunionActiva();
 
@@ -305,15 +555,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
       await this.cargarTemaActual();
       await this.cargarIntervenciones();
       await this.cargarHistorial();
+      await this.cargarVotacion();
     } else {
       this.temaActual.set(null);
       this.intervencionActual.set(null);
       this.cola.set([]);
       this.historial.set([]);
+      this.votacion.set(null);
+      this.resultadosVotacion.set({ si: 0, no: 0, abstencion: 0, total: 0 });
+      this.configurarVisibilidadVotacionVisualizador(null);
       this.limpiarPreparacion();
       this.limpiarPausaIntervencion();
       this.iniciandoAutomatico = false;
       this.finalizandoAutomatico = false;
+      this.reiniciarMarcadoresSonido();
     }
   }
 
@@ -470,7 +725,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private async obtenerUltimoHistorialId(): Promise<number> {
-    const res: any = await this.api.get('/historial?page=1');
+    const res: any = await this.api.get('/dashboard/historial-intervenciones');
 
     const items =
       res?.data?.data?.data ??
@@ -495,7 +750,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
 
     try {
-      const res: any = await this.api.get('/intervenciones');
+      const res: any = await this.api.get('/dashboard/intervenciones');
 
       this.sincronizarHoraServidor(this.obtenerServerNow(res));
 
@@ -523,6 +778,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
       this.intervencionActual.set(actual);
       this.cola.set(pendientes);
+      this.revisarSonidoIntervencion(actual, preparando, pendientes);
 
       if (preparando) {
         this.preparando.set(true);
@@ -562,6 +818,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       }
 
       if (
+        !this.esVisualizador() &&
         this.intervencionesAutomaticas() &&
         !actual &&
         !preparando &&
@@ -737,6 +994,188 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.preparacionSegundos.set(10);
   }
 
+
+  abrirModalVotacion(): void {
+    if (this.esVisualizador()) return;
+
+    if (!this.reunionIniciada()) {
+      alert('Primero inicia una reunión.');
+      return;
+    }
+
+    if (this.votacionActiva()) {
+      alert('Ya hay una votación activa.');
+      return;
+    }
+
+    this.incluirInvitadosVotacion.set(false);
+    this.mostrarModalVotacion.set(true);
+    this.cerrarMenuControl();
+  }
+
+  cerrarModalVotacion(): void {
+    this.mostrarModalVotacion.set(false);
+  }
+
+  async iniciarVotacion(): Promise<void> {
+    if (this.esVisualizador()) return;
+    if (!this.reunionIniciada()) return;
+
+    this.iniciandoVotacion.set(true);
+
+    try {
+      const res: any = await this.api.post('/votaciones/iniciar', {
+        reunion_id: this.reunion()?.id,
+        incluir_invitados: this.incluirInvitadosVotacion(),
+      });
+
+      const data = this.obtenerPayload(res);
+      this.votacion.set(data?.votacion ?? data ?? null);
+      this.resultadosVotacion.set(data?.resultados ?? { si: 0, no: 0, abstencion: 0, total: 0 });
+      this.nombreVotacionGuardar.set('');
+      this.mostrarModalVotacion.set(false);
+
+      await this.cargarVotacion();
+    } catch (error) {
+      console.error('Error iniciando votación:', error);
+      alert('No se pudo iniciar la votación.');
+    } finally {
+      this.iniciandoVotacion.set(false);
+    }
+  }
+
+  async terminarVotacion(): Promise<void> {
+    if (this.esVisualizador()) return;
+
+    const votacion = this.votacion();
+
+    if (!votacion?.id) {
+      alert('No hay votación activa.');
+      return;
+    }
+
+    if (!confirm('¿Terminar la votación y mostrar resultados?')) return;
+
+    this.terminandoVotacion.set(true);
+
+    try {
+      const res: any = await this.api.post(`/votaciones/${votacion.id}/terminar`, {});
+      const data = this.obtenerPayload(res);
+
+      this.votacion.set(data?.votacion ?? data ?? null);
+      this.resultadosVotacion.set(data?.resultados ?? { si: 0, no: 0, abstencion: 0, total: 0 });
+
+      if (!this.nombreVotacionGuardar().trim()) {
+        this.nombreVotacionGuardar.set(`Votación ${this.fechaActual()}`);
+      }
+
+      await this.cargarVotacion();
+    } catch (error) {
+      console.error('Error terminando votación:', error);
+      alert('No se pudo terminar la votación.');
+    } finally {
+      this.terminandoVotacion.set(false);
+      this.cerrarMenuControl();
+    }
+  }
+
+  async guardarResultadoVotacion(): Promise<void> {
+    if (this.esVisualizador()) return;
+
+    const votacion = this.votacion();
+    const nombre = this.nombreVotacionGuardar().trim();
+
+    if (!votacion?.id) return;
+
+    if (!nombre) {
+      alert('Escribe un nombre para guardar la votación.');
+      return;
+    }
+
+    this.guardandoVotacion.set(true);
+
+    try {
+      const res: any = await this.api.post(`/votaciones/${votacion.id}/guardar`, {
+        nombre,
+      });
+
+      const data = this.obtenerPayload(res);
+
+      this.votacion.set(data?.votacion ?? data ?? null);
+      this.resultadosVotacion.set(data?.resultados ?? this.resultadosVotacion());
+      alert('Resultado de votación guardado correctamente.');
+    } catch (error) {
+      console.error('Error guardando votación:', error);
+      alert('No se pudo guardar el resultado de la votación.');
+    } finally {
+      this.guardandoVotacion.set(false);
+    }
+  }
+
+  private async cargarVotacion(): Promise<void> {
+    if (!this.reunionIniciada() || !this.reunion()?.id) {
+      this.votacion.set(null);
+      this.resultadosVotacion.set({ si: 0, no: 0, abstencion: 0, total: 0 });
+      this.configurarVisibilidadVotacionVisualizador(null);
+      return;
+    }
+
+    try {
+      const res: any = await this.api.get('/votaciones/activa');
+      const data = this.obtenerPayload(res);
+
+      const votacion = data?.votacion ?? null;
+      this.votacion.set(votacion);
+      this.resultadosVotacion.set(data?.resultados ?? { si: 0, no: 0, abstencion: 0, total: 0 });
+      this.configurarVisibilidadVotacionVisualizador(votacion);
+    } catch (error) {
+      console.error('Error cargando votación:', error);
+      this.votacion.set(null);
+      this.resultadosVotacion.set({ si: 0, no: 0, abstencion: 0, total: 0 });
+      this.configurarVisibilidadVotacionVisualizador(null);
+    }
+  }
+
+  private configurarVisibilidadVotacionVisualizador(votacion: any): void {
+    if (!this.esVisualizador()) {
+      this.mostrarResultadoVotacionVisualizador.set(true);
+      return;
+    }
+
+    if (this.votacionVisualizadorTimer) {
+      clearTimeout(this.votacionVisualizadorTimer);
+      this.votacionVisualizadorTimer = null;
+    }
+
+    if (!votacion) {
+      this.ultimaVotacionFinalizadaVisualizadorKey = '';
+      this.mostrarResultadoVotacionVisualizador.set(true);
+      return;
+    }
+
+    const status = String(votacion?.status || '').trim().toLowerCase();
+
+    if (status === 'activa') {
+      this.ultimaVotacionFinalizadaVisualizadorKey = '';
+      this.mostrarResultadoVotacionVisualizador.set(true);
+      return;
+    }
+
+    if (['finalizada', 'guardada'].includes(status)) {
+      const key = `${votacion?.id || ''}-${status}-${votacion?.finalizada_at || votacion?.updated_at || ''}`;
+
+      if (key !== this.ultimaVotacionFinalizadaVisualizadorKey) {
+        this.ultimaVotacionFinalizadaVisualizadorKey = key;
+        this.mostrarResultadoVotacionVisualizador.set(true);
+      }
+
+      this.votacionVisualizadorTimer = setTimeout(() => {
+        this.mostrarResultadoVotacionVisualizador.set(false);
+        this.votacionVisualizadorTimer = null;
+      }, 7000);
+    }
+  }
+
   async togglePausaIntervenciones(): Promise<void> {
     if (this.esVisualizador()) return;
 
@@ -856,18 +1295,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   private async cargarHistorial(): Promise<void> {
-    if (
-      !this.reunionIniciada() ||
-      !this.mostrarHistorialIntervenciones() ||
-      !this.historialInicioId
-    ) {
+    if (!this.reunionIniciada()) {
+      this.historialLocalItems = [];
+      this.historial.set([]);
+      return;
+    }
+
+    if (!this.esVisualizador() && !this.historialVisible()) {
       this.historialLocalItems = [];
       this.historial.set([]);
       return;
     }
 
     try {
-      const histRes: any = await this.api.get('/historial?page=1');
+      const histRes: any = await this.api.get('/dashboard/historial-intervenciones');
 
       const historialItems =
         histRes?.data?.data?.data ??
@@ -879,7 +1320,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
       const soloIntervenciones = lista
         .filter((item: any) => this.esHistorialIntervencionVisible(item))
-        .filter((item: any) => Number(item.id || 0) > this.historialInicioId)
+        .filter((item: any) => {
+          if (this.esVisualizador()) return true;
+          if (!this.historialInicioId) return true;
+
+          return Number(item.id || 0) > this.historialInicioId;
+        })
         .map((item: any) => ({
           ...item,
           participante_nombre: this.extraerNombreHistorial(item),
@@ -899,16 +1345,31 @@ export class DashboardComponent implements OnInit, OnDestroy {
   private esHistorialIntervencionVisible(item: any): boolean {
     const tabla = String(item?.tabla || '').toLowerCase();
     const operacion = String(item?.operacion || '').toLowerCase();
+    const dato = JSON.stringify(item?.dato ?? item ?? {}).toLowerCase();
 
-    const esIntervencion = tabla === 'intervenciones';
+    const texto = `${tabla} ${operacion} ${dato}`;
+
+    const esIntervencion =
+      tabla === 'intervenciones' ||
+      tabla === 'intervencion' ||
+      tabla.includes('intervencion') ||
+      tabla.includes('intervención');
 
     const mencionaIntervencion =
-      operacion.includes('intervención') ||
-      operacion.includes('intervencion');
+      texto.includes('intervención') ||
+      texto.includes('intervencion') ||
+      texto.includes('participación') ||
+      texto.includes('participacion') ||
+      texto.includes('micrófono') ||
+      texto.includes('microfono');
 
     const esActualizar =
       operacion === 'actualizar intervención' ||
       operacion === 'actualizar intervencion';
+
+    if (this.esVisualizador()) {
+      return (esIntervencion || mencionaIntervencion) && !esActualizar;
+    }
 
     return esIntervencion && mencionaIntervencion && !esActualizar;
   }

@@ -19,11 +19,14 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\MenuRolController;
 use App\Http\Controllers\Api\RolPermisoController;
 use App\Http\Controllers\Api\TemaReunionController;
+use App\Http\Controllers\Api\VotacionController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::post('/qr/validar', [QrAccessController::class, 'validar']);
 Route::post('/qr/interaccion', [QrAccessController::class, 'interaccion']);
+Route::post('/qr/votacion/activa', [VotacionController::class, 'activaQr']);
+Route::post('/qr/votacion/votar', [VotacionController::class, 'votarQr']);
 
 Route::middleware(['auth:sanctum', 'CheckBaja'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -47,6 +50,14 @@ Route::middleware(['auth:sanctum', 'CheckBaja'])->group(function () {
     });
 
     Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::get('/dashboard/intervenciones', [IntervencionController::class, 'dashboardIntervenciones']);
+    Route::get('/dashboard/historial-intervenciones', [IntervencionController::class, 'dashboardHistorial']);
+
+    Route::get('/votaciones/activa', [VotacionController::class, 'activa']);
+    Route::post('/votaciones/iniciar', [VotacionController::class, 'iniciar']);
+    Route::post('/votaciones/{id}/terminar', [VotacionController::class, 'terminar']);
+    Route::post('/votaciones/{id}/guardar', [VotacionController::class, 'guardar']);
+    Route::get('/votaciones/{id}/resultados', [VotacionController::class, 'resultados']);
     Route::get('/me/menu', [MenuController::class, 'myMenu']);
 
     Route::get('/menus-admin', [MenuRolController::class, 'menus']);
@@ -86,6 +97,7 @@ Route::middleware(['auth:sanctum', 'CheckBaja'])->group(function () {
     Route::post('/reuniones/{id}/iniciar', [ReunionController::class, 'iniciar']);
     Route::post('/reuniones/{id}/terminar', [ReunionController::class, 'terminar']);
     Route::post('/reuniones/{id}/participantes/agregar-miembros', [ParticipanteController::class, 'agregarTodosMiembros']);
+    Route::get('/reuniones/{id}/votaciones', [VotacionController::class, 'porReunion']);
     Route::apiResource('reuniones', ReunionController::class);
 
     Route::apiResource('participantes', ParticipanteController::class);

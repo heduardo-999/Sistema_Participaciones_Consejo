@@ -96,10 +96,19 @@ export class LugaresComponent implements OnInit, OnDestroy {
     }
   }
 
-  topSeats = computed(() => this.lugares().slice(0, 10));
-  rightSeats = computed(() => this.lugares().slice(10, 15));
-  bottomSeats = computed(() => this.lugares().slice(15, 25).reverse());
-  leftSeats = computed(() => this.lugares().slice(25, 30).reverse());
+  // Distribución responsiva de 40 lugares:
+  // - 14 lugares en la parte superior externa.
+  // - 26 lugares formando la C: 10 arriba, 6 al lado izquierdo y 10 abajo.
+  superiorSeats = computed(() => this.lugares().slice(0, 14));
+  cTopSeats = computed(() => this.lugares().slice(14, 24));
+  cLeftSeats = computed(() => this.lugares().slice(24, 30));
+  cBottomSeats = computed(() => this.lugares().slice(30, 40));
+
+  // Compatibilidad con nombres anteriores por si alguna vista o prueba todavía los usa.
+  topSeats = computed(() => this.superiorSeats());
+  rightSeats = computed(() => []);
+  bottomSeats = computed(() => this.cBottomSeats());
+  leftSeats = computed(() => this.cLeftSeats());
 
   asignacionesActivas = computed(() => {
     const asignaciones: any[] = [];

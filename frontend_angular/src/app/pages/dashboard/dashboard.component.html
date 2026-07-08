@@ -3,36 +3,610 @@
     class="mx-auto w-full max-w-[1600px] space-y-3 px-3 py-3 sm:px-4 lg:px-5"
     [class.lg:p-4]="modoPresentacion()"
   >
-    <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-      <div class="min-w-0">
-        <p class="text-[11px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-500 sm:text-xs">
-          Reunión en vivo
-        </p>
+    @if (!esVisualizador()) {
+      <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div class="min-w-0">
+          <p class="text-[11px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-500 sm:text-xs">
+            Reunión en vivo
+          </p>
 
-        <h2 class="mt-1 text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl lg:text-4xl">
-          Panel del moderador
-        </h2>
+          <h2 class="mt-1 text-2xl font-black tracking-tight text-slate-900 dark:text-white sm:text-3xl lg:text-4xl">
+            Panel del moderador
+          </h2>
 
-        <p class="mt-1 text-sm text-slate-600 dark:text-slate-300 sm:text-base">
-          Control visual de intervenciones durante la sesión.
-        </p>
+          <p class="mt-1 text-sm text-slate-600 dark:text-slate-300 sm:text-base">
+            Control visual de intervenciones durante la sesión.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          (click)="pantallaCompleta()"
+          class="w-full rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-rose-950/30 transition hover:bg-rose-700 sm:w-auto"
+        >
+          <i class="fa-solid fa-expand mr-2"></i>
+          {{ modoPresentacion() ? 'Salir de pantalla completa' : 'Pantalla completa' }}
+        </button>
       </div>
+    } @else {
+      <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-xl dark:border-slate-800 dark:bg-slate-900">
+        <p class="text-[11px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-400">
+          Vista de seguimiento
+        </p>
 
-      <button
-        type="button"
-        (click)="pantallaCompleta()"
-        class="w-full rounded-xl bg-rose-600 px-5 py-3 text-sm font-black text-white shadow-lg shadow-rose-950/30 transition hover:bg-rose-700 sm:w-auto"
-      >
-        <i class="fa-solid fa-expand mr-2"></i>
-        {{ modoPresentacion() ? 'Salir de pantalla completa' : 'Pantalla completa' }}
-      </button>
-    </div>
+        <div class="mt-2 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div class="min-w-0">
+            <h2 class="break-words text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
+              {{ tituloPrincipal() }}
+            </h2>
 
-    <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]">
+            <p class="mt-1 text-sm font-bold text-slate-500 dark:text-slate-400">
+              <i class="fa-solid fa-calendar mr-2 text-rose-500"></i>
+              {{ fechaActual() }}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            (click)="pantallaCompleta()"
+            class="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white shadow transition hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 sm:w-auto"
+          >
+            <i class="fa-solid fa-expand mr-2"></i>
+            {{ modoPresentacion() ? 'Salir de pantalla completa' : 'Pantalla completa' }}
+          </button>
+        </div>
+      </div>
+    }
+
+    @if (mostrarBloqueVotacionDashboard() && !esVisualizador()) {
+      <div class="rounded-2xl border border-indigo-200 bg-white p-4 shadow-xl dark:border-indigo-900/40 dark:bg-slate-900/80">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div class="min-w-0">
+            <p class="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-600 dark:text-indigo-300">
+              Votación de la reunión
+            </p>
+
+            <h2 class="mt-1 break-words text-2xl font-black text-slate-900 dark:text-white">
+              {{ votacion()?.nombre || (votacionActiva() ? 'Votación en curso' : 'Resultado de votación') }}
+            </h2>
+
+            <p class="mt-1 text-sm font-bold text-slate-500 dark:text-slate-400">
+              {{ votacion()?.incluir_invitados ? 'Pueden votar miembros e invitados.' : 'Solo votan miembros del consejo.' }}
+            </p>
+          </div>
+
+          <span
+            class="inline-flex w-fit rounded-full px-4 py-2 text-xs font-black uppercase"
+            [class.bg-green-100]="votacionActiva()"
+            [class.text-green-700]="votacionActiva()"
+            [class.bg-indigo-100]="!votacionActiva() && votacion()?.status !== 'guardada'"
+            [class.text-indigo-700]="!votacionActiva() && votacion()?.status !== 'guardada'"
+            [class.bg-slate-100]="votacion()?.status === 'guardada'"
+            [class.text-slate-700]="votacion()?.status === 'guardada'"
+          >
+            {{ votacionActiva() ? 'Activa' : (votacion()?.status === 'guardada' ? 'Guardada' : 'Finalizada') }}
+          </span>
+        </div>
+
+        @if (votacionActiva()) {
+          <div class="mt-4 rounded-2xl border border-dashed border-indigo-300 bg-indigo-50 p-4 text-center dark:border-indigo-800 dark:bg-indigo-950/20">
+            <p class="text-sm font-black text-indigo-700 dark:text-indigo-300">
+              Esperando votos desde ESP32 virtual. Termina la votación desde el control para mostrar la gráfica final.
+            </p>
+
+            <div class="mt-3 grid gap-3 sm:grid-cols-3">
+              <div class="rounded-xl bg-white p-3 text-center dark:bg-slate-950">
+                <p class="text-xs font-black uppercase text-green-700 dark:text-green-300">Sí</p>
+                <p class="mt-1 text-2xl font-black text-green-600">{{ resultadosVotacion()?.si || 0 }}</p>
+              </div>
+
+              <div class="rounded-xl bg-white p-3 text-center dark:bg-slate-950">
+                <p class="text-xs font-black uppercase text-red-700 dark:text-red-300">No</p>
+                <p class="mt-1 text-2xl font-black text-red-600">{{ resultadosVotacion()?.no || 0 }}</p>
+              </div>
+
+              <div class="rounded-xl bg-white p-3 text-center dark:bg-slate-950">
+                <p class="text-xs font-black uppercase text-amber-700 dark:text-amber-300">Abstención</p>
+                <p class="mt-1 text-2xl font-black text-amber-600">{{ resultadosVotacion()?.abstencion || 0 }}</p>
+              </div>
+            </div>
+          </div>
+        }
+
+        @if (!votacionActiva()) {
+          <div class="mt-5 grid gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
+            <div class="mx-auto grid h-52 w-52 place-items-center rounded-full shadow-inner" [ngStyle]="graficaVotacionStyle()">
+              <div class="grid h-28 w-28 place-items-center rounded-full bg-white text-center shadow dark:bg-slate-950">
+                <span class="text-3xl font-black text-slate-900 dark:text-white">
+                  {{ resultadosVotacion()?.total || 0 }}
+                </span>
+                <span class="-mt-4 text-[10px] font-black uppercase text-slate-500">
+                  votos
+                </span>
+              </div>
+            </div>
+
+            <div class="space-y-4">
+              <div class="grid gap-3 sm:grid-cols-3">
+                <div class="rounded-2xl bg-green-50 p-4 text-center dark:bg-green-950/20">
+                  <p class="text-xs font-black uppercase text-green-700 dark:text-green-300">Sí</p>
+                  <p class="mt-1 text-3xl font-black text-green-600">{{ resultadosVotacion()?.si || 0 }}</p>
+                  <p class="text-xs font-bold text-green-700 dark:text-green-300">{{ porcentajeVotacionSi() }}%</p>
+                </div>
+
+                <div class="rounded-2xl bg-red-50 p-4 text-center dark:bg-red-950/20">
+                  <p class="text-xs font-black uppercase text-red-700 dark:text-red-300">No</p>
+                  <p class="mt-1 text-3xl font-black text-red-600">{{ resultadosVotacion()?.no || 0 }}</p>
+                  <p class="text-xs font-bold text-red-700 dark:text-red-300">{{ porcentajeVotacionNo() }}%</p>
+                </div>
+
+                <div class="rounded-2xl bg-amber-50 p-4 text-center dark:bg-amber-950/20">
+                  <p class="text-xs font-black uppercase text-amber-700 dark:text-amber-300">Abstención</p>
+                  <p class="mt-1 text-3xl font-black text-amber-600">{{ resultadosVotacion()?.abstencion || 0 }}</p>
+                  <p class="text-xs font-bold text-amber-700 dark:text-amber-300">{{ porcentajeVotacionAbstencion() }}%</p>
+                </div>
+              </div>
+
+              @if (!esVisualizador() && votacion()?.status !== 'guardada') {
+                <div class="grid gap-3 rounded-2xl bg-slate-50 p-4 dark:bg-slate-950 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <input
+                    type="text"
+                    class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                    placeholder="Nombre para guardar esta votación"
+                    [ngModel]="nombreVotacionGuardar()"
+                    (ngModelChange)="nombreVotacionGuardar.set($event)"
+                  />
+
+                  <button
+                    type="button"
+                    class="rounded-xl bg-indigo-700 px-5 py-3 text-sm font-black text-white transition hover:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-40"
+                    (click)="guardarResultadoVotacion()"
+                    [disabled]="guardandoVotacion()"
+                  >
+                    <i class="fa-solid fa-floppy-disk mr-2"></i>
+                    {{ guardandoVotacion() ? 'Guardando...' : 'Guardar resultado' }}
+                  </button>
+                </div>
+              }
+
+              @if (votacion()?.status === 'guardada') {
+                <div class="rounded-2xl bg-green-50 p-4 text-sm font-black text-green-700 dark:bg-green-950/20 dark:text-green-300">
+                  <i class="fa-solid fa-circle-check mr-2"></i>
+                  Resultado guardado correctamente.
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    @if (esVisualizador()) {
+      <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <main class="min-w-0 space-y-3">
+          @if (!reunionIniciada()) {
+            <div class="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-xl dark:border-slate-800 dark:bg-slate-900">
+              <p class="text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+                Reunión en espera
+              </p>
+
+              <h2 class="mt-3 text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
+                Esperando que el moderador inicie la reunión.
+              </h2>
+
+              <p class="mx-auto mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-300 sm:text-base">
+                Cuando la reunión esté activa se mostrarán duración, tema, intervención actual, cola e historial.
+              </p>
+            </div>
+          }
+
+          @if (reunionIniciada()) {
+            <div class="grid gap-3 lg:grid-cols-[340px_minmax(0,1fr)]">
+              <div class="rounded-2xl border border-orange-300 bg-orange-50 p-4 text-center shadow-xl dark:border-orange-800 dark:bg-orange-950/20">
+                <p class="text-[10px] font-black uppercase tracking-[0.25em] text-orange-600 dark:text-orange-400">
+                  Duración de la reunión
+                </p>
+
+                <h2 class="mt-2 text-4xl font-black text-orange-600 dark:text-orange-400 sm:text-5xl">
+                  {{ tiempoReunion() }}
+                </h2>
+              </div>
+
+              <div class="rounded-2xl border border-purple-300 bg-purple-50 p-4 shadow-xl dark:border-purple-800 dark:bg-purple-950/20">
+                <p class="text-[10px] font-black uppercase tracking-[0.25em] text-purple-700 dark:text-purple-300">
+                  Tema de la reunión
+                </p>
+
+                @if (temaActual()) {
+                  <h2 class="mt-2 break-words text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
+                    {{ temaActual()?.titulo }}
+                  </h2>
+
+                  @if (temaActual()?.descripcion) {
+                    <p class="mt-2 break-words text-sm font-semibold text-slate-600 dark:text-slate-300">
+                      {{ temaActual()?.descripcion }}
+                    </p>
+                  }
+                } @else {
+                  <h2 class="mt-2 text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
+                    No hay tema en curso.
+                  </h2>
+                }
+              </div>
+            </div>
+
+            <div class="rounded-2xl border border-orange-200 bg-white p-4 shadow-xl dark:border-orange-900/40 dark:bg-slate-900/80">
+              <div class="grid items-center gap-4 lg:grid-cols-[minmax(260px,0.65fr)_minmax(0,1fr)]">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center dark:border-slate-800 dark:bg-slate-950">
+                  <p class="text-[10px] font-black uppercase tracking-[0.22em] text-rose-600 dark:text-rose-400">
+                    Intervención actual
+                  </p>
+
+                  @if (intervencionActual()) {
+                    <h3 class="mt-3 break-words text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
+                      {{ nombreParticipante(intervencionActual()) }}
+                    </h3>
+
+                    <p class="mt-2 text-sm font-bold text-slate-500 dark:text-slate-300">
+                      {{ tipoParticipante(intervencionActual()) }}
+                    </p>
+                  } @else if (preparando() && participantePreparando()) {
+                    <h3 class="mt-3 break-words text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
+                      {{ nombreParticipante(participantePreparando()) }}
+                    </h3>
+
+                    <p class="mt-2 text-sm font-bold text-yellow-600 dark:text-yellow-300">
+                      Preparándose para intervenir
+                    </p>
+                  } @else {
+                    <h3 class="mt-3 text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
+                      Sin intervención activa
+                    </h3>
+
+                    <p class="mt-2 text-sm font-bold text-slate-500 dark:text-slate-300">
+                      Esperando intervención del moderador.
+                    </p>
+                  }
+                </div>
+
+                <div class="text-center">
+                  <p class="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
+                    Tiempo de intervención
+                  </p>
+
+                  <div
+                    class="mt-2 text-[clamp(4rem,15vw,9rem)] font-black leading-none tabular-nums"
+                    [class.text-green-500]="estadoTiempo() === 'verde'"
+                    [class.text-yellow-500]="estadoTiempo() === 'amarillo'"
+                    [class.text-red-500]="estadoTiempo() === 'rojo'"
+                    [class.animate-pulse]="segundos() <= 60"
+                  >
+                    {{ tiempo() }}
+                  </div>
+
+                  <p class="mt-1 text-xl font-black text-slate-800 dark:text-slate-100 sm:text-2xl">
+                    Tiempo asignado: 5 minutos
+                  </p>
+                </div>
+              </div>
+            </div>
+
+          @if (mostrarBloqueVotacionDashboard()) {
+            <div class="rounded-2xl border border-indigo-200 bg-white p-4 shadow-xl dark:border-indigo-900/40 dark:bg-slate-900/80">
+              <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div class="min-w-0">
+                  <p class="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-600 dark:text-indigo-300">
+                    Votación
+                  </p>
+
+                  <h2 class="mt-1 break-words text-2xl font-black text-slate-900 dark:text-white">
+                    {{ votacion()?.nombre || (votacionActiva() ? 'Votación en curso' : 'Resultado de votación') }}
+                  </h2>
+
+                  <p class="mt-1 text-sm font-bold text-slate-500 dark:text-slate-400">
+                    {{ votacion()?.incluir_invitados ? 'Pueden votar miembros e invitados.' : 'Solo votan miembros del consejo.' }}
+                  </p>
+                </div>
+
+                <span
+                  class="inline-flex w-fit rounded-full px-4 py-2 text-xs font-black uppercase"
+                  [class.bg-green-100]="votacionActiva()"
+                  [class.text-green-700]="votacionActiva()"
+                  [class.bg-slate-100]="!votacionActiva()"
+                  [class.text-slate-700]="!votacionActiva()"
+                >
+                  {{ votacionActiva() ? 'Activa' : 'Finalizada' }}
+                </span>
+              </div>
+
+              @if (votacionActiva()) {
+                <div class="mt-4 rounded-2xl border border-dashed border-indigo-300 bg-indigo-50 p-4 text-center dark:border-indigo-800 dark:bg-indigo-950/20">
+                  <p class="text-sm font-black text-indigo-700 dark:text-indigo-300">
+                    Esperando votos desde ESP32 virtual...
+                  </p>
+                </div>
+              }
+
+              @if (votacionFinalizada()) {
+                <div class="mt-5 grid gap-4 lg:grid-cols-[180px_minmax(0,1fr)]">
+                  <div class="mx-auto grid h-44 w-44 place-items-center rounded-full shadow-inner" [ngStyle]="graficaVotacionStyle()">
+                    <div class="grid h-24 w-24 place-items-center rounded-full bg-white text-center shadow dark:bg-slate-950">
+                      <span class="text-2xl font-black text-slate-900 dark:text-white">
+                        {{ resultadosVotacion()?.total || 0 }}
+                      </span>
+                      <span class="-mt-3 text-[10px] font-black uppercase text-slate-500">
+                        votos
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="grid gap-3 sm:grid-cols-3">
+                    <div class="rounded-2xl bg-green-50 p-4 text-center dark:bg-green-950/20">
+                      <p class="text-xs font-black uppercase text-green-700 dark:text-green-300">Sí</p>
+                      <p class="mt-1 text-3xl font-black text-green-600">{{ resultadosVotacion()?.si || 0 }}</p>
+                      <p class="text-xs font-bold text-green-700 dark:text-green-300">{{ porcentajeVotacionSi() }}%</p>
+                    </div>
+
+                    <div class="rounded-2xl bg-red-50 p-4 text-center dark:bg-red-950/20">
+                      <p class="text-xs font-black uppercase text-red-700 dark:text-red-300">No</p>
+                      <p class="mt-1 text-3xl font-black text-red-600">{{ resultadosVotacion()?.no || 0 }}</p>
+                      <p class="text-xs font-bold text-red-700 dark:text-red-300">{{ porcentajeVotacionNo() }}%</p>
+                    </div>
+
+                    <div class="rounded-2xl bg-amber-50 p-4 text-center dark:bg-amber-950/20">
+                      <p class="text-xs font-black uppercase text-amber-700 dark:text-amber-300">Abstención</p>
+                      <p class="mt-1 text-3xl font-black text-amber-600">{{ resultadosVotacion()?.abstencion || 0 }}</p>
+                      <p class="text-xs font-bold text-amber-700 dark:text-amber-300">{{ porcentajeVotacionAbstencion() }}%</p>
+                    </div>
+                  </div>
+                </div>
+
+                @if (!esVisualizador() && votacion()?.status !== 'guardada') {
+                  <div class="mt-5 grid gap-3 rounded-2xl bg-slate-50 p-4 dark:bg-slate-950 sm:grid-cols-[minmax(0,1fr)_auto]">
+                    <input
+                      type="text"
+                      class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                      placeholder="Nombre de la votación"
+                      [ngModel]="nombreVotacionGuardar()"
+                      (ngModelChange)="nombreVotacionGuardar.set($event)"
+                    />
+
+                    <button
+                      type="button"
+                      class="rounded-xl bg-indigo-700 px-5 py-3 text-sm font-black text-white transition hover:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-40"
+                      (click)="guardarResultadoVotacion()"
+                      [disabled]="guardandoVotacion()"
+                    >
+                      <i class="fa-solid fa-floppy-disk mr-2"></i>
+                      {{ guardandoVotacion() ? 'Guardando...' : 'Guardar resultado' }}
+                    </button>
+                  </div>
+                }
+              }
+            </div>
+          }
+          }
+        </main>
+
+        <aside class="min-w-0 space-y-3">
+          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-xl dark:border-slate-800 dark:bg-slate-900/80">
+            <div class="flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <h3 class="text-lg font-black text-slate-900 dark:text-white">
+                  Cola de intervenciones
+                </h3>
+
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                  Seguimiento de solicitudes pendientes.
+                </p>
+              </div>
+
+              <span class="inline-flex w-fit rounded-full bg-rose-600 px-4 py-2 text-sm font-black text-white">
+                {{ cola().length }}
+              </span>
+            </div>
+
+            <div class="mt-4 max-h-[360px] space-y-3 overflow-y-auto pr-1">
+              @for (item of cola(); track item.id; let i = $index) {
+                <div
+                  class="rounded-2xl border p-3 transition dark:border-slate-800 dark:bg-slate-950"
+                  [class.border-yellow-400]="i === 0 && !intervencionesPausadas()"
+                  [class.bg-yellow-50]="i === 0 && !intervencionesPausadas()"
+                  [class.border-orange-300]="intervencionesPausadas()"
+                  [class.bg-orange-50]="intervencionesPausadas()"
+                  [class.border-slate-200]="i !== 0 && !intervencionesPausadas()"
+                  [class.bg-slate-50]="i !== 0 && !intervencionesPausadas()"
+                >
+                  <p class="break-words text-base font-black text-slate-900 dark:text-white">
+                    {{ nombreParticipante(item) }}
+                  </p>
+
+                  <p class="mt-1 break-words text-xs text-slate-600 dark:text-slate-300">
+                    {{ tipoParticipante(item) }} • RFID: {{ rfidParticipante(item) }}
+                  </p>
+
+        
+          @if (mostrarBloqueVotacionDashboard()) {
+            <div class="rounded-2xl border border-indigo-200 bg-white p-4 shadow-xl dark:border-indigo-900/40 dark:bg-slate-900/80">
+              <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div class="min-w-0">
+                  <p class="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-600 dark:text-indigo-300">
+                    Votación
+                  </p>
+
+                  <h2 class="mt-1 break-words text-2xl font-black text-slate-900 dark:text-white">
+                    {{ votacion()?.nombre || (votacionActiva() ? 'Votación en curso' : 'Resultado de votación') }}
+                  </h2>
+
+                  <p class="mt-1 text-sm font-bold text-slate-500 dark:text-slate-400">
+                    {{ votacion()?.incluir_invitados ? 'Pueden votar miembros e invitados.' : 'Solo votan miembros del consejo.' }}
+                  </p>
+                </div>
+
+                <span
+                  class="inline-flex w-fit rounded-full px-4 py-2 text-xs font-black uppercase"
+                  [class.bg-green-100]="votacionActiva()"
+                  [class.text-green-700]="votacionActiva()"
+                  [class.bg-slate-100]="!votacionActiva()"
+                  [class.text-slate-700]="!votacionActiva()"
+                >
+                  {{ votacionActiva() ? 'Activa' : 'Finalizada' }}
+                </span>
+              </div>
+
+              @if (votacionActiva()) {
+                <div class="mt-4 rounded-2xl border border-dashed border-indigo-300 bg-indigo-50 p-4 text-center dark:border-indigo-800 dark:bg-indigo-950/20">
+                  <p class="text-sm font-black text-indigo-700 dark:text-indigo-300">
+                    Esperando votos desde ESP32 virtual...
+                  </p>
+                </div>
+              }
+
+              @if (votacionFinalizada()) {
+                <div class="mt-5 grid gap-4 lg:grid-cols-[180px_minmax(0,1fr)]">
+                  <div class="mx-auto grid h-44 w-44 place-items-center rounded-full shadow-inner" [ngStyle]="graficaVotacionStyle()">
+                    <div class="grid h-24 w-24 place-items-center rounded-full bg-white text-center shadow dark:bg-slate-950">
+                      <span class="text-2xl font-black text-slate-900 dark:text-white">
+                        {{ resultadosVotacion()?.total || 0 }}
+                      </span>
+                      <span class="-mt-3 text-[10px] font-black uppercase text-slate-500">
+                        votos
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="grid gap-3 sm:grid-cols-3">
+                    <div class="rounded-2xl bg-green-50 p-4 text-center dark:bg-green-950/20">
+                      <p class="text-xs font-black uppercase text-green-700 dark:text-green-300">Sí</p>
+                      <p class="mt-1 text-3xl font-black text-green-600">{{ resultadosVotacion()?.si || 0 }}</p>
+                      <p class="text-xs font-bold text-green-700 dark:text-green-300">{{ porcentajeVotacionSi() }}%</p>
+                    </div>
+
+                    <div class="rounded-2xl bg-red-50 p-4 text-center dark:bg-red-950/20">
+                      <p class="text-xs font-black uppercase text-red-700 dark:text-red-300">No</p>
+                      <p class="mt-1 text-3xl font-black text-red-600">{{ resultadosVotacion()?.no || 0 }}</p>
+                      <p class="text-xs font-bold text-red-700 dark:text-red-300">{{ porcentajeVotacionNo() }}%</p>
+                    </div>
+
+                    <div class="rounded-2xl bg-amber-50 p-4 text-center dark:bg-amber-950/20">
+                      <p class="text-xs font-black uppercase text-amber-700 dark:text-amber-300">Abstención</p>
+                      <p class="mt-1 text-3xl font-black text-amber-600">{{ resultadosVotacion()?.abstencion || 0 }}</p>
+                      <p class="text-xs font-bold text-amber-700 dark:text-amber-300">{{ porcentajeVotacionAbstencion() }}%</p>
+                    </div>
+                  </div>
+                </div>
+
+                @if (!esVisualizador() && votacion()?.status !== 'guardada') {
+                  <div class="mt-5 grid gap-3 rounded-2xl bg-slate-50 p-4 dark:bg-slate-950 sm:grid-cols-[minmax(0,1fr)_auto]">
+                    <input
+                      type="text"
+                      class="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-bold text-slate-900 outline-none focus:border-indigo-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                      placeholder="Nombre de la votación"
+                      [ngModel]="nombreVotacionGuardar()"
+                      (ngModelChange)="nombreVotacionGuardar.set($event)"
+                    />
+
+                    <button
+                      type="button"
+                      class="rounded-xl bg-indigo-700 px-5 py-3 text-sm font-black text-white transition hover:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-40"
+                      (click)="guardarResultadoVotacion()"
+                      [disabled]="guardandoVotacion()"
+                    >
+                      <i class="fa-solid fa-floppy-disk mr-2"></i>
+                      {{ guardandoVotacion() ? 'Guardando...' : 'Guardar resultado' }}
+                    </button>
+                  </div>
+                }
+              }
+            </div>
+          }
+          @if (intervencionesPausadas()) {
+                    <span class="mt-2 inline-flex rounded-full bg-orange-500 px-3 py-1 text-[10px] font-black text-white">
+                      PAUSADO
+                    </span>
+                  } @else if (i === 0) {
+                    <span class="mt-2 inline-flex rounded-full bg-yellow-400 px-3 py-1 text-[10px] font-black text-slate-900">
+                      PRÓXIMO
+                    </span>
+                  } @else {
+                    <span class="mt-2 inline-flex rounded-full bg-slate-200 px-3 py-1 text-[10px] font-black text-slate-700 dark:bg-slate-700 dark:text-white">
+                      PENDIENTE
+                    </span>
+                  }
+                </div>
+              } @empty {
+                <div class="rounded-2xl border border-dashed border-slate-300 p-5 text-center text-xs text-slate-500 dark:border-slate-700 dark:text-slate-400">
+                  No hay participantes en cola.
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-xl dark:border-slate-800 dark:bg-slate-900/80">
+            <div class="flex items-center justify-between gap-3">
+              <div class="min-w-0">
+                <h3 class="text-lg font-black text-slate-900 dark:text-white">
+                  Historial de intervenciones
+                </h3>
+
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                  Últimas acciones de participación.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                class="shrink-0 rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                (click)="toggleHistorialIntervenciones()"
+              >
+                <i
+                  class="fa-solid mr-2"
+                  [class.fa-eye]="!mostrarHistorialIntervenciones()"
+                  [class.fa-eye-slash]="mostrarHistorialIntervenciones()"
+                ></i>
+                {{ mostrarHistorialIntervenciones() ? 'Ocultar' : 'Mostrar' }}
+              </button>
+            </div>
+
+            @if (historialVisible()) {
+              <div class="mt-4 max-h-[320px] space-y-3 overflow-y-auto pr-1">
+                @for (item of historial(); track item.id) {
+                  <div class="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950">
+                    <p class="truncate text-sm font-black text-slate-900 dark:text-white">
+                      <i class="fa-solid fa-check mr-2 text-green-500"></i>
+                      {{ nombreHistorialIntervencion(item) }}
+                    </p>
+
+                    <p class="mt-1 text-xs font-black text-green-600 dark:text-green-400">
+                      {{ item.operacion }}
+                    </p>
+
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      {{ formatearFechaHora(item.created_at) }}
+                    </p>
+                  </div>
+                } @empty {
+                  <div class="rounded-2xl bg-slate-50 p-5 text-center text-xs text-slate-500 dark:bg-slate-950 dark:text-slate-400">
+                    Aún no hay acciones de intervención.
+                  </div>
+                }
+              </div>
+            } @else {
+              <div class="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-xs font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400">
+                El historial está oculto. Presiona “Mostrar” para consultarlo.
+              </div>
+            }
+          </div>
+        </aside>
+      </div>
+    }
+
+    <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_320px]" [class.hidden]="esVisualizador()">
       <main class="min-w-0 space-y-3">
-        <div class="rounded-2xl border border-rose-200 bg-white p-4 text-center shadow-xl dark:border-rose-500/40 dark:bg-slate-900 sm:p-5">
-          <p class="text-[10px] font-black uppercase tracking-[0.25em] text-rose-600 dark:text-rose-400 sm:text-xs">
-            Horario previsto
+        @if (!esVisualizador()) {
+          <div class="rounded-2xl border border-rose-200 bg-white p-4 text-center shadow-xl dark:border-rose-500/40 dark:bg-slate-900 sm:p-5">
+            <p class="text-[10px] font-black uppercase tracking-[0.25em] text-rose-600 dark:text-rose-400 sm:text-xs">
+              Horario previsto
           </p>
 
           <h1 class="mt-2 break-words text-2xl font-black text-slate-900 dark:text-white sm:text-3xl lg:text-4xl">
@@ -94,7 +668,8 @@
               </p>
             </div>
           </div>
-        </div>
+          </div>
+        }
 
         @if (!reunionIniciada()) {
           <div class="rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-xl dark:border-slate-800 dark:bg-slate-900">
@@ -103,11 +678,11 @@
             </p>
 
             <h2 class="mt-3 text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
-              Pulsa “Iniciar reunión” desde el control flotante.
+              {{ esVisualizador() ? 'Esperando que el moderador inicie la reunión.' : 'Pulsa “Iniciar reunión” desde el control flotante.' }}
             </h2>
 
             <p class="mx-auto mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-300 sm:text-base">
-              Los cronómetros, intervenciones, cola e historial aparecerán cuando la reunión cambie a estado activa.
+              Cuando la reunión esté activa se mostrarán duración, tema, intervención actual, cola e historial.
             </p>
           </div>
         }
@@ -246,7 +821,7 @@
                 Tu intervención comenzará en unos segundos.
               </p>
             </div>
-          } @else {
+          } @else if (!esVisualizador()) {
             <div class="rounded-2xl border border-rose-200 bg-white p-4 text-center shadow-xl dark:border-rose-500/40 dark:bg-slate-900/80">
               @if (intervencionActual()) {
                 <p class="text-xs font-black uppercase tracking-[0.22em] text-rose-600 dark:text-rose-400">
@@ -300,7 +875,7 @@
                 </h3>
 
                 <p class="text-xs text-slate-500 dark:text-slate-400">
-                  {{ intervencionesPausadas() ? 'Las intervenciones están pausadas.' : (intervencionesAutomaticas() ? 'Modo automático activo.' : 'Modo manual activo.') }}
+                  {{ esVisualizador() ? 'Seguimiento de solicitudes pendientes.' : (intervencionesPausadas() ? 'Las intervenciones están pausadas.' : (intervencionesAutomaticas() ? 'Modo automático activo.' : 'Modo manual activo.')) }}
                 </p>
               </div>
 
@@ -370,25 +945,27 @@
                 </h3>
 
                 <p class="text-xs text-slate-500 dark:text-slate-400">
-                  Oculto por defecto para mejorar el rendimiento visual.
+                  {{ esVisualizador() ? 'Últimas acciones de participación.' : 'Oculto por defecto para mejorar el rendimiento visual.' }}
                 </p>
               </div>
 
-              <button
-                type="button"
-                class="shrink-0 rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
-                (click)="toggleHistorialIntervenciones()"
-              >
-                <i
-                  class="fa-solid mr-2"
-                  [class.fa-eye]="!mostrarHistorialIntervenciones()"
-                  [class.fa-eye-slash]="mostrarHistorialIntervenciones()"
-                ></i>
-                {{ mostrarHistorialIntervenciones() ? 'Ocultar' : 'Mostrar' }}
-              </button>
+              @if (!esVisualizador()) {
+                <button
+                  type="button"
+                  class="shrink-0 rounded-xl bg-slate-100 px-3 py-2 text-xs font-black text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                  (click)="toggleHistorialIntervenciones()"
+                >
+                  <i
+                    class="fa-solid mr-2"
+                    [class.fa-eye]="!mostrarHistorialIntervenciones()"
+                    [class.fa-eye-slash]="mostrarHistorialIntervenciones()"
+                  ></i>
+                  {{ mostrarHistorialIntervenciones() ? 'Ocultar' : 'Mostrar' }}
+                </button>
+              }
             </div>
 
-            @if (mostrarHistorialIntervenciones()) {
+            @if (historialVisible()) {
               <div class="mt-4 max-h-[320px] space-y-3 overflow-y-auto pr-1">
                 @for (item of historial(); track item.id) {
                 <div class="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950">
@@ -420,6 +997,74 @@
         </aside>
       }
     </div>
+  </div>
+
+
+  @if (mostrarModalVotacion()) {
+    <div class="fixed inset-0 z-[70] bg-slate-950/60 p-4 backdrop-blur-sm" (click)="cerrarModalVotacion()">
+      <div class="mx-auto mt-24 w-full max-w-md rounded-[2rem] border border-slate-700 bg-slate-950 p-5 text-white shadow-2xl" (click)="$event.stopPropagation()">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-[0.25em] text-indigo-300">
+              Nueva votación
+            </p>
+            <h3 class="mt-1 text-2xl font-black">
+              Configurar votación
+            </h3>
+          </div>
+
+          <button
+            type="button"
+            class="grid h-9 w-9 place-items-center rounded-full bg-slate-800 text-slate-200 transition hover:bg-slate-700"
+            (click)="cerrarModalVotacion()"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <label class="mt-6 flex cursor-pointer items-center gap-3 rounded-2xl bg-slate-900 p-4">
+          <input
+            type="checkbox"
+            class="h-5 w-5 accent-indigo-500"
+            [ngModel]="incluirInvitadosVotacion()"
+            (ngModelChange)="incluirInvitadosVotacion.set($event)"
+          />
+          <span>
+            <span class="block text-sm font-black">Incluir invitados en la votación</span>
+            <span class="block text-xs text-slate-400">Si está apagado, solo podrán votar los miembros.</span>
+          </span>
+        </label>
+
+        <button
+          type="button"
+          class="mt-5 w-full rounded-2xl bg-indigo-700 px-5 py-4 text-sm font-black text-white transition hover:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-40"
+          (click)="iniciarVotacion()"
+          [disabled]="iniciandoVotacion()"
+        >
+          <i class="fa-solid fa-play mr-2"></i>
+          {{ iniciandoVotacion() ? 'Iniciando...' : 'Iniciar votación' }}
+        </button>
+      </div>
+    </div>
+  }
+
+  <div class="fixed bottom-5 left-5 z-50 sm:bottom-6 sm:left-6">
+    <button
+      type="button"
+      (click)="toggleSonido()"
+      class="rounded-2xl border border-slate-300 bg-white px-4 py-3 text-xs font-black text-slate-800 shadow-xl transition hover:-translate-y-0.5 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800"
+      [class.border-green-400]="sonidoHabilitado()"
+      [class.text-green-700]="sonidoHabilitado()"
+      [class.dark:text-green-300]="sonidoHabilitado()"
+      [attr.aria-pressed]="sonidoHabilitado()"
+    >
+      <i
+        class="fa-solid mr-2"
+        [class.fa-volume-high]="sonidoHabilitado()"
+        [class.fa-volume-xmark]="!sonidoHabilitado()"
+      ></i>
+      {{ sonidoHabilitado() ? 'Sonido activo' : 'Activar sonido' }}
+    </button>
   </div>
 
   @if (!esVisualizador()) {
@@ -494,6 +1139,28 @@
           }
 
           @if (reunionIniciada()) {
+
+            @if (!votacionActiva()) {
+              <button
+                type="button"
+                (click)="abrirModalVotacion()"
+                class="rounded-2xl bg-indigo-700 px-4 py-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-indigo-800"
+              >
+                <i class="fa-solid fa-square-poll-vertical mr-2"></i>
+                Iniciar votación
+              </button>
+            } @else {
+              <button
+                type="button"
+                (click)="terminarVotacion()"
+                [disabled]="terminandoVotacion()"
+                class="rounded-2xl bg-red-700 px-4 py-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <i class="fa-solid fa-chart-pie mr-2"></i>
+                {{ terminandoVotacion() ? 'Terminando votación...' : 'Terminar votación' }}
+              </button>
+            }
+
             @if (temaActual()) {
               <button
                 type="button"
