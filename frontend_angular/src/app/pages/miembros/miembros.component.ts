@@ -85,7 +85,7 @@ export class MiembrosComponent implements OnInit {
       this.form = {
         nombre: item.nombre || '',
         fecha: this.toInputDate(item.fecha),
-        rfid: item.rfid || '',
+        rfid: String(item.rfid || '').replace(/\D/g, '').slice(0, 4),
       };
     } else {
       this.form = this.emptyForm();
@@ -112,8 +112,10 @@ export class MiembrosComponent implements OnInit {
       return;
     }
 
-    if (!this.form.rfid?.trim()) {
-      this.error.set('Escribe el RFID.');
+    this.normalizarRfid();
+
+    if (!/^\d{4}$/.test(String(this.form.rfid || ''))) {
+      this.error.set('El RFID debe ser un número de exactamente 4 dígitos.');
       return;
     }
 
@@ -175,6 +177,16 @@ export class MiembrosComponent implements OnInit {
     } finally {
       this.saving.set(false);
     }
+  }
+
+
+  normalizarRfid(): void {
+    this.form.rfid = String(this.form.rfid || '').replace(/\D/g, '').slice(0, 4);
+  }
+
+  generarRfidAleatorio(): void {
+    this.form.rfid = String(Math.floor(1000 + Math.random() * 9000));
+    this.error.set('');
   }
 
   mostrarActivos(): void {

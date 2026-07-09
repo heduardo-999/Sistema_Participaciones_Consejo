@@ -19,7 +19,7 @@
             QR estático
           </p>
 
-          <h1 class="mt-2 break-words text-3xl font-black">
+          <h1 class="mt-2 truncate text-2xl font-black sm:text-3xl" [title]="tituloAcceso()">
             {{ tituloAcceso() }}
           </h1>
 
@@ -32,7 +32,7 @@
           @if (info()?.reunion) {
             <div class="rounded-3xl bg-slate-950 p-5">
               <p class="text-xs font-black uppercase tracking-widest text-slate-500">Reunión activa</p>
-              <h2 class="mt-2 break-words text-xl font-black">{{ info()?.reunion?.sesion }}</h2>
+              <h2 class="mt-2 truncate text-xl font-black" [title]="info()?.reunion?.sesion">{{ info()?.reunion?.sesion }}</h2>
               <p class="mt-1 text-sm text-slate-400">{{ info()?.reunion?.fecha }}</p>
             </div>
           } @else {
@@ -95,14 +95,15 @@
             @if (modo() === 'miembro') {
               <form class="mt-6 space-y-4" (ngSubmit)="entrarComoMiembro()">
                 <label class="block">
-                  <span class="text-sm font-black text-slate-300">Código RFID / 4 dígitos</span>
+                  <span class="text-sm font-black text-slate-300">Código RFID (4 dígitos)</span>
                   <input
                     type="text"
                     inputmode="numeric"
                     autocomplete="one-time-code"
-                    maxlength="20"
+                    maxlength="4"
                     class="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-950 px-5 py-4 text-center text-3xl font-black tracking-[0.25em] text-white outline-none focus:border-blue-500"
                     [(ngModel)]="codigo"
+                    (ngModelChange)="normalizarCodigo()"
                     name="codigo"
                     placeholder="0000"
                   />
@@ -165,4 +166,20 @@
       </div>
     }
   </div>
+
+  @if (toast()) {
+    <div class="fixed right-4 top-4 z-[90] max-w-sm rounded-2xl border px-4 py-3 text-sm font-black shadow-2xl"
+      [class.border-green-300]="toast()?.tipo === 'success'"
+      [class.bg-green-50]="toast()?.tipo === 'success'"
+      [class.text-green-800]="toast()?.tipo === 'success'"
+      [class.border-red-300]="toast()?.tipo === 'error'"
+      [class.bg-red-50]="toast()?.tipo === 'error'"
+      [class.text-red-800]="toast()?.tipo === 'error'"
+      [class.border-blue-300]="toast()?.tipo === 'info'"
+      [class.bg-blue-50]="toast()?.tipo === 'info'"
+      [class.text-blue-800]="toast()?.tipo === 'info'">
+      <i class="fa-solid mr-2" [class.fa-circle-check]="toast()?.tipo === 'success'" [class.fa-triangle-exclamation]="toast()?.tipo === 'error'" [class.fa-circle-info]="toast()?.tipo === 'info'"></i>
+      {{ toast()?.mensaje }}
+    </div>
+  }
 </div>

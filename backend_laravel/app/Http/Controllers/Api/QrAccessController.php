@@ -243,6 +243,13 @@ class QrAccessController extends Controller
             'reunion_id' => $participante->reunion?->id,
         ]);
 
+        SocketService::emit('dashboard:updated', [
+            'accion' => 'solicitar_qr',
+            'intervencion_id' => $intervencion->id,
+            'participante_id' => $participante->id,
+            'reunion_id' => $participante->reunion?->id,
+        ]);
+
         SocketService::emit('qr:updated', [
             'accion' => 'solicitar_intervencion',
             'participante_id' => $participante->id,
@@ -278,6 +285,13 @@ class QrAccessController extends Controller
         ]);
 
         SocketService::emit('intervenciones:updated', [
+            'accion' => 'cancelar_qr',
+            'intervencion_id' => $antes['id'] ?? null,
+            'participante_id' => $participante->id,
+            'reunion_id' => $participante->reunion?->id,
+        ]);
+
+        SocketService::emit('dashboard:updated', [
             'accion' => 'cancelar_qr',
             'intervencion_id' => $antes['id'] ?? null,
             'participante_id' => $participante->id,
@@ -325,6 +339,13 @@ class QrAccessController extends Controller
         ]);
 
         SocketService::emit('intervenciones:updated', [
+            'accion' => 'finalizar_qr',
+            'intervencion_id' => $intervencion->id,
+            'participante_id' => $participante->id,
+            'reunion_id' => $participante->reunion?->id,
+        ]);
+
+        SocketService::emit('dashboard:updated', [
             'accion' => 'finalizar_qr',
             'intervencion_id' => $intervencion->id,
             'participante_id' => $participante->id,

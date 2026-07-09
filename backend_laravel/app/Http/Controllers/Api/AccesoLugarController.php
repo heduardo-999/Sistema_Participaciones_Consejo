@@ -72,7 +72,7 @@ class AccesoLugarController extends Controller
     public function registrarMiembroLugar(Request $request, int $lugarId)
     {
         $validated = $request->validate([
-            'codigo' => 'required|string|min:4|max:20',
+            'codigo' => 'required|digits:4',
         ]);
 
         return $this->registrarMiembro($validated['codigo'], $lugarId, false);
@@ -90,7 +90,7 @@ class AccesoLugarController extends Controller
     public function registrarMiembroRezagado(Request $request)
     {
         $validated = $request->validate([
-            'codigo' => 'required|string|min:4|max:20',
+            'codigo' => 'required|digits:4',
         ]);
 
         return $this->registrarMiembro($validated['codigo'], null, true);

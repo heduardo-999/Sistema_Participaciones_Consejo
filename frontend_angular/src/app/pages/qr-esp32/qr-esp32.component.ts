@@ -21,6 +21,7 @@ export class QrEsp32Component implements OnInit, OnDestroy {
   sending = signal(false);
   error = signal('');
   message = signal('');
+  toast = signal<{ tipo: 'success' | 'error' | 'info'; mensaje: string } | null>(null);
 
   data = signal<any>(null);
   voteSending = signal(false);
@@ -109,6 +110,7 @@ export class QrEsp32Component implements OnInit, OnDestroy {
     } catch (error: any) {
       console.error('Error validando QR:', error);
       this.error.set(this.extractError(error) || 'QR inválido, expirado o reunión no activa.');
+      this.toastError(this.error());
       this.data.set(null);
 
       if (this.refreshInterval) {
@@ -137,6 +139,7 @@ export class QrEsp32Component implements OnInit, OnDestroy {
       const body = res?.data ?? res;
 
       this.message.set(body?.message || 'Acción realizada correctamente.');
+      this.toastSuccess(this.message());
       this.data.set(body?.data ?? body);
 
       setTimeout(() => {
@@ -145,6 +148,7 @@ export class QrEsp32Component implements OnInit, OnDestroy {
     } catch (error: any) {
       console.error('Error realizando acción:', error);
       this.error.set(this.extractError(error) || 'No se pudo realizar la acción.');
+      this.toastError(this.error());
     } finally {
       this.sending.set(false);
     }
@@ -194,6 +198,7 @@ export class QrEsp32Component implements OnInit, OnDestroy {
       const body = res?.data?.data ?? res?.data ?? res;
 
       this.voteMessage.set(body?.message || res?.data?.message || 'Voto registrado correctamente.');
+      this.toastSuccess(this.voteMessage());
 
       this.data.set({
         ...this.data(),
@@ -208,6 +213,7 @@ export class QrEsp32Component implements OnInit, OnDestroy {
     } catch (error: any) {
       console.error('Error registrando voto:', error);
       this.error.set(this.extractError(error) || 'No se pudo registrar tu voto.');
+      this.toastError(this.error());
     } finally {
       this.voteSending.set(false);
     }
@@ -386,16 +392,40 @@ export class QrEsp32Component implements OnInit, OnDestroy {
     });
   }
 
+  private mostrarToast(tipo: 'success' | 'error' | 'info', mensaje: string): void {
+    this.toast.set({ tipo, mensaje: this.traducirMensaje(mensaje) });
+    setTimeout(() => {
+      if (this.toast()?.mensaje === this.traducirMensaje(mensaje)) this.toast.set(null);
+    }, 4200);
+  }
+
+  toastSuccess(mensaje: string): void { this.mostrarToast('success', mensaje); }
+  toastError(mensaje: string): void { this.mostrarToast('error', mensaje); }
+  toastInfo(mensaje: string): void { this.mostrarToast('info', mensaje); }
+
   private extractError(error: any): string {
     const data = error?.response?.data ?? error?.data ?? error;
 
-    if (data?.message) return data.message;
+    if (data?.message) return this.traducirMensaje(data.message);
 
     if (data?.errors) {
       const firstKey = Object.keys(data.errors)[0];
-      return data.errors[firstKey]?.[0] || 'Error de validación.';
+      return this.traducirMensaje(data.errors[firstKey]?.[0] || 'Error de validación.');
     }
 
     return '';
+  }
+
+  private traducirMensaje(mensaje: string): string {
+    const texto = String(mensaje || '');
+    const traducciones: Record<string, string> = {
+      'Unauthenticated.': 'Tu sesión expiró. Vuelve a iniciar sesión.',
+      'Unauthorized': 'No tienes autorización para realizar esta acción.',
+      'No autorizado': 'No tienes autorización para realizar esta acción.',
+      'The token field is required.': 'No se recibió el token de acceso.',
+      'The voto field is required.': 'Selecciona una opción para votar.',
+      'The selected voto is invalid.': 'La opción seleccionada no es válida.',
+    };
+    return traducciones[texto] || texto;
   }
 }

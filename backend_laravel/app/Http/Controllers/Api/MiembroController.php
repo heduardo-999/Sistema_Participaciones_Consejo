@@ -42,10 +42,14 @@ class MiembroController extends Controller
             ], 403);
         }
 
+        $request->merge([
+            'rfid' => preg_replace('/\D/', '', (string) $request->rfid),
+        ]);
+
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:255',
             'fecha' => 'required|date',
-            'rfid' => 'required|string|max:255|unique:miembros,rfid',
+            'rfid' => 'required|digits:4|unique:miembros,rfid',
         ]);
 
         if ($validator->fails()) {
@@ -128,10 +132,14 @@ class MiembroController extends Controller
             ], 404);
         }
 
+        $request->merge([
+            'rfid' => preg_replace('/\D/', '', (string) $request->rfid),
+        ]);
+
         $validator = Validator::make($request->all(), [
             'nombre' => 'required|string|max:255',
             'fecha' => 'required|date',
-            'rfid' => 'required|string|max:255|unique:miembros,rfid,' . $miembro->id,
+            'rfid' => 'required|digits:4|unique:miembros,rfid,' . $miembro->id,
         ]);
 
         if ($validator->fails()) {

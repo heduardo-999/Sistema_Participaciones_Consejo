@@ -17,6 +17,17 @@
           <p class="mt-1 text-sm text-slate-600 dark:text-slate-300 sm:text-base">
             Control visual de intervenciones durante la sesión.
           </p>
+
+          @if (reunionIniciada() && !votacionActiva()) {
+            <button
+              type="button"
+              (click)="abrirModalVotacion()"
+              class="mt-3 inline-flex rounded-xl bg-indigo-700 px-4 py-2 text-xs font-black text-white shadow transition hover:bg-indigo-800"
+            >
+              <i class="fa-solid fa-square-poll-vertical mr-2"></i>
+              Crear votación
+            </button>
+          }
         </div>
 
         <button
@@ -549,9 +560,6 @@
                   Historial de intervenciones
                 </h3>
 
-                <p class="text-xs text-slate-500 dark:text-slate-400">
-                  Últimas acciones de participación.
-                </p>
               </div>
 
               <button
@@ -564,25 +572,17 @@
                   [class.fa-eye]="!mostrarHistorialIntervenciones()"
                   [class.fa-eye-slash]="mostrarHistorialIntervenciones()"
                 ></i>
-                {{ mostrarHistorialIntervenciones() ? 'Ocultar' : 'Mostrar' }}
+                {{ mostrarHistorialIntervenciones() ? 'Ocultar' : 'Ver' }}
               </button>
             </div>
 
             @if (historialVisible()) {
               <div class="mt-4 max-h-[320px] space-y-3 overflow-y-auto pr-1">
                 @for (item of historial(); track item.id) {
-                  <div class="rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950">
-                    <p class="truncate text-sm font-black text-slate-900 dark:text-white">
+                  <div class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-950">
+                    <p class="truncate text-xs font-black text-slate-900 dark:text-white" [title]="item.operacion + ' · ' + nombreHistorialIntervencion(item)">
                       <i class="fa-solid fa-check mr-2 text-green-500"></i>
-                      {{ nombreHistorialIntervencion(item) }}
-                    </p>
-
-                    <p class="mt-1 text-xs font-black text-green-600 dark:text-green-400">
-                      {{ item.operacion }}
-                    </p>
-
-                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      {{ formatearFechaHora(item.created_at) }}
+                      {{ item.operacion }} · {{ nombreHistorialIntervencion(item) }} · {{ formatearFechaHora(item.created_at) }}
                     </p>
                   </div>
                 } @empty {
@@ -593,7 +593,7 @@
               </div>
             } @else {
               <div class="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-xs font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400">
-                El historial está oculto. Presiona “Mostrar” para consultarlo.
+                Historial oculto.
               </div>
             }
           </div>
@@ -720,10 +720,27 @@
                     </p>
                   }
 
-                  <p class="mt-3 text-xs font-bold text-purple-700 dark:text-purple-300">
-                    <i class="fa-solid fa-list-check mr-2"></i>
-                    Para completar este tema usa el control flotante.
-                  </p>
+                  <div class="mt-3 flex flex-wrap gap-2 text-xs font-black">
+                    <button
+                      type="button"
+                      (click)="abrirModalVotacion()"
+                      class="rounded-xl bg-indigo-700 px-4 py-2 text-white transition hover:bg-indigo-800 disabled:opacity-40"
+                      [disabled]="votacionActiva()"
+                    >
+                      <i class="fa-solid fa-square-poll-vertical mr-2"></i>
+                      Votación
+                    </button>
+
+                    <button
+                      type="button"
+                      (click)="completarTemaActual()"
+                      [disabled]="completandoTemaActual()"
+                      class="rounded-xl bg-purple-700 px-4 py-2 text-white transition hover:bg-purple-800 disabled:opacity-40"
+                    >
+                      <i class="fa-solid fa-check mr-2"></i>
+                      Completar tema
+                    </button>
+                  </div>
                 </div>
               </div>
             } @else {
@@ -751,13 +768,23 @@
                 </p>
 
                 @if (intervencionActual()) {
-                  <h3 class="mt-3 break-words text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
+                  <h3 class="mt-3 truncate text-2xl font-black text-slate-900 dark:text-white sm:text-3xl" [title]="nombreParticipante(intervencionActual())">
                     {{ nombreParticipante(intervencionActual()) }}
                   </h3>
 
                   <p class="mt-2 text-sm font-bold text-slate-500 dark:text-slate-300">
                     {{ tipoParticipante(intervencionActual()) }}
                   </p>
+
+                  <button
+                    type="button"
+                    class="mt-3 rounded-xl bg-red-700 px-4 py-2 text-xs font-black text-white transition hover:bg-red-800 disabled:opacity-40"
+                    (click)="finalizarIntervencion()"
+                    [disabled]="!intervencionActual()"
+                  >
+                    <i class="fa-solid fa-stop mr-2"></i>
+                    Terminar
+                  </button>
                 } @else {
                   <h3 class="mt-3 text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
                     Sin intervención activa
@@ -769,24 +796,62 @@
                 }
               </div>
 
-              <div class="text-center">
+              <div class="rounded-[2rem] border border-slate-200 bg-white p-4 text-center shadow-inner dark:border-slate-800 dark:bg-slate-950">
+                <div class="mb-3 flex flex-wrap items-center justify-center gap-2">
+                  <span
+                    class="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest"
+                    [class.bg-green-100]="estadoTiempo() === 'verde' && segundos() >= 0 && !intervencionesPausadas() && !votacionActiva()"
+                    [class.text-green-700]="estadoTiempo() === 'verde' && segundos() >= 0 && !intervencionesPausadas() && !votacionActiva()"
+                    [class.bg-yellow-100]="estadoTiempo() === 'amarillo' && segundos() >= 0 && !intervencionesPausadas() && !votacionActiva()"
+                    [class.text-yellow-700]="estadoTiempo() === 'amarillo' && segundos() >= 0 && !intervencionesPausadas() && !votacionActiva()"
+                    [class.bg-red-100]="(estadoTiempo() === 'rojo' || segundos() < 0) && !intervencionesPausadas() && !votacionActiva()"
+                    [class.text-red-700]="(estadoTiempo() === 'rojo' || segundos() < 0) && !intervencionesPausadas() && !votacionActiva()"
+                    [class.bg-blue-100]="intervencionesPausadas() || votacionActiva()"
+                    [class.text-blue-700]="intervencionesPausadas() || votacionActiva()"
+                  >
+                    {{ textoEstadoCronometro() }}
+                  </span>
+                </div>
+
                 <div
-                  class="text-[clamp(4rem,15vw,9rem)] font-black leading-none tabular-nums"
-                  [class.text-green-500]="estadoTiempo() === 'verde'"
-                  [class.text-yellow-500]="estadoTiempo() === 'amarillo'"
-                  [class.text-red-500]="estadoTiempo() === 'rojo'"
-                  [class.animate-pulse]="segundos() <= 60"
+                  class="mx-auto w-fit rounded-[2rem] px-6 py-2 text-[clamp(4rem,14vw,8rem)] font-black leading-none tabular-nums transition-colors"
+                  [class.text-green-500]="estadoTiempo() === 'verde' && segundos() >= 0 && !intervencionesPausadas() && !votacionActiva()"
+                  [class.text-yellow-500]="estadoTiempo() === 'amarillo' && segundos() >= 0 && !intervencionesPausadas() && !votacionActiva()"
+                  [class.text-red-500]="(estadoTiempo() === 'rojo' || segundos() < 0) && !intervencionesPausadas() && !votacionActiva()"
+                  [class.text-blue-500]="intervencionesPausadas() || votacionActiva()"
+                  [class.animate-pulse]="segundos() <= 60 && segundos() >= 0 && !intervencionesPausadas() && !votacionActiva()"
                 >
                   {{ tiempo() }}
                 </div>
 
-                <p class="mt-1 text-xl font-black text-slate-800 dark:text-slate-100 sm:text-2xl">
+                <p class="mt-1 text-lg font-black text-slate-800 dark:text-slate-100 sm:text-xl">
                   Tiempo asignado: 5 minutos
                 </p>
 
-                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400 sm:text-sm">
-                  Cronómetro sincronizado con el inicio real de la intervención.
-                </p>
+                @if (!esVisualizador()) {
+                  <div class="mt-4 flex flex-wrap justify-center gap-2">
+                    <button
+                      type="button"
+                      (click)="reiniciarCronometro()"
+                      [disabled]="!intervencionActual()"
+                      class="rounded-xl bg-slate-800 px-4 py-2 text-xs font-black text-white transition hover:bg-slate-700 disabled:opacity-40"
+                    >
+                      <i class="fa-solid fa-rotate-right mr-2"></i>
+                      Reiniciar
+                    </button>
+
+                    <button
+                      type="button"
+                      (click)="togglePausaIntervenciones()"
+                      class="rounded-xl px-4 py-2 text-xs font-black text-white transition hover:brightness-110"
+                      [class.bg-orange-600]="!intervencionesPausadas()"
+                      [class.bg-green-700]="intervencionesPausadas()"
+                    >
+                      <i class="fa-solid" [class.fa-pause]="!intervencionesPausadas()" [class.fa-play]="intervencionesPausadas()"></i>
+                      <span class="ml-2">{{ intervencionesPausadas() ? 'Reanudar' : 'Pausar' }}</span>
+                    </button>
+                  </div>
+                }
               </div>
             </div>
           </div>
@@ -817,49 +882,13 @@
                 {{ segundosPreparacion() }}
               </div>
 
-              <p class="mt-4 text-base font-bold text-slate-800 dark:text-slate-100">
-                Tu intervención comenzará en unos segundos.
+              <p class="mt-3 text-xs font-black uppercase tracking-[0.22em] text-yellow-700 dark:text-yellow-300">
+                Preparación configurada: {{ totalPreparacionConfigurado() }} segundos
               </p>
-            </div>
-          } @else if (!esVisualizador()) {
-            <div class="rounded-2xl border border-rose-200 bg-white p-4 text-center shadow-xl dark:border-rose-500/40 dark:bg-slate-900/80">
-              @if (intervencionActual()) {
-                <p class="text-xs font-black uppercase tracking-[0.22em] text-rose-600 dark:text-rose-400">
-                  Intervención actual
-                </p>
 
-                <h2 class="mt-3 break-words text-3xl font-black leading-tight text-slate-900 dark:text-white sm:text-4xl lg:text-5xl">
-                  {{ nombreParticipante(intervencionActual()) }}
-                </h2>
-
-                <p class="mt-2 text-lg font-bold text-slate-500 dark:text-slate-300 sm:text-xl">
-                  {{ tipoParticipante(intervencionActual()) }}
-                </p>
-
-                <div class="mt-4 flex flex-col justify-center gap-2 text-sm sm:flex-row sm:flex-wrap">
-                  <span class="rounded-full bg-slate-100 px-5 py-2 font-black text-slate-900 shadow dark:bg-white">
-                    <i class="fa-solid fa-id-card mr-2"></i>
-                    RFID: {{ rfidParticipante(intervencionActual()) }}
-                  </span>
-
-                  <span class="rounded-full bg-rose-600 px-5 py-2 font-black text-white">
-                    <i class="fa-solid fa-microphone fa-beat-fade mr-2"></i>
-                    Estado: interviniendo
-                  </span>
-                </div>
-              } @else {
-                <p class="text-xs font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
-                  Sin intervención activa
-                </p>
-
-                <h2 class="mt-3 text-2xl font-black text-slate-900 dark:text-white sm:text-3xl">
-                  {{ intervencionesPausadas() ? 'Intervenciones pausadas' : 'Esperando señal del ESP32' }}
-                </h2>
-
-                <p class="mt-2 text-sm text-slate-600 dark:text-slate-300 sm:text-base">
-                  {{ intervencionesPausadas() ? 'Cuando se reanuden, la cola podrá avanzar nuevamente.' : 'Cuando exista alguien en cola, usa “Iniciar intervención” o activa las intervenciones automáticas.' }}
-                </p>
-              }
+              <p class="mt-2 text-base font-bold text-slate-800 dark:text-slate-100">
+                Tu intervención comenzará cuando termine el conteo.
+              </p>
             </div>
           }
         }
@@ -944,9 +973,6 @@
                   Historial de intervenciones
                 </h3>
 
-                <p class="text-xs text-slate-500 dark:text-slate-400">
-                  {{ esVisualizador() ? 'Últimas acciones de participación.' : 'Oculto por defecto para mejorar el rendimiento visual.' }}
-                </p>
               </div>
 
               @if (!esVisualizador()) {
@@ -960,7 +986,7 @@
                     [class.fa-eye]="!mostrarHistorialIntervenciones()"
                     [class.fa-eye-slash]="mostrarHistorialIntervenciones()"
                   ></i>
-                  {{ mostrarHistorialIntervenciones() ? 'Ocultar' : 'Mostrar' }}
+                  {{ mostrarHistorialIntervenciones() ? 'Ocultar' : 'Ver' }}
                 </button>
               }
             </div>
@@ -990,7 +1016,7 @@
               </div>
             } @else {
               <div class="mt-4 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center text-xs font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400">
-                El historial está oculto. Presiona “Mostrar” para consultarlo.
+                Historial oculto.
               </div>
             }
           </div>
@@ -999,6 +1025,95 @@
     </div>
   </div>
 
+
+
+  @if (mostrarModalConfiguracionTiempos()) {
+    <div class="fixed inset-0 z-[70] bg-slate-950/60 p-4 backdrop-blur-sm" (click)="cerrarConfiguracionTiempos()">
+      <div class="mx-auto mt-20 w-full max-w-lg rounded-[2rem] border border-slate-700 bg-slate-950 p-5 text-white shadow-2xl" (click)="$event.stopPropagation()">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-[0.25em] text-cyan-300">
+              Configuración
+            </p>
+            <h3 class="mt-1 text-2xl font-black">
+              Tiempos del sistema
+            </h3>
+          </div>
+
+          <button
+            type="button"
+            class="grid h-9 w-9 place-items-center rounded-full bg-slate-800 text-slate-200 transition hover:bg-slate-700"
+            (click)="cerrarConfiguracionTiempos()"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <div class="mt-6 grid gap-4">
+          <label class="block rounded-2xl bg-slate-900 p-4">
+            <span class="text-sm font-black text-slate-200">Espera entre intervenciones</span>
+            <span class="mt-1 block text-xs text-slate-400">Segundos antes de permitir que avance la siguiente intervención.</span>
+            <input
+              type="number"
+              min="0"
+              max="300"
+              class="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-black text-white outline-none focus:border-cyan-500"
+              [ngModel]="tiempoEsperaEntreIntervencionesSeg()"
+              (ngModelChange)="tiempoEsperaEntreIntervencionesSeg.set(+$event)"
+            />
+          </label>
+
+          <label class="block rounded-2xl bg-slate-900 p-4">
+            <span class="text-sm font-black text-slate-200">Tiempo para prepararse</span>
+            <span class="mt-1 block text-xs text-slate-400">Segundos que dura la pantalla de preparación antes de iniciar la intervención.</span>
+            <input
+              type="number"
+              min="1"
+              max="120"
+              class="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-black text-white outline-none focus:border-cyan-500"
+              [ngModel]="tiempoPreparacionIntervencionSeg()"
+              (ngModelChange)="tiempoPreparacionIntervencionSeg.set(+$event)"
+            />
+          </label>
+
+          <label class="block rounded-2xl bg-slate-900 p-4">
+            <span class="text-sm font-black text-slate-200">Visualización de resultado de votación</span>
+            <span class="mt-1 block text-xs text-slate-400">Segundos que el visualizador ve la gráfica final.</span>
+            <input
+              type="number"
+              min="1"
+              max="120"
+              class="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-black text-white outline-none focus:border-cyan-500"
+              [ngModel]="tiempoVisualizacionVotacionSeg()"
+              (ngModelChange)="tiempoVisualizacionVotacionSeg.set(+$event)"
+            />
+          </label>
+
+          <label class="block rounded-2xl bg-slate-900 p-4">
+            <span class="text-sm font-black text-slate-200">Duración máxima de votación activa</span>
+            <span class="mt-1 block text-xs text-slate-400">Al llegar a este tiempo, la votación se cerrará automáticamente.</span>
+            <input
+              type="number"
+              min="10"
+              max="3600"
+              class="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-black text-white outline-none focus:border-cyan-500"
+              [ngModel]="tiempoMaximoVotacionActivaSeg()"
+              (ngModelChange)="tiempoMaximoVotacionActivaSeg.set(+$event)"
+            />
+          </label>
+        </div>
+
+        <button
+          type="button"
+          class="mt-5 w-full rounded-2xl bg-cyan-700 px-5 py-4 text-sm font-black text-white transition hover:bg-cyan-800"
+          (click)="guardarConfiguracionTiempos()"
+        >
+          <i class="fa-solid fa-floppy-disk mr-2"></i>
+          Guardar tiempos
+        </button>
+      </div>
+    </div>
+  }
 
   @if (mostrarModalVotacion()) {
     <div class="fixed inset-0 z-[70] bg-slate-950/60 p-4 backdrop-blur-sm" (click)="cerrarModalVotacion()">
@@ -1042,7 +1157,7 @@
           [disabled]="iniciandoVotacion()"
         >
           <i class="fa-solid fa-play mr-2"></i>
-          {{ iniciandoVotacion() ? 'Iniciando...' : 'Iniciar votación' }}
+          {{ iniciandoVotacion() ? 'Iniciando...' : 'Votación' }}
         </button>
       </div>
     </div>
@@ -1147,7 +1262,7 @@
                 class="rounded-2xl bg-indigo-700 px-4 py-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-indigo-800"
               >
                 <i class="fa-solid fa-square-poll-vertical mr-2"></i>
-                Iniciar votación
+                Votación
               </button>
             } @else {
               <button
@@ -1157,7 +1272,7 @@
                 class="rounded-2xl bg-red-700 px-4 py-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <i class="fa-solid fa-chart-pie mr-2"></i>
-                {{ terminandoVotacion() ? 'Terminando votación...' : 'Terminar votación' }}
+                {{ terminandoVotacion() ? 'Terminando votación...' : 'Terminar voto' }}
               </button>
             }
 
@@ -1187,47 +1302,20 @@
               ></i>
 
               <span class="ml-2">
-                {{ intervencionesAutomaticas() ? 'Intervenciones automáticas: activas' : 'Intervenciones automáticas: inactivas' }}
+                {{ intervencionesAutomaticas() ? 'Automáticas activas' : 'Automáticas inactivas' }}
               </span>
             </button>
 
             <button
               type="button"
-              (click)="reiniciarCronometro()"
-              [disabled]="!intervencionActual()"
-              class="rounded-2xl bg-slate-800 px-4 py-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+              (click)="abrirConfiguracionTiempos()"
+              class="rounded-2xl bg-cyan-700 px-4 py-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-cyan-800"
             >
-              <i class="fa-solid fa-rotate-right mr-2"></i>
-              Reiniciar cronómetro
+              <i class="fa-solid fa-sliders mr-2"></i>
+              Tiempos
             </button>
 
-            <button
-              type="button"
-              (click)="togglePausaIntervenciones()"
-              class="rounded-2xl px-4 py-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:brightness-110"
-              [class.bg-orange-600]="!intervencionesPausadas()"
-              [class.bg-green-700]="intervencionesPausadas()"
-            >
-              <i
-                class="fa-solid"
-                [class.fa-pause]="!intervencionesPausadas()"
-                [class.fa-play]="intervencionesPausadas()"
-              ></i>
 
-              <span class="ml-2">
-                {{ intervencionesPausadas() ? 'Reanudar intervenciones' : 'Pausar intervenciones' }}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              (click)="finalizarIntervencion()"
-              [disabled]="!intervencionActual()"
-              class="rounded-2xl bg-red-700 px-4 py-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <i class="fa-solid fa-stop mr-2"></i>
-              Finalizar intervención
-            </button>
 
             <button
               type="button"
@@ -1252,4 +1340,22 @@
     </div>
   }
   }
+
+
+  @if (toast()) {
+    <div class="fixed right-4 top-4 z-[90] max-w-sm rounded-2xl border px-4 py-3 text-sm font-black shadow-2xl"
+      [class.border-green-300]="toast()?.tipo === 'success'"
+      [class.bg-green-50]="toast()?.tipo === 'success'"
+      [class.text-green-800]="toast()?.tipo === 'success'"
+      [class.border-red-300]="toast()?.tipo === 'error'"
+      [class.bg-red-50]="toast()?.tipo === 'error'"
+      [class.text-red-800]="toast()?.tipo === 'error'"
+      [class.border-blue-300]="toast()?.tipo === 'info'"
+      [class.bg-blue-50]="toast()?.tipo === 'info'"
+      [class.text-blue-800]="toast()?.tipo === 'info'">
+      <i class="fa-solid mr-2" [class.fa-circle-check]="toast()?.tipo === 'success'" [class.fa-triangle-exclamation]="toast()?.tipo === 'error'" [class.fa-circle-info]="toast()?.tipo === 'info'"></i>
+      {{ toast()?.mensaje }}
+    </div>
+  }
+
 </section>

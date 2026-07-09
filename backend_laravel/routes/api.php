@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\RolPermisoController;
 use App\Http\Controllers\Api\TemaReunionController;
 use App\Http\Controllers\Api\VotacionController;
 use App\Http\Controllers\Api\AccesoLugarController;
+use App\Http\Controllers\Api\ConfiguracionTiemposController;
 
 Route::post('/login', [AuthController::class, 'login']);
 
@@ -61,6 +62,9 @@ Route::middleware(['auth:sanctum', 'CheckBaja'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/dashboard/intervenciones', [IntervencionController::class, 'dashboardIntervenciones']);
     Route::get('/dashboard/historial-intervenciones', [IntervencionController::class, 'dashboardHistorial']);
+
+    Route::get('/configuracion-tiempos', [ConfiguracionTiemposController::class, 'index']);
+    Route::put('/configuracion-tiempos', [ConfiguracionTiemposController::class, 'update']);
 
     Route::get('/votaciones/activa', [VotacionController::class, 'activa']);
     Route::post('/votaciones/iniciar', [VotacionController::class, 'iniciar']);
