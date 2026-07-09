@@ -281,6 +281,18 @@
                 </div>
 
                 <div class="text-center">
+                  @if (estadoCronometroTexto()) {
+                    <span class="mb-2 inline-flex rounded-full px-4 py-1 text-xs font-black uppercase tracking-wider"
+                      [class.bg-blue-100]="estadoTiempo() === 'azul'"
+                      [class.text-blue-700]="estadoTiempo() === 'azul'"
+                      [class.bg-red-100]="estadoTiempo() === 'rojo' && segundos() < 0"
+                      [class.text-red-700]="estadoTiempo() === 'rojo' && segundos() < 0"
+                      [class.bg-yellow-100]="estadoTiempo() === 'amarillo' || (estadoTiempo() === 'rojo' && segundos() >= 0)"
+                      [class.text-yellow-700]="estadoTiempo() === 'amarillo' || (estadoTiempo() === 'rojo' && segundos() >= 0)">
+                      {{ estadoCronometroTexto() }}
+                    </span>
+                  }
+
                   <p class="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 dark:text-slate-400">
                     Tiempo de intervención
                   </p>
@@ -290,13 +302,14 @@
                     [class.text-green-500]="estadoTiempo() === 'verde'"
                     [class.text-yellow-500]="estadoTiempo() === 'amarillo'"
                     [class.text-red-500]="estadoTiempo() === 'rojo'"
-                    [class.animate-pulse]="segundos() <= 60"
+                    [class.text-blue-500]="estadoTiempo() === 'azul'"
+                    [class.animate-pulse]="segundos() <= 60 && segundos() >= 0 && estadoTiempo() !== 'azul'"
                   >
                     {{ tiempo() }}
                   </div>
 
                   <p class="mt-1 text-xl font-black text-slate-800 dark:text-slate-100 sm:text-2xl">
-                    Tiempo asignado: 5 minutos
+                    Tiempo asignado: {{ tiempoAsignadoTexto() }}
                   </p>
                 </div>
               </div>
@@ -796,36 +809,36 @@
                 }
               </div>
 
-              <div class="rounded-[2rem] border border-slate-200 bg-white p-4 text-center shadow-inner dark:border-slate-800 dark:bg-slate-950">
-                <div class="mb-3 flex flex-wrap items-center justify-center gap-2">
-                  <span
-                    class="rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-widest"
-                    [class.bg-green-100]="estadoTiempo() === 'verde' && segundos() >= 0 && !intervencionesPausadas() && !votacionActiva()"
-                    [class.text-green-700]="estadoTiempo() === 'verde' && segundos() >= 0 && !intervencionesPausadas() && !votacionActiva()"
-                    [class.bg-yellow-100]="estadoTiempo() === 'amarillo' && segundos() >= 0 && !intervencionesPausadas() && !votacionActiva()"
-                    [class.text-yellow-700]="estadoTiempo() === 'amarillo' && segundos() >= 0 && !intervencionesPausadas() && !votacionActiva()"
-                    [class.bg-red-100]="(estadoTiempo() === 'rojo' || segundos() < 0) && !intervencionesPausadas() && !votacionActiva()"
-                    [class.text-red-700]="(estadoTiempo() === 'rojo' || segundos() < 0) && !intervencionesPausadas() && !votacionActiva()"
-                    [class.bg-blue-100]="intervencionesPausadas() || votacionActiva()"
-                    [class.text-blue-700]="intervencionesPausadas() || votacionActiva()"
-                  >
-                    {{ textoEstadoCronometro() }}
+              <div class="text-center">
+                @if (estadoCronometroTexto()) {
+                  <span class="mb-2 inline-flex rounded-full px-4 py-1 text-xs font-black uppercase tracking-wider"
+                    [class.bg-blue-100]="estadoTiempo() === 'azul'"
+                    [class.text-blue-700]="estadoTiempo() === 'azul'"
+                    [class.bg-red-100]="estadoTiempo() === 'rojo' && segundos() < 0"
+                    [class.text-red-700]="estadoTiempo() === 'rojo' && segundos() < 0"
+                    [class.bg-yellow-100]="estadoTiempo() === 'amarillo' || (estadoTiempo() === 'rojo' && segundos() >= 0)"
+                    [class.text-yellow-700]="estadoTiempo() === 'amarillo' || (estadoTiempo() === 'rojo' && segundos() >= 0)">
+                    {{ estadoCronometroTexto() }}
                   </span>
-                </div>
+                }
 
                 <div
-                  class="mx-auto w-fit rounded-[2rem] px-6 py-2 text-[clamp(4rem,14vw,8rem)] font-black leading-none tabular-nums transition-colors"
-                  [class.text-green-500]="estadoTiempo() === 'verde' && segundos() >= 0 && !intervencionesPausadas() && !votacionActiva()"
-                  [class.text-yellow-500]="estadoTiempo() === 'amarillo' && segundos() >= 0 && !intervencionesPausadas() && !votacionActiva()"
-                  [class.text-red-500]="(estadoTiempo() === 'rojo' || segundos() < 0) && !intervencionesPausadas() && !votacionActiva()"
-                  [class.text-blue-500]="intervencionesPausadas() || votacionActiva()"
-                  [class.animate-pulse]="segundos() <= 60 && segundos() >= 0 && !intervencionesPausadas() && !votacionActiva()"
+                  class="text-[clamp(4rem,15vw,9rem)] font-black leading-none tabular-nums"
+                  [class.text-green-500]="estadoTiempo() === 'verde'"
+                  [class.text-yellow-500]="estadoTiempo() === 'amarillo'"
+                  [class.text-red-500]="estadoTiempo() === 'rojo'"
+                  [class.text-blue-500]="estadoTiempo() === 'azul'"
+                  [class.animate-pulse]="segundos() <= 60 && segundos() >= 0 && estadoTiempo() !== 'azul'"
                 >
                   {{ tiempo() }}
                 </div>
 
-                <p class="mt-1 text-lg font-black text-slate-800 dark:text-slate-100 sm:text-xl">
-                  Tiempo asignado: 5 minutos
+                <p class="mt-1 text-xl font-black text-slate-800 dark:text-slate-100 sm:text-2xl">
+                  Tiempo asignado: {{ tiempoAsignadoTexto() }}
+                </p>
+
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400 sm:text-sm">
+                  Cronómetro sincronizado con el inicio real de la intervención.
                 </p>
 
                 @if (!esVisualizador()) {
@@ -882,12 +895,8 @@
                 {{ segundosPreparacion() }}
               </div>
 
-              <p class="mt-3 text-xs font-black uppercase tracking-[0.22em] text-yellow-700 dark:text-yellow-300">
-                Preparación configurada: {{ totalPreparacionConfigurado() }} segundos
-              </p>
-
-              <p class="mt-2 text-base font-bold text-slate-800 dark:text-slate-100">
-                Tu intervención comenzará cuando termine el conteo.
+              <p class="mt-4 text-base font-bold text-slate-800 dark:text-slate-100">
+                Tu intervención comenzará en unos segundos.
               </p>
             </div>
           }
@@ -1026,95 +1035,6 @@
   </div>
 
 
-
-  @if (mostrarModalConfiguracionTiempos()) {
-    <div class="fixed inset-0 z-[70] bg-slate-950/60 p-4 backdrop-blur-sm" (click)="cerrarConfiguracionTiempos()">
-      <div class="mx-auto mt-20 w-full max-w-lg rounded-[2rem] border border-slate-700 bg-slate-950 p-5 text-white shadow-2xl" (click)="$event.stopPropagation()">
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <p class="text-[10px] font-black uppercase tracking-[0.25em] text-cyan-300">
-              Configuración
-            </p>
-            <h3 class="mt-1 text-2xl font-black">
-              Tiempos del sistema
-            </h3>
-          </div>
-
-          <button
-            type="button"
-            class="grid h-9 w-9 place-items-center rounded-full bg-slate-800 text-slate-200 transition hover:bg-slate-700"
-            (click)="cerrarConfiguracionTiempos()"
-          >
-            <i class="fa-solid fa-xmark"></i>
-          </button>
-        </div>
-
-        <div class="mt-6 grid gap-4">
-          <label class="block rounded-2xl bg-slate-900 p-4">
-            <span class="text-sm font-black text-slate-200">Espera entre intervenciones</span>
-            <span class="mt-1 block text-xs text-slate-400">Segundos antes de permitir que avance la siguiente intervención.</span>
-            <input
-              type="number"
-              min="0"
-              max="300"
-              class="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-black text-white outline-none focus:border-cyan-500"
-              [ngModel]="tiempoEsperaEntreIntervencionesSeg()"
-              (ngModelChange)="tiempoEsperaEntreIntervencionesSeg.set(+$event)"
-            />
-          </label>
-
-          <label class="block rounded-2xl bg-slate-900 p-4">
-            <span class="text-sm font-black text-slate-200">Tiempo para prepararse</span>
-            <span class="mt-1 block text-xs text-slate-400">Segundos que dura la pantalla de preparación antes de iniciar la intervención.</span>
-            <input
-              type="number"
-              min="1"
-              max="120"
-              class="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-black text-white outline-none focus:border-cyan-500"
-              [ngModel]="tiempoPreparacionIntervencionSeg()"
-              (ngModelChange)="tiempoPreparacionIntervencionSeg.set(+$event)"
-            />
-          </label>
-
-          <label class="block rounded-2xl bg-slate-900 p-4">
-            <span class="text-sm font-black text-slate-200">Visualización de resultado de votación</span>
-            <span class="mt-1 block text-xs text-slate-400">Segundos que el visualizador ve la gráfica final.</span>
-            <input
-              type="number"
-              min="1"
-              max="120"
-              class="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-black text-white outline-none focus:border-cyan-500"
-              [ngModel]="tiempoVisualizacionVotacionSeg()"
-              (ngModelChange)="tiempoVisualizacionVotacionSeg.set(+$event)"
-            />
-          </label>
-
-          <label class="block rounded-2xl bg-slate-900 p-4">
-            <span class="text-sm font-black text-slate-200">Duración máxima de votación activa</span>
-            <span class="mt-1 block text-xs text-slate-400">Al llegar a este tiempo, la votación se cerrará automáticamente.</span>
-            <input
-              type="number"
-              min="10"
-              max="3600"
-              class="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-black text-white outline-none focus:border-cyan-500"
-              [ngModel]="tiempoMaximoVotacionActivaSeg()"
-              (ngModelChange)="tiempoMaximoVotacionActivaSeg.set(+$event)"
-            />
-          </label>
-        </div>
-
-        <button
-          type="button"
-          class="mt-5 w-full rounded-2xl bg-cyan-700 px-5 py-4 text-sm font-black text-white transition hover:bg-cyan-800"
-          (click)="guardarConfiguracionTiempos()"
-        >
-          <i class="fa-solid fa-floppy-disk mr-2"></i>
-          Guardar tiempos
-        </button>
-      </div>
-    </div>
-  }
-
   @if (mostrarModalVotacion()) {
     <div class="fixed inset-0 z-[70] bg-slate-950/60 p-4 backdrop-blur-sm" (click)="cerrarModalVotacion()">
       <div class="mx-auto mt-24 w-full max-w-md rounded-[2rem] border border-slate-700 bg-slate-950 p-5 text-white shadow-2xl" (click)="$event.stopPropagation()">
@@ -1163,6 +1083,55 @@
     </div>
   }
 
+
+
+  @if (mostrarModalTiempos()) {
+    <div class="fixed inset-0 z-[75] bg-slate-950/70 p-4 backdrop-blur-sm" (click)="cerrarModalTiempos()">
+      <div class="mx-auto mt-12 max-h-[88vh] w-full max-w-lg overflow-y-auto rounded-[2rem] border border-slate-700 bg-slate-950 p-5 text-white shadow-2xl" (click)="$event.stopPropagation()">
+        <div class="flex items-start justify-between gap-3">
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-[0.25em] text-blue-300">Configuración</p>
+            <h3 class="mt-1 text-2xl font-black">Tiempos del sistema</h3>
+          </div>
+          <button type="button" class="grid h-9 w-9 place-items-center rounded-full bg-slate-800 text-slate-200 transition hover:bg-slate-700" (click)="cerrarModalTiempos()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <form class="mt-5 space-y-3" (ngSubmit)="guardarConfiguracionTiempos()">
+          <label class="block rounded-2xl bg-slate-900 p-4">
+            <span class="text-sm font-black">Espera entre intervenciones</span>
+            <span class="mt-1 block text-xs text-slate-400">Segundos antes de permitir que avance la siguiente intervención.</span>
+            <input type="number" min="0" max="300" class="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-black text-white outline-none focus:border-blue-500" [(ngModel)]="tiemposForm.espera" name="espera" />
+          </label>
+          <label class="block rounded-2xl bg-slate-900 p-4">
+            <span class="text-sm font-black">Tiempo para prepararse</span>
+            <span class="mt-1 block text-xs text-slate-400">Segundos de preparación antes de iniciar la intervención.</span>
+            <input type="number" min="1" max="120" class="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-black text-white outline-none focus:border-blue-500" [(ngModel)]="tiemposForm.preparacion" name="preparacion" />
+          </label>
+          <label class="block rounded-2xl bg-slate-900 p-4">
+            <span class="text-sm font-black">Tiempo asignado por intervención</span>
+            <span class="mt-1 block text-xs text-slate-400">Duración del cronómetro de cada participación.</span>
+            <input type="number" min="30" max="7200" class="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-black text-white outline-none focus:border-blue-500" [(ngModel)]="tiemposForm.intervencion" name="intervencion" />
+          </label>
+          <label class="block rounded-2xl bg-slate-900 p-4">
+            <span class="text-sm font-black">Visualización de resultado de votación</span>
+            <span class="mt-1 block text-xs text-slate-400">Segundos que el visualizador ve la gráfica final.</span>
+            <input type="number" min="1" max="120" class="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-black text-white outline-none focus:border-blue-500" [(ngModel)]="tiemposForm.visualizacionVotacion" name="visualizacionVotacion" />
+          </label>
+          <label class="block rounded-2xl bg-slate-900 p-4">
+            <span class="text-sm font-black">Duración máxima de votación activa</span>
+            <span class="mt-1 block text-xs text-slate-400">Al llegar a este tiempo, la votación se cerrará automáticamente.</span>
+            <input type="number" min="10" max="3600" class="mt-3 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-black text-white outline-none focus:border-blue-500" [(ngModel)]="tiemposForm.maximoVotacion" name="maximoVotacion" />
+          </label>
+          <button type="submit" class="w-full rounded-2xl bg-blue-700 px-5 py-4 text-sm font-black text-white transition hover:bg-blue-800 disabled:opacity-40" [disabled]="guardandoTiempos()">
+            <i class="fa-solid fa-floppy-disk mr-2"></i>
+            {{ guardandoTiempos() ? 'Guardando...' : 'Guardar tiempos' }}
+          </button>
+        </form>
+      </div>
+    </div>
+  }
   <div class="fixed bottom-5 left-5 z-50 sm:bottom-6 sm:left-6">
     <button
       type="button"
@@ -1308,14 +1277,12 @@
 
             <button
               type="button"
-              (click)="abrirConfiguracionTiempos()"
-              class="rounded-2xl bg-cyan-700 px-4 py-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-cyan-800"
+              (click)="abrirModalTiempos()"
+              class="rounded-2xl bg-blue-700 px-4 py-4 text-sm font-black text-white transition hover:-translate-y-0.5 hover:bg-blue-800"
             >
-              <i class="fa-solid fa-sliders mr-2"></i>
+              <i class="fa-solid fa-clock mr-2"></i>
               Tiempos
             </button>
-
-
 
             <button
               type="button"

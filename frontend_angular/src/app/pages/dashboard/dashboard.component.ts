@@ -47,18 +47,27 @@ export class DashboardComponent implements OnInit, OnDestroy {
   guardandoVotacion = signal(false);
   mostrarResultadoVotacionVisualizador = signal(true);
   toast = signal<{ tipo: 'success' | 'error' | 'info'; mensaje: string } | null>(null);
-  tiempoVisualizacionVotacionMs = signal(Number(localStorage.getItem('tiempoVisualizacionVotacionMs') || 7000));
-  mostrarModalConfiguracionTiempos = signal(false);
-  tiempoEsperaEntreIntervencionesSeg = signal(Number(localStorage.getItem('tiempoEsperaEntreIntervencionesSeg') || 10));
-  tiempoPreparacionIntervencionSeg = signal(Number(localStorage.getItem('tiempoPreparacionIntervencionSeg') || 10));
-  tiempoVisualizacionVotacionSeg = signal(Math.round(Number(localStorage.getItem('tiempoVisualizacionVotacionMs') || 7000) / 1000));
-  tiempoMaximoVotacionActivaSeg = signal(Number(localStorage.getItem('tiempoMaximoVotacionActivaSeg') || 120));
+  tiempoVisualizacionVotacionMs = signal(7000);
+  tiempoEsperaEntreIntervencionesSeg = signal(10);
+  tiempoPreparacionSeg = signal(10);
+  tiempoIntervencionSeg = signal(300);
+  tiempoMaximoVotacionActivaSeg = signal(120);
+  guardandoTiempos = signal(false);
+  mostrarModalTiempos = signal(false);
+  tiemposForm = {
+    espera: 10,
+    preparacion: 10,
+    intervencion: 300,
+    visualizacionVotacion: 7,
+    maximoVotacion: 120,
+  };
+  private inicioVisualIntervencion = signal<{ id: number; inicioMs: number } | null>(null);
 
   temaActual = signal<any>(null);
   loadingTemaActual = signal(false);
   completandoTemaActual = signal(false);
 
-  preparacionSegundos = signal(Number(localStorage.getItem('tiempoPreparacionIntervencionSeg') || 10));
+  preparacionSegundos = signal(10);
   preparacionIniciaAt = signal<number | null>(null);
   preparando = signal(false);
   participantePreparando = signal<any>(null);
@@ -120,15 +129,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
   serverNowMs = signal(Date.now());
 
   pausaIntervencionIniciaAt = signal<number | null>(null);
+  pausaAcumuladaIntervencionMs = signal(0);
   pausaVotacionIntervencionIniciaAt = signal<number | null>(null);
-
-  private intervencionCronometroId: string | number | null = null;
-  private intervencionCronometroInicioLocalMs: number | null = null;
 
   private refreshId: any = null;
   private preparacionId: any = null;
-  private preparacionLocalId: string | number | null = null;
-  private preparacionTotalUsado = Number(localStorage.getItem('tiempoPreparacionIntervencionSeg') || 10);
   private relojId: any = null;
   private votacionVisualizadorTimer: any = null;
   private ultimaVotacionFinalizadaVisualizadorKey = '';
@@ -252,25 +257,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   segundos = computed(() => {
     const actual = this.intervencionActual();
-    const duracionIntervencionSeg = 300;
+    const tiempoTotal = this.tiempoIntervencionSeg();
 
     if (!this.reunionIniciada() || !actual?.inicio_real_at) {
-      return duracionIntervencionSeg;
+      return tiempoTotal;
     }
 
+    const actualId = Number(actual.id || 0);
+    const override = this.inicioVisualIntervencion();
+    const inicioOverride = override && override.id === actualId ? override.inicioMs : null;
     const inicioBackend = new Date(actual.inicio_real_at).getTime();
-
-    const inicio = actual.fin_real_at
-      ? inicioBackend
-      : (this.intervencionCronometroId === actual.id && this.intervencionCronometroInicioLocalMs)
-        ? this.intervencionCronometroInicioLocalMs
-        : inicioBackend;
+    const inicio = inicioOverride ?? inicioBackend;
 
     const fin = actual.fin_real_at
       ? new Date(actual.fin_real_at).getTime()
       : this.serverNowMs();
 
-    let pausaMs = 0;
+    let pausaMs = this.pausaAcumuladaIntervencionMs();
     const pausaInicio = this.pausaIntervencionIniciaAt();
 
     if (this.intervencionesPausadas() && pausaInicio) {
@@ -279,32 +282,26 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     const pausaVotacionInicio = this.pausaVotacionIntervencionIniciaAt();
 
-    if (!this.intervencionesPausadas() && this.votacionActiva() && pausaVotacionInicio) {
+    if (this.votacionActiva() && pausaVotacionInicio) {
       pausaMs += Math.max(0, this.serverNowMs() - pausaVotacionInicio);
     }
 
-    const transcurrido = Math.max(0, Math.floor((fin - inicio - pausaMs) / 1000));
-    return duracionIntervencionSeg - transcurrido;
+    const transcurrido = Math.floor((fin - inicio - pausaMs) / 1000);
+    return tiempoTotal - transcurrido;
   });
 
   segundosPreparacion = computed(() => {
     const inicio = this.preparacionIniciaAt();
 
-    const totalPreparacion = Math.max(1, Math.min(120, Number(this.tiempoPreparacionIntervencionSeg()) || 10));
-
     if (!this.preparando() || !inicio || this.intervencionesPausadas()) {
-      return totalPreparacion;
+      return this.tiempoPreparacionSeg();
     }
 
     const transcurrido = Math.floor((this.serverNowMs() - inicio) / 1000);
-    const restante = totalPreparacion - transcurrido;
+    const restante = this.tiempoPreparacionSeg() - transcurrido;
 
     return Math.max(0, restante);
   });
-
-  totalPreparacionConfigurado = computed(() =>
-    Math.max(1, Math.min(120, Number(this.tiempoPreparacionIntervencionSeg()) || 10))
-  );
 
   tiempo = computed(() => {
     const total = this.segundos();
@@ -319,18 +316,26 @@ export class DashboardComponent implements OnInit, OnDestroy {
   estadoTiempo = computed(() => {
     const segundos = this.segundos();
 
-    if (segundos > 180) return 'verde';
-    if (segundos > 60) return 'amarillo';
+    if (this.intervencionesPausadas() || this.votacionActiva()) return 'azul';
+    if (segundos < 0) return 'rojo';
+
+    const total = Math.max(1, this.tiempoIntervencionSeg());
+    const verdeHasta = Math.ceil(total * 0.6);
+    const amarilloHasta = Math.ceil(total * 0.2);
+
+    if (segundos > verdeHasta) return 'verde';
+    if (segundos > amarilloHasta) return 'amarillo';
     return 'rojo';
   });
 
-  textoEstadoCronometro = computed(() => {
-    if (!this.intervencionActual()) return 'Sin intervención activa';
-    if (this.votacionActiva()) return 'Pausado por votación';
+  tiempoAsignadoTexto = computed(() => this.formatearMinutosSegundos(this.tiempoIntervencionSeg()));
+
+  estadoCronometroTexto = computed(() => {
+    if (this.votacionActiva() && this.intervencionActual()) return 'Pausado por votación';
     if (this.intervencionesPausadas()) return 'Pausado';
     if (this.segundos() < 0) return 'Tiempo excedido';
     if (this.segundos() <= 60) return 'Último minuto';
-    return 'En tiempo';
+    return '';
   });
 
   fechaReunion = computed(() => this.formatearFecha(this.reunion()?.fecha));
@@ -362,9 +367,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.detenerTimers();
-    this.cargarConfiguracionTiemposLocal();
-    this.cargarConfiguracionTiempos();
 
+    this.cargarConfiguracionTiempos();
     this.loadData();
     this.actualizarReloj();
 
@@ -373,14 +377,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.serverNowMs.set(Date.now() + this.serverOffsetMs());
       this.revisarPreparacionBackend();
       this.revisarFinAutomaticoIntervencion();
-      this.revisarVotacionActivaMaxima();
     }, 1000);
 
-    // Refresco ligero como respaldo del Socket.IO para que las solicitudes desde ESP32
-    // aparezcan en la cola casi al instante aunque el socket del navegador se retrase.
     this.refreshId = setInterval(() => {
       this.loadData(false);
-    }, 2500);
+    }, 60000);
 
     document.addEventListener('fullscreenchange', this.fullscreenHandler);
 
@@ -628,6 +629,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     } else {
       this.temaActual.set(null);
       this.intervencionActual.set(null);
+      this.limpiarInicioVisualIntervencion();
       this.cola.set([]);
       this.historial.set([]);
       this.votacion.set(null);
@@ -686,6 +688,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   private aplicarEstadoPausaDesdeReunion(reunion: any): void {
     const pausadas = Boolean(reunion?.intervenciones_pausadas);
+    const estabaPausado = this.intervencionesPausadas();
+
+    if (!pausadas && estabaPausado) {
+      this.acumularPausaIntervencionActual();
+    }
 
     this.intervencionesPausadas.set(pausadas);
 
@@ -694,18 +701,20 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.iniciandoAutomatico = false;
       this.finalizandoAutomatico = false;
 
-      const pausaMs = reunion?.intervenciones_pausadas_at
-        ? new Date(reunion.intervenciones_pausadas_at).getTime()
-        : this.serverNowMs();
+      if (!this.pausaIntervencionIniciaAt()) {
+        const pausaMs = reunion?.intervenciones_pausadas_at
+          ? new Date(reunion.intervenciones_pausadas_at).getTime()
+          : this.serverNowMs();
 
-      this.pausaIntervencionIniciaAt.set(
-        Number.isNaN(pausaMs) ? this.serverNowMs() : pausaMs
-      );
+        this.pausaIntervencionIniciaAt.set(
+          Number.isNaN(pausaMs) ? this.serverNowMs() : pausaMs
+        );
+      }
 
       return;
     }
 
-    this.limpiarPausaIntervencion();
+    this.pausaIntervencionIniciaAt.set(null);
   }
 
   private async cargarReunionActiva(): Promise<void> {
@@ -815,7 +824,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.cola.set([]);
       this.limpiarPreparacion();
       this.limpiarPausaIntervencion();
-      this.limpiarCronometroIntervencionLocal();
       return;
     }
 
@@ -845,14 +853,27 @@ export class DashboardComponent implements OnInit, OnDestroy {
         );
 
       this.sincronizarPausaConIntervencion(actual);
-      this.sincronizarCronometroIntervencion(actual);
 
       this.intervencionActual.set(actual);
+      if (actual) {
+        this.asegurarInicioVisualIntervencion(actual);
+      } else {
+        this.limpiarInicioVisualIntervencion();
+      }
       this.cola.set(pendientes);
       this.revisarSonidoIntervencion(actual, preparando, pendientes);
 
       if (preparando) {
-        this.sincronizarPreparacionActiva(preparando);
+        this.preparando.set(true);
+        this.participantePreparando.set(preparando);
+
+        const prepMs = preparando?.preparacion_inicia_at
+          ? new Date(preparando.preparacion_inicia_at).getTime()
+          : NaN;
+
+        this.preparacionIniciaAt.set(
+          Number.isNaN(prepMs) ? null : prepMs
+        );
       } else if (!this.iniciandoAutomatico) {
         this.limpiarPreparacion();
       }
@@ -902,21 +923,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  private sincronizarCronometroIntervencion(actual: any): void {
-    const actualId = actual?.id ?? null;
-
-    if (!actualId || actual?.fin_real_at) {
-      this.intervencionCronometroId = null;
-      this.intervencionCronometroInicioLocalMs = null;
-      return;
-    }
-
-    if (this.intervencionCronometroId !== actualId) {
-      this.intervencionCronometroId = actualId;
-      this.intervencionCronometroInicioLocalMs = this.serverNowMs();
-    }
-  }
-
   private sincronizarPausaConIntervencion(actual: any): void {
     const actualId = actual?.id ? Number(actual.id) : null;
 
@@ -927,8 +933,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     if (this.intervencionPausadaId !== actualId) {
       this.intervencionPausadaId = actualId;
+      this.pausaAcumuladaIntervencionMs.set(this.obtenerPausaAcumuladaGuardada(actualId));
 
-      if (this.intervencionesPausadas() && !this.pausaIntervencionIniciaAt()) {
+      if (this.intervencionesPausadas()) {
         const reunion = this.reunion();
 
         const pausaMs = reunion?.intervenciones_pausadas_at
@@ -938,37 +945,56 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.pausaIntervencionIniciaAt.set(
           Number.isNaN(pausaMs) ? this.serverNowMs() : pausaMs
         );
+      } else {
+        this.pausaIntervencionIniciaAt.set(null);
       }
     }
+  }
+
+  private obtenerClavePausaAcumulada(id: number): string {
+    return `dashboard_intervencion_pausa_acumulada_${id}`;
+  }
+
+  private obtenerPausaAcumuladaGuardada(id: number): number {
+    const valor = Number(sessionStorage.getItem(this.obtenerClavePausaAcumulada(id)) || 0);
+    return Number.isFinite(valor) && valor > 0 ? valor : 0;
+  }
+
+  private guardarPausaAcumulada(id: number, ms: number): void {
+    const valor = Math.max(0, Math.floor(ms));
+    this.pausaAcumuladaIntervencionMs.set(valor);
+    sessionStorage.setItem(this.obtenerClavePausaAcumulada(id), String(valor));
+  }
+
+  private acumularPausaIntervencionActual(): void {
+    const actual = this.intervencionActual();
+    const id = Number(actual?.id || this.intervencionPausadaId || 0);
+    const inicioPausa = this.pausaIntervencionIniciaAt();
+
+    if (!id || !inicioPausa) {
+      this.pausaIntervencionIniciaAt.set(null);
+      return;
+    }
+
+    const extra = Math.max(0, this.serverNowMs() - inicioPausa);
+    this.guardarPausaAcumulada(id, this.pausaAcumuladaIntervencionMs() + extra);
+    this.pausaIntervencionIniciaAt.set(null);
   }
 
   private limpiarPausaIntervencion(): void {
     this.intervencionPausadaId = null;
     this.pausaIntervencionIniciaAt.set(null);
+    this.pausaAcumuladaIntervencionMs.set(0);
   }
 
-  private limpiarCronometroIntervencionLocal(): void {
-    this.intervencionCronometroId = null;
-    this.intervencionCronometroInicioLocalMs = null;
-  }
-
-  private sincronizarPreparacionActiva(preparando: any, reiniciar = false): void {
-    if (!preparando?.id) return;
-
-    const totalActual = Math.max(1, Math.min(120, Number(this.tiempoPreparacionIntervencionSeg()) || 10));
-    const id = preparando.id;
-    const cambioParticipante = this.preparacionLocalId !== id;
-    const cambioTiempo = this.preparacionTotalUsado !== totalActual;
-
-    this.preparando.set(true);
-    this.participantePreparando.set(preparando);
-    this.preparacionSegundos.set(totalActual);
-
-    if (reiniciar || cambioParticipante || cambioTiempo || !this.preparacionIniciaAt()) {
-      this.preparacionLocalId = id;
-      this.preparacionTotalUsado = totalActual;
-      this.preparacionIniciaAt.set(this.serverNowMs());
+  private reiniciarPausaIntervencion(id?: number): void {
+    const actualId = Number(id || this.intervencionActual()?.id || this.intervencionPausadaId || 0);
+    if (actualId) {
+      sessionStorage.removeItem(this.obtenerClavePausaAcumulada(actualId));
     }
+
+    this.pausaAcumuladaIntervencionMs.set(0);
+    this.pausaIntervencionIniciaAt.set(null);
   }
 
   private async prepararSiguiente(siguiente: any): Promise<void> {
@@ -986,7 +1012,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
       const preparando = this.obtenerPayload(res);
 
       if (preparando?.id) {
-        this.sincronizarPreparacionActiva(preparando, true);
+        this.preparando.set(true);
+        this.participantePreparando.set(preparando);
+
+        const prepMs = preparando?.preparacion_inicia_at
+          ? new Date(preparando.preparacion_inicia_at).getTime()
+          : NaN;
+
+        this.preparacionIniciaAt.set(
+          Number.isNaN(prepMs) ? null : prepMs
+        );
       }
 
       await this.cargarIntervenciones();
@@ -1012,7 +1047,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       this.sincronizarHoraServidor(this.obtenerServerNow(res));
 
       this.limpiarPreparacion();
-      this.limpiarPausaIntervencion();
+      this.reiniciarPausaIntervencion(Number(item.id));
 
       await this.cargarIntervenciones();
       await this.cargarHistorial();
@@ -1087,128 +1122,9 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.preparando.set(false);
     this.participantePreparando.set(null);
     this.preparacionIniciaAt.set(null);
-    this.preparacionLocalId = null;
-    this.preparacionTotalUsado = Math.max(1, Math.min(120, Number(this.tiempoPreparacionIntervencionSeg()) || 10));
-    this.preparacionSegundos.set(this.preparacionTotalUsado);
+    this.preparacionSegundos.set(this.tiempoPreparacionSeg());
   }
 
-
-
-  abrirConfiguracionTiempos(): void {
-    if (this.esVisualizador()) return;
-
-    this.tiempoVisualizacionVotacionSeg.set(Math.max(1, Math.round(this.tiempoVisualizacionVotacionMs() / 1000)));
-    this.mostrarModalConfiguracionTiempos.set(true);
-    this.cerrarMenuControl();
-  }
-
-  cerrarConfiguracionTiempos(): void {
-    this.mostrarModalConfiguracionTiempos.set(false);
-  }
-
-  private normalizarConfiguracionTiempos(data: any): { espera: number; preparacion: number; visualizacion: number; maxVotacion: number } {
-    const espera = Math.max(0, Math.min(300, Number(
-      data?.tiempo_espera_entre_intervenciones_seg ??
-      data?.espera ??
-      this.tiempoEsperaEntreIntervencionesSeg()
-    ) || 0));
-
-    const preparacion = Math.max(1, Math.min(120, Number(
-      data?.tiempo_preparacion_intervencion_seg ??
-      data?.preparacion ??
-      this.tiempoPreparacionIntervencionSeg()
-    ) || 10));
-
-    const visualizacion = Math.max(1, Math.min(120, Number(
-      data?.tiempo_visualizacion_votacion_seg ??
-      data?.visualizacion ??
-      this.tiempoVisualizacionVotacionSeg()
-    ) || 7));
-
-    const maxVotacion = Math.max(10, Math.min(3600, Number(
-      data?.tiempo_maximo_votacion_activa_seg ??
-      data?.max_votacion ??
-      this.tiempoMaximoVotacionActivaSeg()
-    ) || 120));
-
-    return { espera, preparacion, visualizacion, maxVotacion };
-  }
-
-  private aplicarConfiguracionTiempos(data: any): void {
-    const { espera, preparacion, visualizacion, maxVotacion } = this.normalizarConfiguracionTiempos(data);
-
-    this.tiempoEsperaEntreIntervencionesSeg.set(espera);
-    this.tiempoPreparacionIntervencionSeg.set(preparacion);
-    this.preparacionSegundos.set(preparacion);
-    if (this.preparando() && this.participantePreparando() && this.preparacionTotalUsado !== preparacion) {
-      this.preparacionTotalUsado = preparacion;
-      this.preparacionIniciaAt.set(this.serverNowMs());
-    } else {
-      this.preparacionTotalUsado = preparacion;
-    }
-    this.tiempoVisualizacionVotacionSeg.set(visualizacion);
-    this.tiempoVisualizacionVotacionMs.set(visualizacion * 1000);
-    this.tiempoMaximoVotacionActivaSeg.set(maxVotacion);
-
-    localStorage.setItem('tiempoEsperaEntreIntervencionesSeg', String(espera));
-    localStorage.setItem('tiempoPreparacionIntervencionSeg', String(preparacion));
-    localStorage.setItem('tiempoVisualizacionVotacionMs', String(visualizacion * 1000));
-    localStorage.setItem('tiempoVisualizacionVotacionSeg', String(visualizacion));
-    localStorage.setItem('tiempoMaximoVotacionActivaSeg', String(maxVotacion));
-  }
-
-  private cargarConfiguracionTiemposLocal(): void {
-    this.aplicarConfiguracionTiempos({
-      tiempo_espera_entre_intervenciones_seg: localStorage.getItem('tiempoEsperaEntreIntervencionesSeg'),
-      tiempo_preparacion_intervencion_seg: localStorage.getItem('tiempoPreparacionIntervencionSeg'),
-      tiempo_visualizacion_votacion_seg: localStorage.getItem('tiempoVisualizacionVotacionSeg') ?? Math.round(Number(localStorage.getItem('tiempoVisualizacionVotacionMs') || 7000) / 1000),
-      tiempo_maximo_votacion_activa_seg: localStorage.getItem('tiempoMaximoVotacionActivaSeg'),
-    });
-  }
-
-  private async cargarConfiguracionTiempos(): Promise<void> {
-    try {
-      const res: any = await this.api.get('/configuracion-tiempos');
-      const data = this.obtenerPayload(res);
-      this.aplicarConfiguracionTiempos(data);
-    } catch (error) {
-      console.warn('No se pudo cargar la configuración de tiempos desde el servidor. Se usará la configuración local.', error);
-    }
-  }
-
-  async guardarConfiguracionTiempos(): Promise<void> {
-    const config = this.normalizarConfiguracionTiempos({
-      tiempo_espera_entre_intervenciones_seg: this.tiempoEsperaEntreIntervencionesSeg(),
-      tiempo_preparacion_intervencion_seg: this.tiempoPreparacionIntervencionSeg(),
-      tiempo_visualizacion_votacion_seg: this.tiempoVisualizacionVotacionSeg(),
-      tiempo_maximo_votacion_activa_seg: this.tiempoMaximoVotacionActivaSeg(),
-    });
-
-    this.aplicarConfiguracionTiempos({
-      tiempo_espera_entre_intervenciones_seg: config.espera,
-      tiempo_preparacion_intervencion_seg: config.preparacion,
-      tiempo_visualizacion_votacion_seg: config.visualizacion,
-      tiempo_maximo_votacion_activa_seg: config.maxVotacion,
-    });
-
-    try {
-      const res: any = await this.api.put('/configuracion-tiempos', {
-        tiempo_espera_entre_intervenciones_seg: config.espera,
-        tiempo_preparacion_intervencion_seg: config.preparacion,
-        tiempo_visualizacion_votacion_seg: config.visualizacion,
-        tiempo_maximo_votacion_activa_seg: config.maxVotacion,
-      });
-
-      const data = this.obtenerPayload(res);
-      this.aplicarConfiguracionTiempos(data);
-      this.mostrarToast('Configuración de tiempos guardada.', 'success');
-    } catch (error) {
-      console.error('No se pudo guardar la configuración de tiempos en el servidor:', error);
-      this.mostrarToast('Los tiempos se guardaron en este navegador, pero no en el servidor.', 'info');
-    }
-
-    this.mostrarModalConfiguracionTiempos.set(false);
-  }
 
   abrirModalVotacion(): void {
     if (this.esVisualizador()) return;
@@ -1434,25 +1350,6 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.votacionVisualizadorTimer = null;
       }, this.tiempoVisualizacionVotacionMs());
     }
-  }
-
-
-  private async revisarVotacionActivaMaxima(): Promise<void> {
-    if (this.esVisualizador()) return;
-    if (!this.votacionActiva() || this.terminandoVotacion()) return;
-
-    const votacion = this.votacion();
-    const iniciadaAt = votacion?.iniciada_at || votacion?.created_at;
-    if (!iniciadaAt) return;
-
-    const inicioMs = new Date(iniciadaAt).getTime();
-    if (Number.isNaN(inicioMs)) return;
-
-    const maxMs = Math.max(10, Number(this.tiempoMaximoVotacionActivaSeg()) || 120) * 1000;
-    if (this.serverNowMs() - inicioMs < maxMs) return;
-
-    this.mostrarToast('La votación llegó al tiempo máximo y se cerrará.', 'info');
-    await this.terminarVotacion();
   }
 
   async togglePausaIntervenciones(): Promise<void> {
@@ -1700,7 +1597,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (!actual) return;
 
     try {
-      this.limpiarPausaIntervencion();
+      this.reiniciarPausaIntervencion(Number(actual.id));
 
       const res: any = await this.api.put(`/intervenciones/${actual.id}`, {
         status: 'interviniendo',
@@ -1708,6 +1605,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
       });
 
       this.sincronizarHoraServidor(this.obtenerServerNow(res));
+
+      const ahoraVisual = this.serverNowMs();
+      this.inicioVisualIntervencion.set({ id: Number(actual.id), inicioMs: ahoraVisual });
+      sessionStorage.setItem(this.obtenerClaveInicioVisual(Number(actual.id)), String(ahoraVisual));
+      this.pausaIntervencionIniciaAt.set(this.intervencionesPausadas() ? ahoraVisual : null);
 
       await this.cargarIntervenciones();
     } catch (error) {
@@ -1915,6 +1817,141 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.historial.set([]);
   }
 
+
+  abrirModalTiempos(): void {
+    if (this.esVisualizador()) return;
+
+    this.tiemposForm = {
+      espera: this.tiempoEsperaEntreIntervencionesSeg(),
+      preparacion: this.tiempoPreparacionSeg(),
+      intervencion: this.tiempoIntervencionSeg(),
+      visualizacionVotacion: Math.round(this.tiempoVisualizacionVotacionMs() / 1000),
+      maximoVotacion: this.tiempoMaximoVotacionActivaSeg(),
+    };
+
+    this.mostrarModalTiempos.set(true);
+    this.cerrarMenuControl();
+  }
+
+  cerrarModalTiempos(): void {
+    this.mostrarModalTiempos.set(false);
+  }
+
+  private aplicarConfiguracionTiempos(config: any): void {
+    const espera = this.normalizarEntero(config?.tiempo_espera_entre_intervenciones_seg, 10, 0, 300);
+    const preparacion = this.normalizarEntero(config?.tiempo_preparacion_intervencion_seg, 10, 1, 120);
+    const intervencion = this.normalizarEntero(config?.tiempo_intervencion_seg, 300, 30, 7200);
+    const visualizacion = this.normalizarEntero(config?.tiempo_visualizacion_votacion_seg, 7, 1, 120);
+    const maximoVotacion = this.normalizarEntero(config?.tiempo_maximo_votacion_activa_seg, 120, 10, 3600);
+
+    this.tiempoEsperaEntreIntervencionesSeg.set(espera);
+    this.tiempoPreparacionSeg.set(preparacion);
+    this.preparacionSegundos.set(preparacion);
+    this.tiempoIntervencionSeg.set(intervencion);
+    this.tiempoVisualizacionVotacionMs.set(visualizacion * 1000);
+    this.tiempoMaximoVotacionActivaSeg.set(maximoVotacion);
+
+    this.tiemposForm = {
+      espera,
+      preparacion,
+      intervencion,
+      visualizacionVotacion: visualizacion,
+      maximoVotacion,
+    };
+
+    localStorage.setItem('dashboard_configuracion_tiempos', JSON.stringify({
+      tiempo_espera_entre_intervenciones_seg: espera,
+      tiempo_preparacion_intervencion_seg: preparacion,
+      tiempo_intervencion_seg: intervencion,
+      tiempo_visualizacion_votacion_seg: visualizacion,
+      tiempo_maximo_votacion_activa_seg: maximoVotacion,
+    }));
+  }
+
+  private normalizarEntero(valor: any, fallback: number, min: number, max: number): number {
+    const numero = Number.parseInt(String(valor ?? fallback), 10);
+    if (Number.isNaN(numero)) return fallback;
+    return Math.min(max, Math.max(min, numero));
+  }
+
+  async cargarConfiguracionTiempos(): Promise<void> {
+    const local = localStorage.getItem('dashboard_configuracion_tiempos');
+    if (local) {
+      try {
+        this.aplicarConfiguracionTiempos(JSON.parse(local));
+      } catch (_) {}
+    }
+
+    try {
+      const res: any = await this.api.get('/configuracion-tiempos');
+      const data = this.obtenerPayload(res) ?? res?.data ?? res;
+      this.aplicarConfiguracionTiempos(data);
+    } catch (error) {
+      console.warn('No se pudo cargar configuración de tiempos:', error);
+    }
+  }
+
+  async guardarConfiguracionTiempos(): Promise<void> {
+    if (this.esVisualizador()) return;
+
+    const payload = {
+      tiempo_espera_entre_intervenciones_seg: this.normalizarEntero(this.tiemposForm.espera, 10, 0, 300),
+      tiempo_preparacion_intervencion_seg: this.normalizarEntero(this.tiemposForm.preparacion, 10, 1, 120),
+      tiempo_intervencion_seg: this.normalizarEntero(this.tiemposForm.intervencion, 300, 30, 7200),
+      tiempo_visualizacion_votacion_seg: this.normalizarEntero(this.tiemposForm.visualizacionVotacion, 7, 1, 120),
+      tiempo_maximo_votacion_activa_seg: this.normalizarEntero(this.tiemposForm.maximoVotacion, 120, 10, 3600),
+    };
+
+    this.guardandoTiempos.set(true);
+
+    try {
+      const res: any = await this.api.put('/configuracion-tiempos', payload);
+      this.aplicarConfiguracionTiempos(this.obtenerPayload(res) ?? payload);
+      this.mostrarToast('Configuración de tiempos guardada.', 'success');
+      this.cerrarModalTiempos();
+    } catch (error) {
+      console.error('Error guardando configuración de tiempos:', error);
+      this.aplicarConfiguracionTiempos(payload);
+      this.mostrarToast('No se pudo guardar en servidor. Se guardó temporalmente en este navegador.', 'error');
+    } finally {
+      this.guardandoTiempos.set(false);
+    }
+  }
+
+  private obtenerClaveInicioVisual(id: number): string {
+    return `dashboard_intervencion_inicio_visual_${id}`;
+  }
+
+  private asegurarInicioVisualIntervencion(actual: any): void {
+    const id = Number(actual?.id || 0);
+    if (!id) {
+      this.inicioVisualIntervencion.set(null);
+      return;
+    }
+
+    const actualOverride = this.inicioVisualIntervencion();
+    if (actualOverride?.id === id) return;
+
+    const clave = this.obtenerClaveInicioVisual(id);
+    const guardado = Number(sessionStorage.getItem(clave) || 0);
+
+    if (guardado > 0) {
+      this.inicioVisualIntervencion.set({ id, inicioMs: guardado });
+      return;
+    }
+
+    const inicioBackend = actual?.inicio_real_at ? new Date(actual.inicio_real_at).getTime() : NaN;
+    const retraso = Number.isNaN(inicioBackend) ? 0 : Math.max(0, this.serverNowMs() - inicioBackend);
+    const inicioVisual = retraso <= 5000 ? this.serverNowMs() : inicioBackend;
+
+    this.inicioVisualIntervencion.set({ id, inicioMs: inicioVisual });
+    sessionStorage.setItem(clave, String(inicioVisual));
+  }
+
+  private limpiarInicioVisualIntervencion(): void {
+    this.inicioVisualIntervencion.set(null);
+  }
+
   actualizarReloj(): void {
     const now = new Date();
 
@@ -2009,6 +2046,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
       hour: '2-digit',
       minute: '2-digit',
     });
+  }
+
+
+  formatearMinutosSegundos(totalSegundos: number): string {
+    const total = Math.max(0, Math.floor(Number(totalSegundos) || 0));
+    const minutos = Math.floor(total / 60);
+    const segundos = total % 60;
+
+    if (minutos > 0 && segundos > 0) {
+      return `${minutos} min ${segundos} s`;
+    }
+
+    if (minutos > 0) {
+      return `${minutos} minuto${minutos === 1 ? '' : 's'}`;
+    }
+
+    return `${segundos} segundo${segundos === 1 ? '' : 's'}`;
   }
 
   formatearDuracion(ms: number): string {
