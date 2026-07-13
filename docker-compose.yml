@@ -1,0 +1,113 @@
+services:
+  backend:
+    restart: unless-stopped
+    container_name: participaciones_backend
+    build:
+      context: .
+      dockerfile: ./deploy/Dockerfile.backend
+    env_file:
+      - ./.env.docker
+    environment:
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-true}
+      APP_URL: ${APP_URL:-http://localhost:8000}
+      DB_CONNECTION: mysql
+      DB_HOST: database
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-sistema_participaciones_consejo}
+      DB_USERNAME: ${DB_USERNAME:-participaciones}
+      DB_PASSWORD: ${DB_PASSWORD:-participaciones_secret}
+      SOCKET_SERVER_URL: ${SOCKET_SERVER_URL:-http://socket:3001}
+      SOCKET_SECRET: ${SOCKET_SECRET:-mi_socket_secret_local_123}
+    ports:
+      - "8000:80"
+    volumes:
+      - ./backend_laravel/storage/app:/var/www/html/storage/app
+      - ./backend_laravel/storage/logs:/var/www/html/storage/logs
+    networks:
+      - participaciones_net
+    depends_on:
+      database:
+        condition: service_healthy
+      socket:
+        condition: service_started
+
+  frontend:
+    restart: unless-stopped
+    container_name: participaciones_frontend
+    build:
+      context: .
+      dockerfile: ./deploy/Dockerfile.frontend
+    ports:
+      - "4200:4200"
+    networks:
+      - participaciones_net
+    depends_on:
+      - backend
+      - socket
+
+  socket:
+    restart: unless-stopped
+    container_name: participaciones_socket
+    build:
+      context: .
+      dockerfile: ./deploy/Dockerfile.socket
+    env_file:
+      - ./.env.docker
+    environment:
+      SOCKET_PORT: 3001
+      SOCKET_SECRET: ${SOCKET_SECRET:-mi_socket_secret_local_123}
+      LARAVEL_API_URL: ${LARAVEL_API_URL:-http://backend/api}
+      MQTT_URL: ""
+      MQTT_TOPIC: ${MQTT_TOPIC:-consejo/esp32/eventos}
+    ports:
+      - "3001:3001"
+    networks:
+      - participaciones_net
+    depends_on:
+      - database
+
+  database:
+    restart: unless-stopped
+    image: mariadb:lts-jammy
+    container_name: participaciones_database
+    environment:
+      MARIADB_DATABASE: ${DB_DATABASE:-sistema_participaciones_consejo}
+      MARIADB_USER: ${DB_USERNAME:-participaciones}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-participaciones_secret}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_secret}
+    ports:
+      - "3307:3306"
+    volumes:
+      - participaciones_database:/var/lib/mysql
+    networks:
+      - participaciones_net
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  phpmyadmin:
+    restart: unless-stopped
+    image: phpmyadmin:latest
+    container_name: participaciones_phpmyadmin
+    environment:
+      PMA_HOST: database
+      PMA_PORT: 3306
+      UPLOAD_LIMIT: 20M
+    ports:
+      - "8080:80"
+    networks:
+      - participaciones_net
+    depends_on:
+      database:
+        condition: service_healthy
+
+volumes:
+  participaciones_database:
+
+networks:
+  participaciones_net:
+    driver: bridge

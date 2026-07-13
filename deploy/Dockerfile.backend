@@ -1,0 +1,78 @@
+# Dockerfile para Laravel Backend
+# Inspirado en el esquema PHP-FPM + Nginx que compartiste.
+
+# =========================
+# Stage 1: dependencias PHP
+# =========================
+FROM php:8.3-fpm-alpine AS build
+
+RUN apk add --no-cache \
+    bash \
+    git \
+    unzip \
+    zip \
+    libzip-dev \
+    freetype \
+    libjpeg-turbo \
+    libpng \
+    freetype-dev \
+    libjpeg-turbo-dev \
+    libpng-dev \
+    oniguruma-dev \
+    icu-dev \
+    && docker-php-ext-configure zip \
+    && docker-php-ext-install zip pdo pdo_mysql mbstring intl \
+    && docker-php-ext-configure gd --with-freetype=/usr/include/ --with-jpeg=/usr/include/ \
+    && docker-php-ext-install -j$(nproc) gd bcmath exif opcache \
+    && docker-php-ext-enable gd bcmath exif opcache
+
+COPY --from=composer:2.7.6 /usr/bin/composer /usr/bin/composer
+
+WORKDIR /var/www/html
+
+COPY backend_laravel/composer.json backend_laravel/composer.lock* ./
+RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader --no-scripts
+
+COPY backend_laravel/ ./
+RUN composer dump-autoload --optimize \
+    && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+    && chown -R www-data:www-data /var/www/html \
+    && chmod -R 775 storage bootstrap/cache
+
+# =========================
+# Stage 2: runtime
+# =========================
+FROM php:8.3-fpm-alpine
+
+RUN apk add --no-cache \
+    bash \
+    zip \
+    libzip-dev \
+    freetype \
+    libjpeg-turbo \
+    libpng \
+    freetype-dev \
+    libjpeg-turbo-dev \
+    libpng-dev \
+    oniguruma-dev \
+    icu-dev \
+    nginx \
+    && docker-php-ext-configure zip \
+    && docker-php-ext-install zip pdo pdo_mysql mbstring intl \
+    && docker-php-ext-configure gd --with-freetype=/usr/include/ --with-jpeg=/usr/include/ \
+    && docker-php-ext-install -j$(nproc) gd bcmath exif opcache \
+    && docker-php-ext-enable gd bcmath exif opcache \
+    && rm -rf /var/cache/apk/*
+
+WORKDIR /var/www/html
+
+COPY --from=build /var/www/html /var/www/html
+COPY deploy/nginx.conf /etc/nginx/http.d/default.conf
+COPY deploy/php.ini "$PHP_INI_DIR/conf.d/app.ini"
+
+RUN chown -R www-data:www-data /var/www/html \
+    && chmod -R 775 storage bootstrap/cache
+
+EXPOSE 80
+
+CMD ["sh", "-c", "php-fpm -D && nginx -g 'daemon off;'"]
