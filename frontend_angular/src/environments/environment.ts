@@ -15,6 +15,11 @@ function construirApiUrl(): string {
     return `${protocol}//${hostname}:8000/api`;
   }
 
+  //En esta caso, en modo producción, debe hacer caso al puerto 8080, que es el puerto donde corre el backend Laravel desde docker.
+  if (frontendPort === '80') {
+    return `${protocol}//${hostname}:8080/api`;
+  }
+
   // Cuando lo subas a un servidor y frontend/backend estén bajo el mismo dominio,
   // se usará automáticamente el mismo dominio donde se abrió el frontend.
   return `${window.location.origin}/api`;

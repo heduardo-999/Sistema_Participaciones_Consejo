@@ -36,7 +36,12 @@ cd ../frontend_angular
 && cd ../frontend_angular
 && cp ../turnos-consejo-production/media/* ../turnos-consejo-production
 
+se ejecuta está línea para crear la versión de angular para producción
 cd ../frontend_angular && rm -rf dist && cd ../turnos-consejo-production && find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.htaccess' -exec rm -rf {} + && cd ../frontend_angular && ng build --configuration production && cp -r dist/sistemas-participaciones-front/browser/* ../turnos-consejo-production && cd ../turnos-consejo-production && cd ../frontend_angular && cp ../turnos-consejo-production/media/* ../turnos-consejo-production
+
+posteriormente se sube a git, en el servidor se debe copiar el contenido de la carpeta turnos-consejo-production hacia /var/www/html
+git pull
+\cp -rf turnos-consejo-production/* /var/www/html
 
 ///////////////////////////////
 
