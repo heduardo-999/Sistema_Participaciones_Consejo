@@ -22,7 +22,7 @@ function construirApiUrl(): string {
 
   // Cuando lo subas a un servidor y frontend/backend estén bajo el mismo dominio,
   // se usará automáticamente el mismo dominio donde se abrió el frontend.
-  return `${window.location.origin}/api`;
+  return `${window.location.origin}:8080/api`;
 }
 
 export const environment = {
