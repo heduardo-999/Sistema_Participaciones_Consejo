@@ -75,13 +75,25 @@ export class DashboardComponent implements OnInit, OnDestroy {
   horaActual = signal('');
   fechaActual = signal('');
   modoPresentacion = signal(false);
-  sonidoHabilitado = signal(sessionStorage.getItem('sonidoDashboard') === '1');
+  sonidoHabilitado = signal(sessionStorage.getItem('sonidoDashboard') !== '0');
 
   private audioContext: AudioContext | null = null;
   private sonidoMarcadoresInicializados = false;
   private ultimoActualSonidoId: string | null = null;
   private ultimoPreparandoSonidoId: string | null = null;
   private ultimosColaSonidoIds = new Set<string>();
+
+  private activarAudioConPrimeraInteraccion = async (): Promise<void> => {
+    if (!this.sonidoHabilitado()) return;
+
+    await this.prepararAudioDashboard();
+    this.removerEscuchasActivacionAudio();
+  };
+
+  private removerEscuchasActivacionAudio(): void {
+    document.removeEventListener('pointerdown', this.activarAudioConPrimeraInteraccion);
+    document.removeEventListener('keydown', this.activarAudioConPrimeraInteraccion);
+  }
 
   private normalizarRolUsuario(role: any): string {
     if (!role) return '';
@@ -368,6 +380,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.detenerTimers();
 
+    if (sessionStorage.getItem('sonidoDashboard') === null) {
+      sessionStorage.setItem('sonidoDashboard', '1');
+    }
+
+    if (this.sonidoHabilitado()) {
+      document.addEventListener('pointerdown', this.activarAudioConPrimeraInteraccion);
+      document.addEventListener('keydown', this.activarAudioConPrimeraInteraccion);
+    }
+
     this.cargarConfiguracionTiempos();
     this.loadData();
     this.actualizarReloj();
@@ -390,6 +411,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.detenerTimers();
+    this.removerEscuchasActivacionAudio();
 
     this.realtime.off('reunion:updated');
     this.realtime.off('intervenciones:updated');
@@ -498,9 +520,15 @@ export class DashboardComponent implements OnInit, OnDestroy {
     sessionStorage.setItem('sonidoDashboard', nuevoEstado ? '1' : '0');
 
     if (nuevoEstado) {
+      document.addEventListener('pointerdown', this.activarAudioConPrimeraInteraccion);
+      document.addEventListener('keydown', this.activarAudioConPrimeraInteraccion);
+
       await this.prepararAudioDashboard();
       this.reproducirSonidoIntervencion(true);
+      return;
     }
+
+    this.removerEscuchasActivacionAudio();
   }
 
   private async prepararAudioDashboard(): Promise<void> {
@@ -1362,6 +1390,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
       return;
     }
 
+    if (!this.intervencionesPausadas()) {
+      const confirmarPausa = confirm(
+        '¿Estás seguro de que deseas pausar el tiempo de la intervención?'
+      );
+
+      if (!confirmarPausa) {
+        return;
+      }
+    }
+
     try {
       const res: any = await this.api.post(
         `/reuniones/${reunion.id}/toggle-pausa-intervenciones`,
@@ -1595,6 +1633,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const actual = this.intervencionActual();
 
     if (!actual) return;
+
+    const confirmarReinicio = confirm(
+      '¿Estás seguro de que deseas reiniciar el cronómetro al tiempo asignado?'
+    );
+
+    if (!confirmarReinicio) {
+      return;
+    }
 
     try {
       this.reiniciarPausaIntervencion(Number(actual.id));

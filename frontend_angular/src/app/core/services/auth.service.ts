@@ -27,15 +27,31 @@ export class AuthService {
     private router: Router
   ) {}
 
-  async login(email: string, password: string, remember = false) {
-    const res: any = await this.api.post('/login', { email, password, remember });
+  async login(email: string, password: string, remember = false): Promise<void> {
+    const res: any = await this.api.post('/login', {
+      email,
+      password,
+      remember,
+    });
+
     const token = res.token || res.access_token;
 
-    localStorage.setItem('token', token);
+    if (!token) {
+      throw new Error('El servidor no devolvió un token de acceso.');
+    }
+
+    this.clearStorage();
+
+    if (remember) {
+      localStorage.setItem('token', token);
+    } else {
+      sessionStorage.setItem('token', token);
+    }
+
     await this.loadMe();
   }
 
-  async loadMe() {
+  async loadMe(): Promise<void> {
     const me: any = await this.api.get('/me');
 
     const user: UserSession = {
@@ -46,25 +62,48 @@ export class AuthService {
       menus: Array.isArray(me.menus) ? me.menus : [],
     };
 
-    localStorage.setItem('user', JSON.stringify(user));
+    const serializedUser = JSON.stringify(user);
+
+    if (localStorage.getItem('token')) {
+      localStorage.setItem('user', serializedUser);
+      sessionStorage.removeItem('user');
+    } else {
+      sessionStorage.setItem('user', serializedUser);
+      localStorage.removeItem('user');
+    }
+
     this.user.set(user);
     this.menus.set(user.menus);
   }
 
-  async logout() {
+  async logout(): Promise<void> {
     try {
       await this.api.post('/logout');
-    } catch {}
+    } catch {
+      // Aunque el token ya no sea válido, se limpia la sesión local.
+    } finally {
+      this.clearSession();
+      await this.router.navigateByUrl('/login', {
+        replaceUrl: true,
+      });
+    }
+  }
 
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  clearSession(): void {
+    this.clearStorage();
     this.user.set(null);
     this.menus.set([]);
-    this.router.navigate(['/login']);
+  }
+
+  getToken(): string | null {
+    return (
+      sessionStorage.getItem('token') ??
+      localStorage.getItem('token')
+    );
   }
 
   isLoggedIn(): boolean {
-    return !!localStorage.getItem('token');
+    return !!this.getToken();
   }
 
   normalizedRoles(): string[] {
@@ -100,6 +139,13 @@ export class AuthService {
     }
 
     return cleanUrl === '' || cleanUrl === '/dashboard';
+  }
+
+  private clearStorage(): void {
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
   }
 
   private normalizeUrl(url: string): string {
@@ -142,7 +188,9 @@ export class AuthService {
 
   private safeParseUser(): UserSession | null {
     try {
-      const raw = localStorage.getItem('user');
+      const raw =
+        sessionStorage.getItem('user') ??
+        localStorage.getItem('user');
 
       if (!raw) {
         return null;
@@ -150,6 +198,7 @@ export class AuthService {
 
       return JSON.parse(raw);
     } catch {
+      sessionStorage.removeItem('user');
       localStorage.removeItem('user');
       return null;
     }
