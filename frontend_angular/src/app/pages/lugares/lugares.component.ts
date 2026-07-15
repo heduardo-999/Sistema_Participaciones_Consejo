@@ -5,6 +5,7 @@ import { ApiService } from '../../core/services/api.service';
 import { AuthService } from '../../core/services/auth.service';
 import { RealtimeService } from '../../core/services/realtime.service';
 import * as QRCode from 'qrcode';
+import { jsPDF } from 'jspdf';
 
 @Component({
   selector: 'app-lugares',
@@ -22,6 +23,7 @@ export class LugaresComponent implements OnInit, OnDestroy {
   loading = signal(false);
   saving = signal(false);
   error = signal('');
+  generandoPdfQr = signal(false);
 
   participante_id = '';
   nuevoStatus = '';
@@ -324,6 +326,157 @@ export class LugaresComponent implements OnInit, OnDestroy {
       this.error.set(this.extractError(error) || 'No se pudo cambiar el estado del ESP32.');
     } finally {
       this.saving.set(false);
+    }
+  }
+
+
+  async generarPdfQrEstaticos(): Promise<void> {
+    if (this.generandoPdfQr()) return;
+
+    this.generandoPdfQr.set(true);
+    this.error.set('');
+
+    try {
+      const baseUrl = this.frontendBaseUrl();
+
+      const codigos = [
+        ...Array.from({ length: 26 }, (_, indice) => ({
+          nombre: `LUGAR ${indice + 1}`,
+          descripcion: `Acceso fijo para el lugar ${indice + 1}`,
+          url: `${baseUrl}/acceso-lugar/${indice + 1}`,
+        })),
+        {
+          nombre: 'REZAGADOS',
+          descripcion: 'Asignación automática de lugares 27 al 40',
+          url: `${baseUrl}/acceso-rezagados`,
+        },
+      ];
+
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      });
+
+      const margenX = 12;
+      const margenY = 14;
+      const espacioX = 8;
+      const espacioY = 8;
+      const columnas = 2;
+      const filas = 3;
+      const porPagina = columnas * filas;
+      const anchoTarjeta = (210 - margenX * 2 - espacioX) / columnas;
+      const altoTarjeta = (297 - margenY * 2 - espacioY * 2) / filas;
+      const tamanoQr = 58;
+
+      for (let indice = 0; indice < codigos.length; indice++) {
+        const posicionPagina = indice % porPagina;
+
+        if (indice > 0 && posicionPagina === 0) {
+          pdf.addPage();
+        }
+
+        const columna = posicionPagina % columnas;
+        const fila = Math.floor(posicionPagina / columnas);
+        const x = margenX + columna * (anchoTarjeta + espacioX);
+        const y = margenY + fila * (altoTarjeta + espacioY);
+        const codigo = codigos[indice];
+
+        const qr = await QRCode.toDataURL(codigo.url, {
+          width: 700,
+          margin: 2,
+          errorCorrectionLevel: 'H',
+          color: {
+            dark: '#000000',
+            light: '#ffffff',
+          },
+        });
+
+        pdf.setDrawColor(30, 41, 59);
+        pdf.setLineWidth(0.45);
+        pdf.roundedRect(x, y, anchoTarjeta, altoTarjeta, 3, 3, 'S');
+
+        pdf.setFillColor(15, 23, 42);
+        pdf.roundedRect(x, y, anchoTarjeta, 13, 3, 3, 'F');
+        pdf.rect(x, y + 9, anchoTarjeta, 4, 'F');
+
+        pdf.setTextColor(255, 255, 255);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(codigo.nombre === 'REZAGADOS' ? 15 : 17);
+        pdf.text(codigo.nombre, x + anchoTarjeta / 2, y + 8.5, {
+          align: 'center',
+        });
+
+        const qrX = x + (anchoTarjeta - tamanoQr) / 2;
+        const qrY = y + 18;
+        pdf.addImage(qr, 'PNG', qrX, qrY, tamanoQr, tamanoQr);
+
+        pdf.setTextColor(15, 23, 42);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(9.5);
+
+        const lineasDescripcion = pdf.splitTextToSize(
+          codigo.descripcion,
+          anchoTarjeta - 12
+        );
+
+        pdf.text(
+          lineasDescripcion,
+          x + anchoTarjeta / 2,
+          qrY + tamanoQr + 6,
+          { align: 'center' }
+        );
+
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(100, 116, 139);
+        pdf.setFontSize(6.5);
+
+        const urlCorta = pdf.splitTextToSize(
+          codigo.url,
+          anchoTarjeta - 12
+        );
+
+        pdf.text(
+          urlCorta,
+          x + anchoTarjeta / 2,
+          y + altoTarjeta - 8,
+          { align: 'center' }
+        );
+
+        pdf.setFontSize(6);
+        pdf.setTextColor(148, 163, 184);
+        pdf.text(
+          'Recorta por el borde y colócalo en el lugar físico.',
+          x + anchoTarjeta / 2,
+          y + altoTarjeta - 3.5,
+          { align: 'center' }
+        );
+      }
+
+      const totalPaginas = pdf.getNumberOfPages();
+
+      for (let pagina = 1; pagina <= totalPaginas; pagina++) {
+        pdf.setPage(pagina);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(7);
+        pdf.setTextColor(100, 116, 139);
+        pdf.text(
+          `Sistema de Gestión de Participaciones · Página ${pagina} de ${totalPaginas}`,
+          105,
+          293,
+          { align: 'center' }
+        );
+      }
+
+      pdf.save('codigos-qr-lugares-y-rezagados.pdf');
+    } catch (error: any) {
+      console.error('Error generando PDF de códigos QR:', error);
+      this.error.set(
+        this.extractError(error) ||
+        'No se pudo generar el PDF de códigos QR.'
+      );
+    } finally {
+      this.generandoPdfQr.set(false);
     }
   }
 

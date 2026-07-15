@@ -14,14 +14,26 @@
       </p>
     </div>
 
-    <button
-      type="button"
-      class="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 sm:w-auto"
-      (click)="load()"
-      [disabled]="loading()"
-    >
-      {{ loading() ? 'Actualizando...' : 'Actualizar' }}
-    </button>
+    <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+      <button
+        type="button"
+        class="w-full rounded-xl bg-indigo-600 px-5 py-3 text-sm font-black text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+        (click)="generarPdfQrEstaticos()"
+        [disabled]="generandoPdfQr()"
+      >
+        <i class="fa-solid fa-file-pdf mr-2"></i>
+        {{ generandoPdfQr() ? 'Generando PDF...' : 'PDF de 27 códigos QR' }}
+      </button>
+
+      <button
+        type="button"
+        class="w-full rounded-xl bg-slate-900 px-5 py-3 text-sm font-black text-white hover:bg-slate-800 dark:bg-slate-700 dark:hover:bg-slate-600 sm:w-auto"
+        (click)="load()"
+        [disabled]="loading()"
+      >
+        {{ loading() ? 'Actualizando...' : 'Actualizar' }}
+      </button>
+    </div>
   </div>
 
   @if (error()) {
@@ -468,6 +480,26 @@
             </b>
           </div>
         </div>
+      </div>
+
+      <div class="rounded-3xl border border-indigo-200 bg-indigo-50 p-5 text-sm text-indigo-800 dark:border-indigo-900/40 dark:bg-indigo-950/20 dark:text-indigo-300 sm:p-6">
+        <p class="font-black">
+          PDF para impresión
+        </p>
+
+        <p class="mt-2">
+          Genera 27 códigos: uno para cada lugar del 1 al 26 y uno adicional para rezagados.
+        </p>
+
+        <button
+          type="button"
+          class="mt-4 w-full rounded-xl bg-indigo-600 px-5 py-3 text-sm font-black text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+          (click)="generarPdfQrEstaticos()"
+          [disabled]="generandoPdfQr()"
+        >
+          <i class="fa-solid fa-file-pdf mr-2"></i>
+          {{ generandoPdfQr() ? 'Generando...' : 'Descargar PDF de QR' }}
+        </button>
       </div>
 
       <div class="rounded-3xl border border-blue-200 bg-blue-50 p-5 text-sm text-blue-700 dark:border-blue-900/40 dark:bg-blue-950/20 dark:text-blue-300 sm:p-6">
