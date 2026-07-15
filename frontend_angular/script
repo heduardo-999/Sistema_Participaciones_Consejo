@@ -3,7 +3,7 @@
 && cd ../turnos-consejo-production
 
 -&& git add .
--&& git commit -m "borra para tipos de documentos en documentación"
+-&& git commit -m "borra para nmejoras fron"
 
 && find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.htaccess' -exec rm -rf {} +
 && cd ../frontend_angular
@@ -13,12 +13,12 @@
 && mv index.csr.html index.html
 -&& git status
 -&& git add .
--&& git commit -m "tipos de documentos en documentación"
+-&& git commit -m "nmejoras fron"
 -&& git push origin main
 && cd ../frontend_angular
 && cp ../turnos-consejo-production/media/* ../turnos-consejo-production
 
-rm -rf dist && cd ../turnos-consejo-production && find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.htaccess' -exec rm -rf {} + && cd ../frontend_angular && ng build --configuration production && cp -r dist/sistemas-participaciones-front/browser/* ../turnos-consejo-production && cd ../turnos-consejo-production && mv index.csr.html index.html && git status && git add . && git commit -m "tipos de documentos en documentación" && git push origin main && cd ../frontend_angular
+rm -rf dist && cd ../turnos-consejo-production && find . -mindepth 1 -maxdepth 1 ! -name '.git' ! -name '.htaccess' -exec rm -rf {} + && cd ../frontend_angular && ng build --configuration production && cp -r dist/sistemas-participaciones-front/browser/* ../turnos-consejo-production && cd ../turnos-consejo-production && mv index.csr.html index.html && git status && git add . && git commit -m "nmejoras fron" && git push origin main && cd ../frontend_angular
 
 ///////////////////////////////
 
