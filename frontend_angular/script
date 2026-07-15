@@ -43,6 +43,10 @@ posteriormente se sube a git, en el servidor se debe copiar el contenido de la c
 git pull
 \cp -rf turnos-consejo-production/* /var/www/html
 
+SI se hacen cambios al backend o a sockets
+
+
+
 ///////////////////////////////
 
 
