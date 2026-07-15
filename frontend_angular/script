@@ -45,7 +45,7 @@ git pull
 
 SI se hacen cambios al backend o a sockets
 
-
+docker compose down & git pull & docker compose -f docker-compose.yml up --build -d & \cp -rf turnos-consejo-production/* /var/www/html
 
 ///////////////////////////////
 

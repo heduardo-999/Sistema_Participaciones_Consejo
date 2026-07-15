@@ -32,19 +32,19 @@ services:
       socket:
         condition: service_started
 
-  frontend:
-    restart: unless-stopped
-    container_name: participaciones_frontend
-    build:
-      context: .
-      dockerfile: ./deploy/Dockerfile.frontend
-    ports:
-      - "4200:4200"
-    networks:
-      - participaciones_net
-    depends_on:
-      - backend
-      - socket
+  # frontend:
+  #   restart: unless-stopped
+  #   container_name: participaciones_frontend
+  #   build:
+  #     context: .
+  #     dockerfile: ./deploy/Dockerfile.frontend
+  #   ports:
+  #     - "4200:4200"
+  #   networks:
+  #     - participaciones_net
+  #   depends_on:
+  #     - backend
+  #     - socket
 
   socket:
     restart: unless-stopped
