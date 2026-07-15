@@ -42,5 +42,16 @@ class AdminUserSeeder extends Seeder
         );
 
         $moderador->syncRoles(['moderador']);
+
+        $visualizador = User::updateOrCreate(
+            ['email' => 'visualizador@sistema.com'],
+            [
+                'name' => 'Visualizador General',
+                'password' => Hash::make('12345678'),
+                'baja' => 0,
+            ]
+        );
+
+        $visualizador->syncRoles(['visualizador']);
     }
 }
