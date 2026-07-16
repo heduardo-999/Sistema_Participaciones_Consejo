@@ -500,7 +500,6 @@ class QrAccessController extends Controller
     {
         $scheme = request()->getScheme();
         $host = request()->getHost();
-        $backendPort = request()->getPort();
         $frontendPort = trim((string) config('app.frontend_port', ''));
 
         $esLocal = in_array($host, ['localhost', '127.0.0.1', '::1'], true)
@@ -512,13 +511,9 @@ class QrAccessController extends Controller
             return $scheme . '://' . $host . ':' . $frontendPort;
         }
 
-        $url = $scheme . '://' . $host;
-
-        if ($backendPort && !in_array((int) $backendPort, [80, 443], true)) {
-            $url .= ':' . $backendPort;
-        }
-
-        return rtrim($url, '/');
+        // En producción usamos únicamente protocolo + dominio/IP pública,
+        // sin copiar el puerto interno del backend o del proxy.
+        return rtrim($scheme . '://' . $host, '/');
     }
 
     private function usuarioHistorialQr(): int

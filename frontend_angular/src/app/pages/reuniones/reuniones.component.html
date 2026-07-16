@@ -82,15 +82,15 @@
   </div>
 
   <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-5">
-    <div class="grid gap-3 lg:grid-cols-[1fr_220px_auto_auto]">
+    <div class="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(180px,220px)_auto_auto]">
       <input
-        class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+        class="block min-w-0 max-w-full w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm box-border outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
         placeholder="Buscar por sesión, fecha, estado u horario..."
         [(ngModel)]="q"
       />
 
       <select
-        class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+        class="block min-w-0 max-w-full w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm box-border outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
         [(ngModel)]="filtroStatus"
       >
         @for (estado of estados; track estado.value) {
@@ -265,7 +265,7 @@
   @if (modal) {
     <div class="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-950/60 p-4">
       <form
-        class="my-6 w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-6"
+        class="my-4 w-full min-w-0 max-w-2xl overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-6"
         (ngSubmit)="save()"
       >
         <div class="flex items-start justify-between gap-4">
@@ -288,14 +288,14 @@
           </button>
         </div>
 
-        <div class="mt-6 grid gap-4 md:grid-cols-2">
-          <label class="md:col-span-2">
+        <div class="mt-6 grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2">
+          <label class="block min-w-0 md:col-span-2">
             <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
               Nombre de la sesión
             </span>
 
             <input
-              class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              class="mt-1 block min-w-0 max-w-full w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm box-border outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               [(ngModel)]="form.sesion"
               name="sesion"
               required
@@ -303,7 +303,7 @@
             />
           </label>
 
-          <label>
+          <label class="block min-w-0">
             <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
               Fecha
             </span>
@@ -311,7 +311,8 @@
             <input
               #fechaInput
               type="date"
-              class="no-picker-icon mt-1 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              style="min-width:0; max-width:100%; color-scheme: light dark;"
+              class="no-picker-icon mt-1 block min-w-0 max-w-full w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm box-border outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               [(ngModel)]="form.fecha"
               name="fecha"
               required
@@ -320,13 +321,13 @@
             />
           </label>
 
-          <label>
+          <label class="block min-w-0">
             <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
               Estado
             </span>
 
             <select
-              class="mt-1 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              class="mt-1 block min-w-0 max-w-full w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm box-border outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               [(ngModel)]="form.status"
               name="status"
               required
@@ -339,7 +340,7 @@
             </select>
           </label>
 
-          <label>
+          <label class="block min-w-0">
             <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
               Hora inicio prevista
             </span>
@@ -347,7 +348,8 @@
             <input
               #horaInicioInput
               type="time"
-              class="no-picker-icon mt-1 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              style="min-width:0; max-width:100%; color-scheme: light dark;"
+              class="no-picker-icon mt-1 block min-w-0 max-w-full w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm box-border outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               [(ngModel)]="form.hora_inicio"
               name="hora_inicio"
               (click)="horaInicioInput.showPicker && horaInicioInput.showPicker()"
@@ -355,7 +357,7 @@
             />
           </label>
 
-          <label>
+          <label class="block min-w-0">
             <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
               Hora fin prevista
             </span>
@@ -363,7 +365,8 @@
             <input
               #horaFinInput
               type="time"
-              class="no-picker-icon mt-1 w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              style="min-width:0; max-width:100%; color-scheme: light dark;"
+              class="no-picker-icon mt-1 block min-w-0 max-w-full w-full cursor-pointer rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm box-border outline-none focus:border-rose-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               [(ngModel)]="form.hora_fin"
               name="hora_fin"
               (click)="horaFinInput.showPicker && horaFinInput.showPicker()"
@@ -395,7 +398,7 @@
 
   @if (detalleModal && detalleReunion) {
     <div class="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-950/60 p-4">
-      <div class="my-6 max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-6">
+      <div class="my-4 max-h-[92svh] w-full min-w-0 max-w-6xl overflow-x-hidden overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-6">
         <div class="flex items-start justify-between gap-4">
           <div class="min-w-0">
             <p class="text-sm font-black uppercase tracking-widest text-blue-600 dark:text-blue-400">
@@ -558,7 +561,7 @@
 
   @if (votacionesModal && reunionVotaciones) {
     <div class="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-950/60 p-4">
-      <div class="my-6 max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-6">
+      <div class="my-4 max-h-[92svh] w-full min-w-0 max-w-6xl overflow-x-hidden overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-6">
         <div class="flex items-start justify-between gap-4">
           <div class="min-w-0">
             <p class="text-sm font-black uppercase tracking-widest text-indigo-600 dark:text-indigo-400">
@@ -671,7 +674,7 @@
 
   @if (participantesModal && reunionParticipantes) {
     <div class="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-950/60 p-4">
-      <div class="my-6 max-h-[92vh] w-full max-w-6xl overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-6">
+      <div class="my-4 max-h-[92svh] w-full min-w-0 max-w-6xl overflow-x-hidden overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-6">
         <div class="flex items-start justify-between gap-4">
           <div class="min-w-0">
             <p class="text-sm font-black uppercase tracking-widest text-green-600 dark:text-green-400">
@@ -696,7 +699,7 @@
           </button>
         </div>
 
-        <div class="mt-6 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
+        <div class="mt-6 grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
           <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950">
             <h4 class="text-lg font-black text-slate-900 dark:text-white">
               Añadir participante
@@ -707,13 +710,13 @@
             </p>
 
             <form class="mt-5 space-y-4" (ngSubmit)="agregarParticipanteReunion()">
-              <label class="block">
+              <label class="block min-w-0">
                 <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
                   Tipo de participante
                 </span>
 
                 <select
-                  class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-green-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                  class="mt-1 block min-w-0 max-w-full w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm box-border outline-none focus:border-green-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                   [(ngModel)]="participanteForm.tipo"
                   name="tipoParticipante"
                   (ngModelChange)="participanteForm.miembro_id = ''; participanteForm.invitado_id = ''"
@@ -724,13 +727,13 @@
               </label>
 
               @if (participanteForm.tipo === 'miembro') {
-                <label class="block">
+                <label class="block min-w-0">
                   <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
                     Miembro
                   </span>
 
                   <select
-                    class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-green-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                    class="mt-1 block min-w-0 max-w-full w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm box-border outline-none focus:border-green-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                     [(ngModel)]="participanteForm.miembro_id"
                     name="miembroParticipante"
                   >
@@ -752,13 +755,13 @@
               }
 
               @if (participanteForm.tipo === 'invitado') {
-                <label class="block">
+                <label class="block min-w-0">
                   <span class="text-sm font-bold text-slate-700 dark:text-slate-300">
                     Invitado
                   </span>
 
                   <select
-                    class="mt-1 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-green-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+                    class="mt-1 block min-w-0 max-w-full w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm box-border outline-none focus:border-green-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
                     [(ngModel)]="participanteForm.invitado_id"
                     name="invitadoParticipante"
                   >
@@ -878,7 +881,7 @@
 
   @if (temasModal && reunionTemas) {
   <div class="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-slate-950/60 p-4">
-    <div class="my-6 max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-6">
+    <div class="my-4 max-h-[92svh] w-full min-w-0 max-w-5xl overflow-x-hidden overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-slate-900 sm:p-6">
       <div class="flex items-start justify-between gap-4">
         <div class="min-w-0">
           <p class="text-sm font-black uppercase tracking-widest text-purple-600 dark:text-purple-400">
@@ -940,9 +943,9 @@
           Agregar nuevo tema
         </h4>
 
-        <div class="mt-4 grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
+        <div class="mt-4 grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
           <input
-            class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-purple-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+            class="block min-w-0 max-w-full w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm box-border outline-none focus:border-purple-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
             placeholder="Ej. Manejo de horarios"
             [(ngModel)]="temaForm.titulo"
             name="tituloTema"
@@ -950,7 +953,7 @@
           />
 
           <input
-            class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-purple-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
+            class="block min-w-0 max-w-full w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm box-border outline-none focus:border-purple-500 dark:border-slate-700 dark:bg-slate-900 dark:text-white"
             placeholder="Descripción opcional"
             [(ngModel)]="temaForm.descripcion"
             name="descripcionTema"

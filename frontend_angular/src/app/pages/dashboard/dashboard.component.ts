@@ -76,6 +76,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   fechaActual = signal('');
   modoPresentacion = signal(false);
   sonidoHabilitado = signal(sessionStorage.getItem('sonidoDashboard') !== '0');
+  actualizandoDashboard = signal(false);
 
   private audioContext: AudioContext | null = null;
   private sonidoMarcadoresInicializados = false;
@@ -512,6 +513,23 @@ export class DashboardComponent implements OnInit, OnDestroy {
     return mapa[texto] || texto || 'Ocurrió un error inesperado.';
   }
 
+
+  async actualizarDashboardManual(): Promise<void> {
+    if (this.actualizandoDashboard()) return;
+
+    this.actualizandoDashboard.set(true);
+
+    try {
+      await this.cargarConfiguracionTiempos();
+      await this.loadData(false);
+      this.mostrarToast('Dashboard actualizado correctamente.', 'success');
+    } catch (error) {
+      console.error('Error actualizando Dashboard:', error);
+      this.mostrarToast('No se pudo actualizar el Dashboard.', 'error');
+    } finally {
+      this.actualizandoDashboard.set(false);
+    }
+  }
 
   async toggleSonido(): Promise<void> {
     const nuevoEstado = !this.sonidoHabilitado();
@@ -1738,6 +1756,14 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     if (!reunion?.id) {
       this.mostrarToast('No hay reunión seleccionada para terminar.', 'error');
+      return;
+    }
+
+    const confirmarTermino = confirm(
+      '¿Estás seguro de que deseas terminar la reunión? Esta acción cerrará la sesión activa.'
+    );
+
+    if (!confirmarTermino) {
       return;
     }
 

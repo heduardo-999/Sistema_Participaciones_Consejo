@@ -23,7 +23,7 @@ class DatabaseSeeder extends Seeder
             ParticipanteSeeder::class,
             IntervencionSeeder::class,
             HistorialSeeder::class,
-            LugarSeeder::class,
+            //LugarSeeder::class,
         ]);
     }
 }
