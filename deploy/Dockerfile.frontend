@@ -1,5 +1,22 @@
 # Dockerfile para Angular Frontend
-FROM node:20-alpine
+# FROM node:20-alpine
+
+# WORKDIR /app
+
+# COPY frontend_angular/package*.json ./
+# RUN npm install --legacy-peer-deps
+
+# COPY frontend_angular/ ./
+
+# EXPOSE 4200
+
+# CMD ["sh", "-c", "npx ng serve --host 0.0.0.0 --port 4200 --poll 2000"]
+
+
+# =========================
+# Stage 1: Build de Angular
+# =========================
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
@@ -7,7 +24,20 @@ COPY frontend_angular/package*.json ./
 RUN npm install --legacy-peer-deps
 
 COPY frontend_angular/ ./
+# Ejecuta la compilación para producción (ajusta el flag si usas otra configuración)
+RUN npm run build -- --configuration production
 
-EXPOSE 4200
+# =========================
+# Stage 2: Runtime con Nginx
+# =========================
+FROM nginx:alpine
 
-CMD ["sh", "-c", "npx ng serve --host 0.0.0.0 --port 4200 --poll 2000"]
+# Copiamos los archivos compilados de Angular al directorio web de Nginx
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# Copiamos la configuración personalizada de Nginx para el frontend
+COPY deploy/nginx.frontend.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]
