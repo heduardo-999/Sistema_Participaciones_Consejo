@@ -39,7 +39,7 @@ services:
   #     context: .
   #     dockerfile: ./deploy/Dockerfile.frontend
   #   ports:
-  #     - "9443:9443"
+  #     - "4200:4200"
   #   networks:
   #     - participaciones_net
   #   depends_on:
@@ -53,7 +53,7 @@ services:
       context: .
       dockerfile: ./deploy/Dockerfile.frontend
     ports:
-      - "9443:80"   # Mapea el puerto 9443 del host hacia el puerto 80 interno de Nginx
+      - "4200:80"   # Mapea el puerto 4200 del host hacia el puerto 80 interno de Nginx
     volumes:
       - /etc/letsencrypt/live/sacadem.esimecu.ipn.mx-0001/fullchain.pem:/etc/nginx/certs/fullchain.pem:ro
       - /etc/letsencrypt/live/sacadem.esimecu.ipn.mx-0001/privkey.pem:/etc/nginx/certs/privkey.pem:ro
