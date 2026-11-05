@@ -54,6 +54,9 @@ services:
       dockerfile: ./deploy/Dockerfile.frontend
     ports:
       - "4200:80"   # Mapea el puerto 4200 del host hacia el puerto 80 interno de Nginx
+    volumes:
+      - /etc/letsencrypt/live/sacadem.esimecu.ipn.mx-0001/fullchain.pem:/etc/nginx/certs/fullchain.pem:ro
+      - /etc/letsencrypt/live/sacadem.esimecu.ipn.mx-0001/privkey.pem:/etc/nginx/certs/privkey.pem:ro
     networks:
       - participaciones_net
     depends_on:
