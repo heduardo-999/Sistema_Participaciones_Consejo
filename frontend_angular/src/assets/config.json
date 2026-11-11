@@ -1,3 +1,7 @@
 [
-  "http://192.168.121.118:8000"
+  "http://localhost:8081/api",
+  "https://sistema_participaciones_consejo.test/backend_laravel/public/api",
+  "http://192.168.121.118:8000",
+  "https://${hostname}:9443/api"
+
 ]

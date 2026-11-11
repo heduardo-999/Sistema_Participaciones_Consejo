@@ -22,7 +22,9 @@ use App\Http\Controllers\Api\TemaReunionController;
 use App\Http\Controllers\Api\VotacionController;
 use App\Http\Controllers\Api\AccesoLugarController;
 use App\Http\Controllers\Api\ConfiguracionTiemposController;
+use Carbon\Carbon;
 
+Route::get('/login', [AuthController::class, 'showLoginForm']);
 Route::post('/login', [AuthController::class, 'login']);
 
 Route::post('/qr/validar', [QrAccessController::class, 'validar']);
@@ -133,4 +135,14 @@ Route::middleware(['auth:sanctum', 'CheckBaja'])->group(function () {
 
     Route::post('/reuniones/{id}/toggle-pausa-intervenciones', [ReunionController::class, 'togglePausaIntervenciones']);
     Route::post('/reuniones/{id}/toggle-intervenciones-automaticas', [ReunionController::class, 'toggleIntervencionesAutomaticas']);
+});
+
+Route::get('/time', function () {
+    $fecha = Carbon::now()->subHours(6);
+
+    return response()->json([
+        'timestamp' => $fecha->timestamp,
+        'datetime' => $fecha->toDateTimeString(),
+        'iso' => $fecha->toIso8601String(),
+    ]);
 });
